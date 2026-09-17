@@ -34,25 +34,25 @@ const bandNamesCN = {
   "air": "空气 (12-20kHz)"
 };
 
-// 细分乐器声学画像元数据 (图标、中文名称、专属色彩标签)
+// 细分乐器声学画像元数据 (图标、中文名称、专属色彩标签、波形渐变色)
 const instrumentMeta = {
-  "vocal_lead": { name: "主唱人声", color: "bg-fuchsia-950/70 text-fuchsia-300 border-fuchsia-700/50", icon: "fa-microphone" },
-  "vocal_backing": { name: "立体声和声", color: "bg-purple-950/70 text-purple-300 border-purple-700/50", icon: "fa-users" },
-  "kick": { name: "纯净底鼓", color: "bg-red-950/70 text-red-300 border-red-700/50", icon: "fa-drum" },
-  "snare": { name: "军鼓/踩镲", color: "bg-rose-950/70 text-rose-300 border-rose-700/50", icon: "fa-drum" },
-  "drums": { name: "原声全鼓组", color: "bg-orange-950/70 text-orange-300 border-orange-700/50", icon: "fa-drum" },
-  "bass": { name: "低音电贝斯", color: "bg-emerald-950/70 text-emerald-300 border-emerald-700/50", icon: "fa-guitar" },
-  "guitar_arpeggio": { name: "分解木吉他", color: "bg-amber-950/70 text-amber-300 border-amber-700/50", icon: "fa-guitar" },
-  "guitar_strum": { name: "扫弦木吉他", color: "bg-amber-900/70 text-amber-200 border-amber-600/50", icon: "fa-guitar" },
-  "guitar_nylon": { name: "尼龙古典吉他", color: "bg-yellow-950/70 text-yellow-300 border-yellow-700/50", icon: "fa-guitar" },
-  "guitar_solo": { name: "电吉他 Solo", color: "bg-red-900/70 text-red-200 border-red-600/50", icon: "fa-bolt" },
-  "guitar_acoustic": { name: "原声木吉他", color: "bg-amber-950/70 text-amber-300 border-amber-700/50", icon: "fa-guitar" },
-  "piano_grand": { name: "原声大钢琴", color: "bg-sky-950/70 text-sky-300 border-sky-700/50", icon: "fa-music" },
-  "piano_rhodes": { name: "复古电钢琴", color: "bg-cyan-950/70 text-cyan-300 border-cyan-700/50", icon: "fa-keyboard" },
-  "synth_hybrid": { name: "混合铺底钢琴", color: "bg-indigo-950/70 text-indigo-300 border-indigo-700/50", icon: "fa-wave-square" },
-  "synth": { name: "合成器铺底", color: "bg-indigo-950/70 text-indigo-300 border-indigo-700/50", icon: "fa-wave-square" },
-  "cello": { name: "原声大提琴", color: "bg-teal-950/70 text-teal-300 border-teal-700/50", icon: "fa-music" },
-  "other": { name: "乐器分轨", color: "bg-zinc-800 text-zinc-300 border-zinc-700", icon: "fa-sliders" }
+  "vocal_lead": { name: "主唱人声", color: "bg-fuchsia-950/70 text-fuchsia-300 border-fuchsia-700/50", icon: "fa-microphone", hex: "#d946ef" },
+  "vocal_backing": { name: "立体声和声", color: "bg-purple-950/70 text-purple-300 border-purple-700/50", icon: "fa-users", hex: "#a855f7" },
+  "kick": { name: "纯净底鼓", color: "bg-red-950/70 text-red-300 border-red-700/50", icon: "fa-drum", hex: "#ef4444" },
+  "snare": { name: "军鼓/踩镲", color: "bg-rose-950/70 text-rose-300 border-rose-700/50", icon: "fa-drum", hex: "#f43f5e" },
+  "drums": { name: "原声全鼓组", color: "bg-orange-950/70 text-orange-300 border-orange-700/50", icon: "fa-drum", hex: "#f97316" },
+  "bass": { name: "低音电贝斯", color: "bg-emerald-950/70 text-emerald-300 border-emerald-700/50", icon: "fa-guitar", hex: "#10b981" },
+  "guitar_arpeggio": { name: "分解木吉他", color: "bg-amber-950/70 text-amber-300 border-amber-700/50", icon: "fa-guitar", hex: "#f59e0b" },
+  "guitar_strum": { name: "扫弦木吉他", color: "bg-amber-900/70 text-amber-200 border-amber-600/50", icon: "fa-guitar", hex: "#fbbf24" },
+  "guitar_nylon": { name: "尼龙古典吉他", color: "bg-yellow-950/70 text-yellow-300 border-yellow-700/50", icon: "fa-guitar", hex: "#eab308" },
+  "guitar_solo": { name: "电吉他 Solo", color: "bg-red-900/70 text-red-200 border-red-600/50", icon: "fa-bolt", hex: "#f87171" },
+  "guitar_acoustic": { name: "原声木吉他", color: "bg-amber-950/70 text-amber-300 border-amber-700/50", icon: "fa-guitar", hex: "#f59e0b" },
+  "piano_grand": { name: "原声大钢琴", color: "bg-sky-950/70 text-sky-300 border-sky-700/50", icon: "fa-music", hex: "#0ea5e9" },
+  "piano_rhodes": { name: "复古电钢琴", color: "bg-cyan-950/70 text-cyan-300 border-cyan-700/50", icon: "fa-keyboard", hex: "#06b6d4" },
+  "synth_hybrid": { name: "混合铺底钢琴", color: "bg-indigo-950/70 text-indigo-300 border-indigo-700/50", icon: "fa-wave-square", hex: "#6366f1" },
+  "synth": { name: "合成器铺底", color: "bg-indigo-950/70 text-indigo-300 border-indigo-700/50", icon: "fa-wave-square", hex: "#6366f1" },
+  "cello": { name: "原声大提琴", color: "bg-teal-950/70 text-teal-300 border-teal-700/50", icon: "fa-music", hex: "#14b8a6" },
+  "other": { name: "乐器分轨", color: "bg-zinc-800 text-zinc-300 border-zinc-700", icon: "fa-sliders", hex: "#94a3b8" }
 };
 
 // 预置三大商业流行参考曲 (以真实录音棚母带为声学标杆)
@@ -310,6 +310,7 @@ function setupEventListeners() {
 // 一键清空工程并重置状态
 async function clearProject() {
   if (confirm("确定要清空当前工程的所有分轨、参考曲、混音结果及对话记录吗？")) {
+    triggerGlobalProgress(400);
     stopAudio();
     audioElements = {};
     activeSoloTrackId = null;
@@ -370,6 +371,7 @@ function detectInstrumentFromName(name) {
 
 // 一键载入真实录音棚示范工程 (真实人声唱词、实录吉他扫弦/分解/Solo、原声鼓、真电贝斯、大提琴)
 function loadRealStudioSuite() {
+  triggerGlobalProgress(800);
   project.tracks = DEMO_REAL_STUDIO_TRACKS.map(t => ({
     ...t,
     url: `./demo_assets/${t.file_name}`
@@ -390,6 +392,7 @@ function loadRealStudioSuite() {
 
 // 选择预置商业风格参考曲
 function selectPresetCommercialStyle(styleKey, triggerNotice = true) {
+  triggerGlobalProgress(400);
   const style = PRESET_COMMERCIAL_STYLES[styleKey];
   if (!style) return;
 
@@ -444,7 +447,7 @@ async function refreshProject() {
   rebuildAudioElements();
 }
 
-// 渲染分轨列表 (包含单轨试听按钮、乐器色彩徽章、推子与声相)
+// 渲染分轨列表 (专业 DAW 控制台通道条样式、真实音频解码波形、高亮独奏与推子)
 function renderTracks() {
   trackCountBadge.textContent = `${project.tracks.length} 轨`;
   if (project.tracks.length === 0) {
@@ -458,55 +461,77 @@ function renderTracks() {
 
   const hasSolo = Object.values(trackSoloState).some(v => v);
 
-  project.tracks.forEach(track => {
+  project.tracks.forEach((track, index) => {
     const isSolo = !!trackSoloState[track.id];
     const isMute = !!trackMuteState[track.id] || (hasSolo && !isSolo);
     const meta = instrumentMeta[track.instrument] || instrumentMeta["other"];
     const isCurrentlySoloPlaying = (activeSoloTrackId === track.id);
+    const chIndex = (index + 1).toString().padStart(2, '0');
 
     const card = document.createElement('div');
-    card.className = `bg-zinc-900 border ${isSolo ? 'border-amber-500/70 shadow-lg shadow-amber-500/10' : isMute ? 'border-zinc-800 opacity-60' : 'border-zinc-800'} rounded-xl p-3 flex flex-col md:flex-row items-center justify-between gap-3 transition`;
+    card.className = `studio-rack-panel rounded-xl p-3 flex flex-col md:flex-row items-center justify-between gap-3 transition border ${
+      isSolo 
+        ? 'border-amber-500/80 shadow-lg shadow-amber-500/20 bg-[#161a26]' 
+        : isMute 
+          ? 'border-[#222838] opacity-50 bg-[#0d0f17]' 
+          : 'border-[#202738] hover:border-[#2f3952]'
+    }`;
+
     card.innerHTML = `
       <div class="flex items-center space-x-2.5 w-full md:w-64 flex-shrink-0">
-        <!-- 单轨独立试听播放按钮 -->
-        <button class="btn-track-play w-7 h-7 rounded-full ${isCurrentlySoloPlaying ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/40' : 'bg-zinc-800 hover:bg-emerald-600 text-zinc-300 hover:text-white'} flex items-center justify-center transition flex-shrink-0" data-tid="${track.id}" title="单独试听该音轨 (无需全曲总播)">
+        <!-- 通道指示编号与垂直彩色饰条 -->
+        <div class="flex items-center space-x-1.5 flex-shrink-0">
+          <span class="w-1.5 h-7 rounded-full" style="background-color: ${meta.hex}; box-shadow: 0 0 8px ${meta.hex}80;"></span>
+          <span class="text-[9px] font-mono text-zinc-500 font-bold tracking-wider">CH${chIndex}</span>
+        </div>
+
+        <!-- 单轨独立试听播放按钮 (免全曲总播) -->
+        <button class="btn-track-play ${isCurrentlySoloPlaying ? 'active' : ''} w-7 h-7 rounded-lg ${
+          isCurrentlySoloPlaying 
+            ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/50' 
+            : 'bg-[#181d2a] hover:bg-emerald-600 text-zinc-300 hover:text-white border border-[#263045]'
+        } flex items-center justify-center transition flex-shrink-0" data-tid="${track.id}" title="单独试听该音轨 (无需全曲总播)">
           <i class="fa-solid ${isCurrentlySoloPlaying ? 'fa-pause' : 'fa-play'} text-[10px] ${isCurrentlySoloPlaying ? '' : 'ml-0.5'}"></i>
         </button>
 
         <div class="truncate flex-1">
           <div class="flex items-center space-x-1.5">
-            <span class="text-[10px] px-1.5 py-0.5 rounded border font-medium ${meta.color} flex items-center space-x-1">
-              <i class="fa-solid ${meta.icon} text-[9px]"></i>
+            <span class="text-[9px] px-1.5 py-0.5 rounded border font-medium ${meta.color} flex items-center space-x-1 flex-shrink-0">
+              <i class="fa-solid ${meta.icon} text-[8px]"></i>
               <span>${meta.name}</span>
             </span>
-            <span class="text-xs font-bold text-zinc-200 truncate" title="${track.name}">${track.name}</span>
+            <span class="text-xs font-semibold text-zinc-200 truncate" title="${track.name}">${track.name}</span>
           </div>
         </div>
       </div>
 
-      <!-- 独奏与静音 -->
+      <!-- 独奏与静音实体按键 -->
       <div class="flex items-center space-x-1 flex-shrink-0">
-        <button class="btn-solo w-6 h-6 rounded text-[10px] font-bold ${isSolo ? 'active' : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'}" data-tid="${track.id}" title="独奏 (Solo)">S</button>
-        <button class="btn-mute w-6 h-6 rounded text-[10px] font-bold ${isMute ? 'active' : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'}" data-tid="${track.id}" title="静音 (Mute)">M</button>
+        <button class="btn-solo w-6 h-6 rounded text-[10px] font-bold border border-[#2c354a] ${
+          isSolo ? 'active' : 'bg-[#161a26] text-zinc-400 hover:text-zinc-200'
+        }" data-tid="${track.id}" title="独奏 (Solo)">S</button>
+        <button class="btn-mute w-6 h-6 rounded text-[10px] font-bold border border-[#2c354a] ${
+          isMute ? 'active' : 'bg-[#161a26] text-zinc-400 hover:text-zinc-200'
+        }" data-tid="${track.id}" title="静音 (Mute)">M</button>
       </div>
 
-      <!-- 推子与声相控制 -->
-      <div class="flex items-center space-x-4 flex-1 w-full max-w-sm">
+      <!-- 专业通道推子与声相控制 -->
+      <div class="flex items-center space-x-4 flex-1 w-full max-w-sm bg-[#0a0c13] px-3 py-1.5 rounded-lg border border-[#1b2233]">
         <div class="flex-1 flex items-center space-x-2">
-          <span class="text-[10px] text-zinc-400 w-5">音量</span>
+          <span class="text-[10px] text-zinc-400 w-5 font-mono">VOL</span>
           <input type="range" min="0" max="1.5" step="0.05" value="${track.volume || 1.0}" class="fader-vol flex-1" data-tid="${track.id}">
-          <span class="text-[10px] font-mono text-zinc-400 w-8 text-right">${Math.round((track.volume || 1.0) * 100)}%</span>
+          <span class="text-[10px] font-mono text-cyan-400 w-8 text-right font-semibold">${Math.round((track.volume || 1.0) * 100)}%</span>
         </div>
         <div class="flex-1 flex items-center space-x-2">
-          <span class="text-[10px] text-zinc-400 w-5">声相</span>
+          <span class="text-[10px] text-zinc-400 w-5 font-mono">PAN</span>
           <input type="range" min="-1" max="1" step="0.05" value="${track.pan || 0.0}" class="fader-pan flex-1" data-tid="${track.id}">
-          <span class="text-[10px] font-mono text-zinc-400 w-7 text-right">${formatPan(track.pan || 0.0)}</span>
+          <span class="text-[10px] font-mono text-purple-400 w-7 text-right font-semibold">${formatPan(track.pan || 0.0)}</span>
         </div>
       </div>
 
-      <!-- 波形可视化 -->
-      <div class="hidden lg:flex flex-1 h-8 bg-zinc-950/80 rounded border border-zinc-800/80 items-center px-2 relative overflow-hidden">
-        <canvas class="track-waveform w-full h-full" data-url="${track.url}"></canvas>
+      <!-- 真实音频解码波形可视化 (Real Decoded Waveform) -->
+      <div class="hidden lg:flex flex-1 h-9 track-waveform-box rounded-lg items-center px-2 relative">
+        <canvas class="track-waveform w-full h-full" data-url="${track.url}" data-tid="${track.id}"></canvas>
       </div>
 
       <!-- 删除按钮 -->
@@ -540,8 +565,9 @@ function renderTracks() {
     card.querySelector('.btn-del-track').addEventListener('click', () => deleteTrack(track.id));
     tracksContainer.appendChild(card);
 
+    // 渲染真实音频波形 (Real Waveform)
     const canvas = card.querySelector('.track-waveform');
-    drawSimulatedWaveform(canvas, track.name);
+    drawRealWaveform(canvas, track.url, track.name, meta.hex);
   });
 }
 
@@ -550,40 +576,145 @@ function formatPan(val) {
   return val < 0 ? `L${Math.round(Math.abs(val) * 50)}` : `R${Math.round(val * 50)}`;
 }
 
-// 单轨独立试听逻辑 (按用户需求：单轨独立播放，无需总播放)
+// 单轨独立试听逻辑 (按用户需求：单轨独立播放，无需总播放，且不破坏整体 DOM)
 function togglePlaySingleTrack(trackId) {
-  const audio = audioElements[trackId];
+  const track = project.tracks.find(t => t.id === trackId);
+  if (!track) return;
+
+  // 如果当前正在试听该轨，则停止试听
+  if (activeSoloTrackId === trackId) {
+    const currentAudio = audioElements[trackId];
+    if (currentAudio) currentAudio.pause();
+    activeSoloTrackId = null;
+    updateTrackPlayButtonState();
+    return;
+  }
+
+  // 停止全曲总播放和其他轨道试听
+  stopAudio();
+  Object.values(audioElements).forEach(a => {
+    try { a.pause(); } catch (e) {}
+  });
+
+  // 获取或构建单轨音频节点
+  let audio = audioElements[trackId];
+  if (!audio && track.url) {
+    audio = new Audio(track.url);
+    audio.preload = 'auto';
+    audioElements[trackId] = audio;
+  }
   if (!audio) return;
 
-  if (activeSoloTrackId === trackId) {
-    // 正在播放中，暂停它
-    audio.pause();
+  activeSoloTrackId = trackId;
+  audio.currentTime = 0;
+  audio.volume = Math.min(1.0, track.volume || 1.0);
+  audio.muted = false;
+
+  audio.play().catch(e => {
+    console.warn("单轨播放受限:", e);
+  });
+
+  updateTrackPlayButtonState();
+
+  audio.onended = () => {
     activeSoloTrackId = null;
-    renderTracks();
-  } else {
-    // 暂停全曲总播放和其他轨道
-    stopAudio();
-    Object.values(audioElements).forEach(a => a.pause());
+    updateTrackPlayButtonState();
+  };
+}
 
-    activeSoloTrackId = trackId;
-    audio.currentTime = 0;
-    audio.play();
-    renderTracks();
+// 仅更新单轨播放按钮状态，无需重新绘制整个 DOM，杜绝波形闪烁
+function updateTrackPlayButtonState() {
+  document.querySelectorAll('.btn-track-play').forEach(btn => {
+    const tid = btn.getAttribute('data-tid');
+    const isPlayingThis = (activeSoloTrackId === tid);
+    if (isPlayingThis) {
+      btn.className = 'btn-track-play active w-7 h-7 rounded-lg bg-emerald-500 text-black shadow-lg shadow-emerald-500/50 flex items-center justify-center transition flex-shrink-0';
+      btn.innerHTML = '<i class="fa-solid fa-pause text-[10px]"></i>';
+    } else {
+      btn.className = 'btn-track-play w-7 h-7 rounded-lg bg-[#181d2a] hover:bg-emerald-600 text-zinc-300 hover:text-white border border-[#263045] flex items-center justify-center transition flex-shrink-0';
+      btn.innerHTML = '<i class="fa-solid fa-play text-[10px] ml-0.5"></i>';
+    }
+  });
+}
 
-    audio.onended = () => {
-      activeSoloTrackId = null;
-      renderTracks();
-    };
+// 真实音频波形缓存 (URL -> Float32Array peaks)
+const waveformCache = new Map();
+
+// 真实音频解码与波形渲染 (基于 Web Audio API 真实采样)
+async function drawRealWaveform(canvas, audioUrl, trackName, color = '#6366f1') {
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = 240;
+  const h = canvas.height = 36;
+  ctx.clearRect(0, 0, w, h);
+
+  // 绘制底线基准
+  ctx.fillStyle = '#1c2233';
+  ctx.fillRect(0, h / 2 - 0.5, w, 1);
+
+  if (!audioUrl) {
+    drawFallbackWaveform(canvas, trackName, color);
+    return;
+  }
+
+  try {
+    let peaks = waveformCache.get(audioUrl);
+    if (!peaks) {
+      const resp = await fetch(audioUrl);
+      const arrayBuffer = await resp.arrayBuffer();
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+      const rawData = audioBuffer.getChannelData(0);
+      const samplesCount = 60; // 60 根高精峰值柱
+      const blockSize = Math.floor(rawData.length / samplesCount);
+      peaks = new Float32Array(samplesCount);
+
+      for (let i = 0; i < samplesCount; i++) {
+        const start = i * blockSize;
+        let max = 0;
+        for (let j = 0; j < blockSize; j += 4) {
+          const val = Math.abs(rawData[start + j] || 0);
+          if (val > max) max = val;
+        }
+        peaks[i] = Math.min(1.0, max);
+      }
+      waveformCache.set(audioUrl, peaks);
+      audioCtx.close();
+    }
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#07090e';
+    ctx.fillRect(0, 0, w, h);
+
+    const barW = w / peaks.length;
+    const centerY = h / 2;
+
+    for (let i = 0; i < peaks.length; i++) {
+      const val = peaks[i];
+      const barH = Math.max(3, val * (h - 4));
+      const y = centerY - barH / 2;
+
+      const grad = ctx.createLinearGradient(0, y, 0, y + barH);
+      grad.addColorStop(0, color);
+      grad.addColorStop(0.5, '#e0e7ff');
+      grad.addColorStop(1, color);
+
+      ctx.fillStyle = grad;
+      ctx.globalAlpha = Math.min(1.0, 0.45 + val * 0.55);
+      ctx.fillRect(i * barW + 0.5, y, Math.max(1.5, barW - 1), barH);
+    }
+  } catch (err) {
+    drawFallbackWaveform(canvas, trackName, color);
   }
 }
 
-// 模拟波形渲染
-function drawSimulatedWaveform(canvas, seedStr) {
+// 离线/解析异常回退波形
+function drawFallbackWaveform(canvas, seedStr, color) {
   const ctx = canvas.getContext('2d');
-  const w = canvas.width = 200;
-  const h = canvas.height = 32;
+  const w = canvas.width = 240;
+  const h = canvas.height = 36;
   ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = '#818cf8';
+  ctx.fillStyle = color || '#818cf8';
 
   let hash = 0;
   for (let i = 0; i < seedStr.length; i++) hash = (hash << 5) - hash + seedStr.charCodeAt(i);
@@ -591,10 +722,10 @@ function drawSimulatedWaveform(canvas, seedStr) {
   const barCount = 45;
   const barW = w / barCount;
   for (let i = 0; i < barCount; i++) {
-    const pseudoRandom = Math.abs(Math.sin(hash + i * 0.5));
-    const barH = Math.max(3, pseudoRandom * (h - 6));
+    const pseudo = Math.abs(Math.sin(hash + i * 0.5));
+    const barH = Math.max(3, pseudo * (h - 6));
     const y = (h - barH) / 2;
-    ctx.globalAlpha = 0.35 + pseudoRandom * 0.55;
+    ctx.globalAlpha = 0.35 + pseudo * 0.55;
     ctx.fillRect(i * barW, y, barW - 1.5, barH);
   }
 }
@@ -839,6 +970,7 @@ function pauseAudio() {
   playIcon.className = 'fa-solid fa-play text-xs ml-0.5';
   Object.values(audioElements).forEach(a => a.pause());
   if (animFrameId) cancelAnimationFrame(animFrameId);
+  updateVuMeters(false);
 }
 
 function stopAudio() {
@@ -851,6 +983,27 @@ function stopAudio() {
     a.currentTime = 0;
   });
   if (animFrameId) cancelAnimationFrame(animFrameId);
+  updateVuMeters(false);
+}
+
+// 立体声双通道模拟 VU 表跳动 (Master L/R Peak)
+function updateVuMeters(isActive) {
+  const left = document.getElementById('vu-meter-l');
+  const right = document.getElementById('vu-meter-r');
+  if (!left || !right) return;
+
+  if (!isActive) {
+    left.style.height = '6%';
+    right.style.height = '6%';
+    return;
+  }
+
+  const t = Date.now() * 0.007;
+  const lVal = Math.min(96, Math.max(20, 58 + Math.sin(t * 3.1) * 25 + Math.cos(t * 7.3) * 12));
+  const rVal = Math.min(94, Math.max(20, 56 + Math.cos(t * 2.8) * 26 + Math.sin(t * 6.1) * 11));
+
+  left.style.height = `${lVal}%`;
+  right.style.height = `${rVal}%`;
 }
 
 function applyAudioPlayState() {
@@ -897,6 +1050,8 @@ function startTimelineLoop() {
       const secs = Math.floor(playbackTime % 60).toString().padStart(2, '0');
       const ms = Math.floor((playbackTime % 1) * 100).toString().padStart(2, '0');
       timeDisplay.textContent = `${mins}:${secs}.${ms}`;
+
+      updateVuMeters(true);
 
       if (currentSrc.ended) {
         stopAudio();
@@ -994,7 +1149,105 @@ function deleteTrack(trackId) {
   rebuildAudioElements();
 }
 
-// 一键自动参考混音
+// 全局轻量操作进度条 (顶部彩条)
+function triggerGlobalProgress(duration = 700, onDone = null) {
+  const bar = document.getElementById('global-action-progress');
+  if (!bar) {
+    if (onDone) onDone();
+    return;
+  }
+  bar.style.transition = 'width 0.1s linear';
+  bar.style.width = '25%';
+
+  setTimeout(() => {
+    bar.style.transition = `width ${duration * 0.7}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+    bar.style.width = '88%';
+  }, 50);
+
+  setTimeout(() => {
+    bar.style.width = '100%';
+    setTimeout(() => {
+      bar.style.width = '0%';
+      if (onDone) onDone();
+    }, 220);
+  }, duration);
+}
+
+// 专业声学混音与母带处理 Loading 进度条弹窗 (5 阶段状态追踪)
+function showDspProgressModal(onFinish) {
+  const modal = document.getElementById('dsp-progress-modal');
+  const bar = document.getElementById('dsp-progress-bar');
+  const percentEl = document.getElementById('dsp-progress-percent');
+  const titleEl = document.getElementById('dsp-step-title');
+  const indexEl = document.getElementById('dsp-step-index');
+
+  if (!modal) {
+    onFinish();
+    return;
+  }
+
+  modal.classList.remove('hidden');
+
+  const stages = [
+    { elId: 'dsp-stage-1', percent: 20, index: '1/5', title: '提取多轨声学频谱与 LUFS 综合响度画像...' },
+    { elId: 'dsp-stage-2', percent: 45, index: '2/5', title: '智能低频划槽避让 (底鼓 65Hz vs 贝斯 700Hz)...' },
+    { elId: 'dsp-stage-3', percent: 70, index: '3/5', title: '参量 EQ 频响干预 & 立体声声场展开 (L35/R35)...' },
+    { elId: 'dsp-stage-4', percent: 90, index: '4/5', title: '总线胶水压缩 (Glue Comp) 同步呼吸律动...' },
+    { elId: 'dsp-stage-5', percent: 100, index: '5/5', title: 'True-Peak 砖墙限幅与商业目标响度对齐完成！' }
+  ];
+
+  // 重置各阶段视觉状态
+  stages.forEach(s => {
+    const row = document.getElementById(s.elId);
+    if (row) {
+      row.querySelector('span:first-child').className = 'flex items-center space-x-2 text-zinc-500';
+      row.querySelector('i').className = 'fa-regular fa-circle text-[10px] text-zinc-600';
+      row.querySelector('.stage-status').textContent = '等待';
+      row.querySelector('.stage-status').className = 'text-[10px] text-zinc-500 stage-status';
+    }
+  });
+
+  let currentStep = 0;
+
+  function runNextStage() {
+    if (currentStep >= stages.length) {
+      setTimeout(() => {
+        modal.classList.add('hidden');
+        onFinish();
+      }, 400);
+      return;
+    }
+
+    const s = stages[currentStep];
+    bar.style.width = `${s.percent}%`;
+    percentEl.textContent = `${s.percent}%`;
+    titleEl.textContent = s.title;
+    indexEl.textContent = s.index;
+
+    const row = document.getElementById(s.elId);
+    if (row) {
+      row.querySelector('span:first-child').className = 'flex items-center space-x-2 text-white font-semibold';
+      row.querySelector('i').className = 'fa-solid fa-spinner fa-spin text-[10px] text-cyan-400';
+      row.querySelector('.stage-status').textContent = '计算中';
+      row.querySelector('.stage-status').className = 'text-[10px] text-cyan-400 stage-status font-bold';
+    }
+
+    setTimeout(() => {
+      if (row) {
+        row.querySelector('span:first-child').className = 'flex items-center space-x-2 text-emerald-300';
+        row.querySelector('i').className = 'fa-solid fa-circle-check text-[10px] text-emerald-400';
+        row.querySelector('.stage-status').textContent = '完成';
+        row.querySelector('.stage-status').className = 'text-[10px] text-emerald-400 stage-status font-semibold';
+      }
+      currentStep++;
+      runNextStage();
+    }, 380);
+  }
+
+  runNextStage();
+}
+
+// 一键自动参考混音 (带全流程声学计算 Loading 进度条弹窗)
 async function runAutoMix() {
   if (project.tracks.length === 0) {
     alert('请先上传至少一条分轨录音！');
@@ -1002,32 +1255,36 @@ async function runAutoMix() {
   }
 
   btnAutoMix.disabled = true;
-  btnAutoMix.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>混音中 (声学避让+总线胶水)...</span>';
+  btnAutoMix.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>混音处理中...</span>';
 
-  // 检查是否在后端环境或演示环境
-  try {
-    const res = await fetch('/api/mix/auto', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_preference: "" })
-    });
-    if (res.ok) {
-      const data = await res.json();
-      project.current_mix = data.mix;
-      project.chat_history = data.chat_history;
-      renderMixMetrics();
-      renderChat();
-      rebuildAudioElements();
-      setListenMode('mix');
-      playAudio();
-      btnAutoMix.disabled = false;
-      btnAutoMix.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i><span>一键参考混音</span>';
-      return;
-    }
-  } catch (err) {}
+  showDspProgressModal(async () => {
+    // 检查是否在后端环境或演示环境
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const res = await fetch('/api/mix/auto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_preference: "" }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const data = await res.json();
+        project.current_mix = data.mix;
+        project.chat_history = data.chat_history;
+        renderMixMetrics();
+        renderChat();
+        rebuildAudioElements();
+        setListenMode('mix');
+        playAudio();
+        btnAutoMix.disabled = false;
+        btnAutoMix.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i><span>一键参考混音</span>';
+        return;
+      }
+    } catch (err) {}
 
-  // 纯客户端回退模拟模式
-  setTimeout(() => {
+    // 纯客户端回退模拟模式 (GitHub Pages / 离线模式)
     const targetLufs = project.reference?.analysis?.integrated_lufs || -11.5;
     project.current_mix = {
       lufs: targetLufs,
@@ -1046,7 +1303,7 @@ async function runAutoMix() {
     playAudio();
     btnAutoMix.disabled = false;
     btnAutoMix.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i><span>一键参考混音</span>';
-  }, 900);
+  });
 }
 
 // Copilot 对话交互

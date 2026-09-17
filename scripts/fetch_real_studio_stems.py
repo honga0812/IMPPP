@@ -8,63 +8,63 @@ STEM_SOURCES = [
         "url": "https://archive.org/download/instrumental_201607/stem%20vocals.mp3",
         "output_name": "01_Real_Lead_Vocal.wav",
         "instrument": "vocal_lead",
-        "start": 10.0,
+        "start": 35.0,
         "duration": 16.0
     },
     {
         "url": "https://archive.org/download/jamendo-184200/14-1644435-Kamil%20Muzyk%20_Howarang%20Van%20K_-Guitar%20Strum.mp3",
         "output_name": "02_Real_Acoustic_Guitar_Strum.wav",
         "instrument": "guitar_strum",
-        "start": 0.0,
+        "start": 135.0,
         "duration": 16.0
     },
     {
         "url": "https://archive.org/download/jamendo-184200/18-1644444-Kamil%20Muzyk%20_Howarang%20Van%20K_-Electric%20Guitar%20Chords.mp3",
         "output_name": "03_Real_Electric_Guitar_Solo.wav",
         "instrument": "guitar_solo",
-        "start": 2.0,
+        "start": 235.0,
         "duration": 16.0
     },
     {
         "url": "https://archive.org/download/jamendo-184200/11-1643787-Kamil%20Muzyk%20_Howarang%20Van%20K_-Guitar%20Rhythm.mp3",
         "output_name": "04_Real_Acoustic_Guitar_Rhythm.wav",
         "instrument": "guitar_arpeggio",
-        "start": 0.0,
+        "start": 125.0,
         "duration": 16.0
     },
     {
         "url": "https://archive.org/download/instrumental_201607/stem%20drum.mp3",
         "output_name": "05_Real_Studio_Drums.wav",
         "instrument": "drums",
-        "start": 10.0,
+        "start": 35.0,
         "duration": 16.0
     },
     {
         "url": "https://archive.org/download/instrumental_201607/stem%20bass.mp3",
         "output_name": "06_Real_Electric_Bass.wav",
         "instrument": "bass",
-        "start": 10.0,
+        "start": 35.0,
         "duration": 16.0
     },
     {
         "url": "https://archive.org/download/instrumental_201607/stem%20keys.mp3",
         "output_name": "07_Real_Rhodes_Keys.wav",
         "instrument": "piano_rhodes",
-        "start": 10.0,
+        "start": 35.0,
         "duration": 16.0
     },
     {
         "url": "https://archive.org/download/jamendo-184200/16-1644438-Kamil%20Muzyk%20_Howarang%20Van%20K_-Cello.mp3",
         "output_name": "08_Real_Acoustic_Cello.wav",
         "instrument": "synth",
-        "start": 0.0,
+        "start": 25.0,
         "duration": 16.0
     },
     {
         "url": "https://archive.org/download/instrumental_201607/mix.mp3",
         "output_name": "Ref_Real_Commercial_Pop.wav",
         "instrument": "other",
-        "start": 10.0,
+        "start": 35.0,
         "duration": 16.0
     }
 ]

@@ -1,20 +1,87 @@
-/* 专业 DAW 界面细节修饰 */
+/* ==========================================================================
+   Smart Mixing Studio - Professional Audio Workstation (DAW) Aesthetics
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --studio-bg: #0b0d13;
+  --rack-surface: #131620;
+  --rack-border: #22283a;
+  --rack-highlight: #2f374e;
+  --cyan-led: #00f2fe;
+  --amber-led: #f59e0b;
+  --purple-led: #a855f7;
+  --emerald-led: #10b981;
+  --danger-led: #ef4444;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--studio-bg);
+  color: #e2e8f0;
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.08) 0%, transparent 60%),
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 100% 100%, 32px 32px, 32px 32px;
+}
+
+/* 专业滚动条 */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(24, 24, 27, 0.5);
+  background: rgba(11, 13, 19, 0.8);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(63, 63, 70, 0.8);
+  background: #2a3144;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.6);
+  background: #4f46e5;
 }
 
-/* 推子与滑块样式 */
+/* 机架暗色面板修饰 */
+.studio-rack-panel {
+  background: linear-gradient(180deg, #161924 0%, #11141d 100%);
+  border: 1px solid #232a3d;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* 走带控制台液晶表头 LCD Display */
+.lcd-screen {
+  background: #06080d;
+  border: 1px solid #1a2233;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.9);
+  font-family: 'JetBrains Mono', monospace;
+}
+.lcd-text {
+  color: #00f2fe;
+  text-shadow: 0 0 10px rgba(0, 242, 254, 0.65);
+}
+
+/* 立体声双通道 LED 电平表 (Dual Channel VU Meter) */
+.vu-meter-bar {
+  width: 4px;
+  height: 24px;
+  background: #090c14;
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column-reverse;
+  border: 1px solid #1c2438;
+}
+.vu-meter-fill {
+  width: 100%;
+  background: linear-gradient(to top, #10b981 60%, #f59e0b 85%, #ef4444 100%);
+  border-radius: 1px;
+  transition: height 0.08s ease-out;
+}
+
+/* 专业通道条推子与声相旋钮 */
 input[type=range] {
   -webkit-appearance: none;
   background: transparent;
@@ -24,59 +91,99 @@ input[type=range]:focus {
 }
 input[type=range]::-webkit-slider-runnable-track {
   width: 100%;
-  height: 4px;
+  height: 5px;
   cursor: pointer;
-  background: #27272a;
-  border-radius: 2px;
+  background: #181d2a;
+  border-radius: 3px;
+  border: 1px solid #283248;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.6);
 }
 input[type=range]::-webkit-slider-thumb {
-  height: 12px;
-  width: 12px;
-  border-radius: 50%;
-  background: #818cf8;
+  height: 14px;
+  width: 10px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #6366f1 0%, #4338ca 100%);
   cursor: pointer;
   -webkit-appearance: none;
-  margin-top: -4px;
-  box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+  margin-top: -5px;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.6), 0 2px 4px rgba(0, 0, 0, 0.8);
+  border: 1px solid #a5b4fc;
   transition: transform 0.1s, background-color 0.1s;
 }
 input[type=range]::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-  background: #a5b4fc;
+  transform: scale(1.15);
+  background: linear-gradient(180deg, #818cf8 0%, #4f46e5 100%);
+}
+
+/* 独奏 (Solo) 与静音 (Mute) 实体发光按键 */
+.btn-solo, .btn-mute {
+  transition: all 0.15s ease;
+}
+.btn-solo.active {
+  background: #f59e0b !important;
+  color: #090c14 !important;
+  font-weight: 800;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.7);
+  border-color: #fbbf24 !important;
+}
+.btn-mute.active {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  font-weight: 800;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.7);
+  border-color: #f87171 !important;
+}
+
+/* 单轨试听播放按钮 */
+.btn-track-play {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-track-play.active {
+  background: #10b981 !important;
+  color: #000000 !important;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.6);
+  transform: scale(1.05);
+}
+
+/* 轨道波形区域 */
+.track-waveform-box {
+  background: #07090e;
+  border: 1px solid #1b2130;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.7);
 }
 
 /* 快速提示词胶囊按钮 */
 .quick-chip {
-  background: rgba(39, 39, 42, 0.8);
-  border: 1px solid rgba(63, 63, 70, 0.6);
-  color: #d4d4d8;
+  background: #161a26;
+  border: 1px solid #283147;
+  color: #94a3b8;
   font-size: 11px;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 9999px;
   cursor: pointer;
   transition: all 0.15s ease-in-out;
   white-space: nowrap;
 }
 .quick-chip:hover {
-  background: rgba(99, 102, 241, 0.2);
+  background: rgba(99, 102, 241, 0.25);
   border-color: #6366f1;
-  color: #ffffff;
+  color: #f1f5f9;
   transform: translateY(-1px);
-}
-
-/* 轨道静音与独奏按钮激活态 */
-.btn-solo.active {
-  background: #eab308 !important;
-  color: #000000 !important;
-  font-weight: bold;
-}
-.btn-mute.active {
-  background: #ef4444 !important;
-  color: #ffffff !important;
-  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
 }
 
 /* 频谱柱条过渡动效 */
 .spectrum-bar-fill {
-  transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 混音处理进度条雷达光晕 */
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.03); }
+}
+.dsp-pulse {
+  animation: pulseGlow 1.8s infinite ease-in-out;
 }

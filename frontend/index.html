@@ -24,27 +24,36 @@
       </div>
     </div>
 
-    <!-- 播放与走带控制 (Transport Controls) -->
-    <div class="flex items-center space-x-4 bg-zinc-950/80 px-4 py-1.5 rounded-full border border-zinc-800 shadow-inner">
-      <button id="btn-play-pause" class="w-8 h-8 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white transition shadow-md shadow-indigo-600/30">
+    <!-- 走带控制与母带双通道立体声电平表 (Master Transport) -->
+    <div class="flex items-center space-x-3 bg-[#0d1017] px-3.5 py-1.5 rounded-xl border border-[#232a3d] shadow-2xl">
+      <button id="btn-play-pause" class="w-8 h-8 rounded-lg bg-gradient-to-b from-indigo-500 to-indigo-700 hover:from-indigo-400 hover:to-indigo-600 flex items-center justify-center text-white transition shadow-lg shadow-indigo-600/30 border border-indigo-400/30">
         <i class="fa-solid fa-play text-xs ml-0.5" id="play-icon"></i>
       </button>
-      <button id="btn-stop" class="w-8 h-8 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-300 transition">
+      <button id="btn-stop" class="w-8 h-8 rounded-lg bg-[#181d2a] hover:bg-[#252c3f] border border-[#283248] flex items-center justify-center text-zinc-300 transition">
         <i class="fa-solid fa-stop text-xs"></i>
       </button>
-      <div class="h-4 w-px bg-zinc-700"></div>
-      <div class="text-sm font-mono tracking-widest text-indigo-400 font-medium" id="time-display">00:00.00</div>
-      <div class="h-4 w-px bg-zinc-700"></div>
       
+      <!-- 液晶高精度时间码 -->
+      <div class="lcd-screen px-3 py-1 rounded-md flex items-center space-x-2">
+        <span class="text-[9px] uppercase tracking-wider text-cyan-400/70 font-mono">TIME</span>
+        <span class="lcd-text text-sm font-mono tracking-wider font-bold" id="time-display">00:00.00</span>
+      </div>
+
+      <!-- 模拟双通道立体声 VU Peak 电平表 -->
+      <div class="flex items-center space-x-1 px-1 py-0.5 bg-[#07090e] border border-[#1b2233] rounded">
+        <div class="vu-meter-bar" title="Master Left"><div class="vu-meter-fill" id="vu-meter-l" style="height: 6%;"></div></div>
+        <div class="vu-meter-bar" title="Master Right"><div class="vu-meter-fill" id="vu-meter-r" style="height: 6%;"></div></div>
+      </div>
+
       <!-- A/B 监听源切换 -->
-      <div class="flex items-center space-x-1 bg-zinc-900 rounded-lg p-0.5 text-xs">
-        <button id="listen-raw" class="px-2.5 py-1 rounded-md font-medium transition text-zinc-400 hover:text-white" title="监听原始多轨合流">
+      <div class="flex items-center space-x-1 bg-[#141824] rounded-lg p-0.5 border border-[#252d42] text-xs">
+        <button id="listen-raw" class="px-2.5 py-1 rounded-md font-semibold transition text-zinc-400 hover:text-white" title="监听原始多轨合流">
           原分轨
         </button>
-        <button id="listen-mix" class="px-2.5 py-1 rounded-md font-medium transition bg-indigo-600 text-white shadow" title="监听 AI 智能混音成品">
+        <button id="listen-mix" class="px-2.5 py-1 rounded-md font-semibold transition bg-indigo-600 text-white shadow" title="监听 AI 智能混音成品">
           AI 混音
         </button>
-        <button id="listen-ref" class="px-2.5 py-1 rounded-md font-medium transition text-zinc-400 hover:text-white" title="监听商业参考曲">
+        <button id="listen-ref" class="px-2.5 py-1 rounded-md font-semibold transition text-zinc-400 hover:text-white" title="监听商业参考曲">
           参考曲
         </button>
       </div>
@@ -83,6 +92,8 @@
         <i class="fa-solid fa-gear text-sm"></i>
       </button>
     </div>
+    <!-- 全局操作实时进度光条 -->
+    <div id="global-action-progress" class="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-500 w-0 transition-all duration-300 pointer-events-none"></div>
   </header>
 
   <!-- 工作区主体 -->
@@ -427,6 +438,67 @@
 
       <div class="pt-2 flex justify-end space-x-2">
         <button id="btn-save-settings" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs transition">保存并应用</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 专业声学混音与母带处理 Loading 进度条弹窗 (DSP Processing Progress Modal) -->
+  <div id="dsp-progress-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center hidden">
+    <div class="bg-[#12151e] border border-[#262f45] rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5 relative overflow-hidden">
+      <!-- 顶部环境光装饰 -->
+      <div class="absolute -top-12 left-1/2 -translate-x-1/2 w-64 h-24 bg-gradient-to-r from-indigo-500/30 via-cyan-500/30 to-purple-500/30 blur-2xl pointer-events-none"></div>
+
+      <div class="flex items-center justify-between border-b border-[#212738] pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-400 flex items-center justify-center">
+            <i class="fa-solid fa-wand-magic-sparkles text-xs animate-spin" style="animation-duration: 4s;"></i>
+          </div>
+          <div>
+            <h3 class="text-xs font-bold text-white tracking-wider uppercase flex items-center space-x-2">
+              <span>Studio DSP Acoustic Engine</span>
+              <span class="text-[9px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.5 rounded font-mono">32-Bit Float</span>
+            </h3>
+            <p class="text-[10px] text-zinc-400">正在进行智能声学避让、频率划槽与母带胶水动态对齐</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <span class="font-mono text-base font-bold text-cyan-400" id="dsp-progress-percent">0%</span>
+        </div>
+      </div>
+
+      <!-- 进度条本体 -->
+      <div class="space-y-1.5">
+        <div class="w-full h-3 bg-[#080a10] border border-[#1d2436] rounded-full overflow-hidden p-0.5 shadow-inner">
+          <div id="dsp-progress-bar" class="h-full bg-gradient-to-r from-indigo-500 via-cyan-400 to-emerald-400 rounded-full transition-all duration-300 shadow-lg shadow-cyan-500/30" style="width: 0%;"></div>
+        </div>
+        <div class="flex justify-between text-[10px] text-zinc-400 font-mono">
+          <span id="dsp-step-title">初始化声学计算引擎...</span>
+          <span id="dsp-step-index">0/5</span>
+        </div>
+      </div>
+
+      <!-- 5 阶段状态追踪列表 -->
+      <div class="space-y-2 bg-[#090b12] border border-[#1c2233] p-3 rounded-xl text-xs font-mono">
+        <div class="flex items-center justify-between py-1 border-b border-[#181d2a]" id="dsp-stage-1">
+          <span class="flex items-center space-x-2 text-zinc-400"><i class="fa-regular fa-circle text-[10px]"></i><span>1. 提取多轨声学频谱与 LUFS 综合响度画像</span></span>
+          <span class="text-[10px] text-zinc-400 stage-status">等待</span>
+        </div>
+        <div class="flex items-center justify-between py-1 border-b border-[#181d2a]" id="dsp-stage-2">
+          <span class="flex items-center space-x-2 text-zinc-400"><i class="fa-regular fa-circle text-[10px]"></i><span>2. 智能低频划槽避让 (底鼓 65Hz vs 贝斯 700Hz)</span></span>
+          <span class="text-[10px] text-zinc-400 stage-status">等待</span>
+        </div>
+        <div class="flex items-center justify-between py-1 border-b border-[#181d2a]" id="dsp-stage-3">
+          <span class="flex items-center space-x-2 text-zinc-400"><i class="fa-regular fa-circle text-[10px]"></i><span>3. 参量 EQ 频响干预 & 立体声声场展开 (L35/R35)</span></span>
+          <span class="text-[10px] text-zinc-400 stage-status">等待</span>
+        </div>
+        <div class="flex items-center justify-between py-1 border-b border-[#181d2a]" id="dsp-stage-4">
+          <span class="flex items-center space-x-2 text-zinc-400"><i class="fa-regular fa-circle text-[10px]"></i><span>4. 总线胶水压缩 (Glue Comp) 同步呼吸律动</span></span>
+          <span class="text-[10px] text-zinc-400 stage-status">等待</span>
+        </div>
+        <div class="flex items-center justify-between py-1" id="dsp-stage-5">
+          <span class="flex items-center space-x-2 text-zinc-400"><i class="fa-regular fa-circle text-[10px]"></i><span>5. True-Peak 砖墙限幅与商业目标响度对齐</span></span>
+          <span class="text-[10px] text-zinc-400 stage-status">等待</span>
+        </div>
       </div>
     </div>
   </div>

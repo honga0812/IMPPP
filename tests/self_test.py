@@ -31,17 +31,30 @@ def test_audio_assets():
             
             data, sr = sf.read(fpath)
             assert sr == 44100, f'❌ 采样率不正确: {fpath} (sr={sr})'
-            
             dur = len(data) / sr
             assert dur >= 15.5, f'❌ 时长过短: {fpath} ({dur:.2f}s)'
-            
             peak = float(np.max(np.abs(data)))
             rms = float(np.sqrt(np.mean(data**2)))
-            
             assert peak > 0.30, f'❌ 检测到静音或极弱音轨: {fpath} (peak={peak:.4f})'
             assert rms > 0.05, f'❌ RMS 能量过低: {fpath} (rms={rms:.4f})'
-            
-            print(f"  ✓ [{folder}] {fname:32} | 时长: {dur:.1f}s | 峰值: {peak:.2f} | RMS: {rms:.3f} (真实饱满音色)")
+
+    # 验证曲目一与曲目二专属目录文件
+    for base in ['demo_assets', 'frontend/demo_assets']:
+        s1_dir = os.path.join(base, 'Song_01_Acoustic_Pop')
+        s2_dir = os.path.join(base, 'Song_02_Electric_Rock')
+        for sdir, tag in [(s1_dir, '曲目一:原声流行'), (s2_dir, '曲目二:现代摇滚')]:
+            assert os.path.exists(sdir), f'❌ 目录不存在: {sdir}'
+            wav_files = [f for f in os.listdir(sdir) if f.endswith('.wav')]
+            assert len(wav_files) >= 7, f'❌ 音轨数量不足: {sdir} ({len(wav_files)} 轨)'
+            for wf in wav_files:
+                p = os.path.join(sdir, wf)
+                data, sr = sf.read(p)
+                dur = len(data) / sr
+                peak = float(np.max(np.abs(data)))
+                rms = float(np.sqrt(np.mean(data**2)))
+                assert peak > 0.35, f'❌ 弱音轨: {p} ({peak:.2f})'
+                assert rms > 0.05, f'❌ 低能量: {p} ({rms:.3f})'
+                print(f"  ✓ [{tag}] {wf:36} | 时长: {dur:.1f}s | 峰值: {peak:.2f} | RMS: {rms:.3f}")
             
     print("\n✅ 所有音频文件校验通过：100% 具备真实响度与清晰演奏声，零静音！\n")
 

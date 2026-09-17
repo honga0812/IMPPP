@@ -145,6 +145,61 @@ def clear_project():
                         pass
     return {"status": "cleared", "project": project_state}
 
+@app.post("/api/demo/load")
+def load_demo_project(song_id: str = "song_01"):
+    clear_project()
+    song_folders = {
+        "song_01": ("Song_01_Acoustic_Pop", "曲目一：原声流行《暖阳》 (Acoustic Pop)"),
+        "song_02": ("Song_02_Electric_Rock", "曲目二：现代流行摇滚《风暴》 (Modern Rock)")
+    }
+    folder_name, title = song_folders.get(song_id, song_folders["song_01"])
+    src_dir = os.path.join(ROOT_DIR, "demo_assets", folder_name)
+    if not os.path.exists(src_dir):
+        src_dir = os.path.join(ROOT_DIR, "frontend", "demo_assets", folder_name)
+    
+    if not os.path.exists(src_dir):
+        raise HTTPException(status_code=404, detail="示范曲目资源未找到")
+
+    track_files = sorted([f for f in os.listdir(src_dir) if f.endswith(".wav") and not f.startswith(".")])
+    for fname in track_files:
+        src_file = os.path.join(src_dir, fname)
+        if "Reference" in fname or "Ref_" in fname:
+            dst_ref = os.path.join(REF_DIR, fname)
+            shutil.copyfile(src_file, dst_ref)
+            try:
+                ref_ana = analyze_audio_file(dst_ref)
+            except Exception:
+                ref_ana = None
+            project_state["reference"] = {
+                "name": fname,
+                "file_name": fname,
+                "file_path": dst_ref,
+                "url": f"/media/reference/{fname}",
+                "analysis": ref_ana
+            }
+        else:
+            tid = f"trk_{len(project_state['tracks']) + 1:02d}"
+            dst_stem = os.path.join(STEMS_DIR, f"{tid}_{fname}")
+            shutil.copyfile(src_file, dst_stem)
+            inst = copilot.identify_instrument(fname)
+            track_info = {
+                "id": tid,
+                "name": os.path.splitext(fname)[0],
+                "file_name": fname,
+                "file_path": dst_stem,
+                "url": f"/media/stems/{os.path.basename(dst_stem)}",
+                "volume": 1.0,
+                "pan": 0.0,
+                "instrument": inst
+            }
+            project_state["tracks"].append(track_info)
+
+    project_state["chat_history"].append({
+        "role": "assistant",
+        "content": f"已为您载入【{title}】！共 {len(project_state['tracks'])} 轨真实实录乐器分轨，专属商业参考母带已就绪。\n现在可单独试听各分轨真实乐器音色，或点击顶部【一键参考混音】体验 AI 真实声学空间雕塑！"
+    })
+    return {"status": "loaded", "song_id": song_id, "project": project_state}
+
 @app.post("/api/tracks/update_faders")
 def update_faders(req: TrackFaderUpdate):
     for trk in project_state["tracks"]:

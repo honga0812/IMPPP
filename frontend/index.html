@@ -151,11 +151,21 @@
             </span>
             <span id="track-count-badge" class="text-[11px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">0 轨</span>
           </div>
-          <div class="flex items-center space-x-2 mb-2">
-            <button id="btn-load-demo-suite" class="flex-1 py-1.5 px-2 rounded bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-700/50 text-indigo-300 text-[11px] font-medium transition flex items-center justify-center space-x-1">
-              <i class="fa-solid fa-sparkles text-[10px]"></i>
-              <span>一键载入真实录音棚示范工程 (真声/吉他/鼓/贝斯)</span>
-            </button>
+          <div class="space-y-1.5 mb-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] text-zinc-400">选择示范曲目工程：</span>
+              <span class="text-[10px] text-indigo-400 font-mono font-medium" id="current-demo-song-label">原声流行《暖阳》</span>
+            </div>
+            <div class="flex items-center space-x-1.5">
+              <select id="select-demo-song" class="flex-1 bg-[#121622] text-zinc-200 border border-indigo-700/60 rounded-lg px-2 py-1.5 text-[11px] font-medium focus:outline-none focus:border-indigo-400">
+                <option value="song_01">🎵 曲目一：原声流行《暖阳》 (7轨原声实录/真木吉他/电钢/鼓贝斯)</option>
+                <option value="song_02">⚡ 曲目二：流行摇滚《风暴》 (7轨电声失真/真电吉他Solo与节奏)</option>
+              </select>
+              <button id="btn-load-demo-suite" type="button" class="py-1.5 px-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/60 text-white text-[11px] font-bold transition flex items-center space-x-1 shadow-md shadow-indigo-600/30 flex-shrink-0" title="载入所选示范曲目的所有分轨及参考母带">
+                <i class="fa-solid fa-cloud-arrow-down text-[10px]"></i>
+                <span>载入曲目</span>
+              </button>
+            </div>
           </div>
           <label class="cursor-pointer border border-dashed border-zinc-700 hover:border-indigo-500 rounded-lg p-2 text-center transition block bg-zinc-950/40">
             <i class="fa-solid fa-cloud-arrow-up text-zinc-400 mr-1 text-xs"></i>

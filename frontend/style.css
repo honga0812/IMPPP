@@ -145,13 +145,38 @@ input[type=range]::-webkit-slider-thumb:hover {
   transform: scale(1.05);
 }
 
-/* 轨道波形区域 */
+/* 专业 DAW 轨道波形区域 */
 .track-waveform-box {
-  background: #07090e;
-  border: 1px solid #1b2130;
+  background: radial-gradient(circle at center, #0b0e18 0%, #06080e 100%);
+  border: 1px solid #1c2438;
   position: relative;
   overflow: hidden;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.7);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.85);
+  border-radius: 6px;
+  cursor: crosshair;
+  min-height: 42px;
+}
+
+.track-waveform-box:hover {
+  border-color: #2e3a59;
+}
+
+.track-waveform-box canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.track-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  background: #facc15;
+  box-shadow: 0 0 8px #facc15, 0 0 14px rgba(250, 204, 21, 0.5);
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 0.15s ease;
 }
 
 /* 快速提示词胶囊按钮 */

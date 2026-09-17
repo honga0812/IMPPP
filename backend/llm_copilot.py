@@ -32,13 +32,13 @@ class MixingCopilot:
             return "drums"
         elif any(k in name for k in ["bass", "808", "sub", "低音", "贝斯"]):
             return "bass"
-        elif any(k in name for k in ["arpeggio", "arp", "分解"]):
+        elif any(k in name for k in ["fingerpicking", "arpeggio", "arp", "分解"]):
             return "guitar_arpeggio"
         elif any(k in name for k in ["strum", "扫弦"]):
             return "guitar_strum"
         elif any(k in name for k in ["nylon", "古典", "尼龙"]):
             return "guitar_nylon"
-        elif any(k in name for k in ["solo", "elec_gtr", "overdrive", "电吉他"]):
+        elif any(k in name for k in ["solo", "overdrive", "distort", "power_chord", "elec_gtr", "电吉他"]):
             return "guitar_solo"
         elif any(k in name for k in ["guitar", "gtr", "吉他"]):
             return "guitar_acoustic"
@@ -48,6 +48,8 @@ class MixingCopilot:
             return "synth_hybrid"
         elif any(k in name for k in ["grand", "piano", "keys", "钢琴"]):
             return "piano_grand"
+        elif any(k in name for k in ["cello", "大提琴"]):
+            return "cello"
         elif any(k in name for k in ["synth", "lead", "string", "合成器", "弦乐"]):
             return "synth"
         return "other"

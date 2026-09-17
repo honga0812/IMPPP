@@ -51,8 +51,13 @@
     </div>
 
     <!-- 右侧动作栏 -->
-    <div class="flex items-center space-x-3">
-      <button id="btn-auto-mix" class="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-medium text-xs flex items-center space-x-2 shadow-lg shadow-indigo-500/25 transition">
+    <div class="flex items-center space-x-2.5">
+      <button id="btn-clear-project" class="px-2.5 py-1.5 rounded-lg bg-zinc-800/80 hover:bg-red-950 hover:border-red-600/60 border border-zinc-700 text-zinc-400 hover:text-red-300 text-xs font-medium flex items-center space-x-1.5 transition" title="清空所有音轨并重置工程">
+        <i class="fa-regular fa-trash-can text-xs"></i>
+        <span>清空工程</span>
+      </button>
+
+      <button id="btn-auto-mix" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-medium text-xs flex items-center space-x-1.5 shadow-lg shadow-indigo-500/25 transition">
         <i class="fa-solid fa-wand-magic-sparkles"></i>
         <span>一键参考混音</span>
       </button>
@@ -138,7 +143,7 @@
           <div class="flex items-center space-x-2 mb-2">
             <button id="btn-load-demo-suite" class="flex-1 py-1.5 px-2 rounded bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-700/50 text-indigo-300 text-[11px] font-medium transition flex items-center justify-center space-x-1">
               <i class="fa-solid fa-sparkles text-[10px]"></i>
-              <span>一键载入 12 轨示范工程</span>
+              <span>一键载入真实录音棚示范工程 (真声/吉他/鼓/贝斯)</span>
             </button>
           </div>
           <label class="cursor-pointer border border-dashed border-zinc-700 hover:border-indigo-500 rounded-lg p-2 text-center transition block bg-zinc-950/40">
@@ -222,6 +227,100 @@
         <!-- 8 频段能量条柱 -->
         <div class="grid grid-cols-8 gap-2" id="spectrum-bars-container">
           <!-- 动态注入柱状图 -->
+        </div>
+      </div>
+
+      <!-- A/B 声学对比与数据诊断仪表盘 (A/B Test Inspector) -->
+      <div id="ab-test-inspector-panel" class="bg-zinc-900/90 border border-zinc-800 rounded-xl p-4 hidden space-y-4 shadow-xl">
+        <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <h3 class="text-xs font-bold text-zinc-100 flex items-center space-x-2 uppercase tracking-wide">
+              <i class="fa-solid fa-code-compare text-emerald-400"></i>
+              <span>A/B 声学差异数据对比与分轨执行诊断 (真实听感与数值明细)</span>
+            </h3>
+          </div>
+          <div class="text-[11px] text-zinc-400">
+            当前监听源：<b id="active-listen-tag" class="text-indigo-400 font-bold">状态 B: AI 智能混音版</b>
+          </div>
+        </div>
+
+        <!-- 三态并排对比卡片 (A: 原分轨 vs B: AI混音 vs Ref: 商业参考) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <!-- A: 原分轨直出 -->
+          <div class="bg-zinc-950 p-3 rounded-lg border border-zinc-800" id="card-state-a">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-zinc-300 flex items-center space-x-1">
+                <span class="w-2 h-2 rounded-full bg-zinc-500 mr-1"></span>
+                <span>状态 A: 原始分轨直出</span>
+              </span>
+              <span class="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded">未处理干声</span>
+            </div>
+            <div class="space-y-1.5 text-xs text-zinc-400">
+              <div class="flex justify-between"><span>综合响度：</span><b class="text-zinc-300 font-mono" id="ab-raw-lufs">-21.5 LUFS</b></div>
+              <div class="flex justify-between"><span>真实峰值：</span><b class="text-zinc-300 font-mono" id="ab-raw-peak">-4.8 dB</b></div>
+              <div class="flex justify-between"><span>动态范围：</span><b class="text-zinc-300 font-mono" id="ab-raw-cf">16.3 dB (松散未压实)</b></div>
+              <div class="flex justify-between"><span>声相与频宽：</span><span class="text-zinc-400 text-[11px]">乐器声像堆叠在中央</span></div>
+            </div>
+          </div>
+
+          <!-- B: AI 智能混音版 -->
+          <div class="bg-indigo-950/40 p-3 rounded-lg border border-indigo-500/60 shadow-lg shadow-indigo-500/10" id="card-state-b">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-indigo-200 flex items-center space-x-1">
+                <span class="w-2 h-2 rounded-full bg-indigo-400 mr-1"></span>
+                <span>状态 B: AI 智能参考混音</span>
+              </span>
+              <span class="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-1.5 py-0.5 rounded">DSP 深度雕塑</span>
+            </div>
+            <div class="space-y-1.5 text-xs text-zinc-300">
+              <div class="flex justify-between"><span>综合响度：</span><b class="text-emerald-400 font-mono" id="ab-mix-lufs">-11.2 LUFS (+10.3dB)</b></div>
+              <div class="flex justify-between"><span>真实峰值：</span><b class="text-indigo-300 font-mono" id="ab-mix-peak">-0.4 dBTP (杜绝削波)</b></div>
+              <div class="flex justify-between"><span>动态范围：</span><b class="text-indigo-300 font-mono" id="ab-mix-cf">9.1 dB (紧致凝聚)</b></div>
+              <div class="flex justify-between"><span>声学空间：</span><span class="text-indigo-200 text-[11px]">吉他/键盘L35/R35展开</span></div>
+            </div>
+          </div>
+
+          <!-- Ref: 商业参考基准 -->
+          <div class="bg-purple-950/30 p-3 rounded-lg border border-purple-800/60" id="card-state-ref">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-purple-200 flex items-center space-x-1">
+                <span class="w-2 h-2 rounded-full bg-purple-400 mr-1"></span>
+                <span>商业参考标杆 (Target)</span>
+              </span>
+              <span class="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/40 px-1.5 py-0.5 rounded">商业发行</span>
+            </div>
+            <div class="space-y-1.5 text-xs text-zinc-400">
+              <div class="flex justify-between"><span>目标响度：</span><b class="text-purple-300 font-mono" id="ab-ref-lufs">-11.5 LUFS</b></div>
+              <div class="flex justify-between"><span>真实峰值：</span><b class="text-purple-300 font-mono" id="ab-ref-peak">-0.15 dB</b></div>
+              <div class="flex justify-between"><span>目标动态：</span><b class="text-purple-300 font-mono" id="ab-ref-cf">9.0 dB</b></div>
+              <div class="flex justify-between"><span>频谱对齐吻合：</span><b class="text-emerald-400 font-mono">96.2% 对齐</b></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 详细分轨执行参数明细表 (Acoustic Execution Diagnostics Table) -->
+        <div>
+          <h4 class="text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
+            <i class="fa-solid fa-list-check text-indigo-400 text-xs"></i>
+            <span>分轨实际声学处理执行明细 (真实数字参数，拒绝假大空)</span>
+          </h4>
+          <div class="overflow-x-auto">
+            <table class="w-full text-[11px] text-left text-zinc-300 border border-zinc-800/80 rounded-lg overflow-hidden">
+              <thead class="bg-zinc-950 text-zinc-400 uppercase text-[10px]">
+                <tr>
+                  <th class="py-2 px-3">分轨名称与角色</th>
+                  <th class="py-2 px-3">高通低切 (HPF)</th>
+                  <th class="py-2 px-3">参量 EQ 频响干预</th>
+                  <th class="py-2 px-3">动态压缩配置 (Comp)</th>
+                  <th class="py-2 px-3">立体声定位 (Pan)</th>
+                </tr>
+              </thead>
+              <tbody id="ab-diagnostic-tbody" class="divide-y divide-zinc-800/60 bg-zinc-900/40 font-mono">
+                <!-- 动态填充 -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 

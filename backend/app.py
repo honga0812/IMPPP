@@ -115,6 +115,29 @@ def delete_track(track_id: str):
         return {"status": "deleted", "track_id": track_id}
     raise HTTPException(status_code=404, detail="Track not found")
 
+@app.post("/api/project/clear")
+def clear_project():
+    project_state["tracks"] = []
+    project_state["reference"] = None
+    project_state["current_strategy"] = None
+    project_state["current_mix"] = None
+    project_state["chat_history"] = [
+        {
+            "role": "assistant",
+            "content": "工程已成功清空重置。您可以重新导入录音分轨与商业参考曲！"
+        }
+    ]
+    for folder in [STEMS_DIR, REF_DIR, EXPORTS_DIR, PROCESSED_STEMS_DIR]:
+        if os.path.exists(folder):
+            for f in os.listdir(folder):
+                fp = os.path.join(folder, f)
+                if os.path.isfile(fp) and not f.startswith(".gitkeep"):
+                    try:
+                        os.remove(fp)
+                    except Exception:
+                        pass
+    return {"status": "cleared", "project": project_state}
+
 @app.post("/api/tracks/update_faders")
 def update_faders(req: TrackFaderUpdate):
     for trk in project_state["tracks"]:

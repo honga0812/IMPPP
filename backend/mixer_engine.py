@@ -1,7 +1,13 @@
 import os
+import sys
 import soundfile as sf
 import numpy as np
 from typing import List, Dict, Any, Optional
+
+_BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+if _BACKEND_DIR not in sys.path:
+    sys.path.insert(0, _BACKEND_DIR)
+
 from pedalboard import Pedalboard, HighpassFilter, PeakFilter, LowShelfFilter, HighShelfFilter, Compressor, Limiter, Gain
 import pyloudnorm as pyln
 from acoustic_analyzer import load_audio_normalized, calculate_lufs

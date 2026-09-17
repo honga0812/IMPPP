@@ -30,4 +30,5 @@ echo ""
 echo "提示：按 Ctrl+C 可停止服务"
 echo "========================================================="
 
+export PYTHONPATH="$DIR/backend:$DIR:$PYTHONPATH"
 uvicorn backend.app:app --host 0.0.0.0 --port 8000

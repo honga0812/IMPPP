@@ -1,8 +1,15 @@
 import os
+import sys
 import shutil
 import zipfile
 import uuid
 from typing import List, Optional
+
+# Ensure backend directory is in sys.path for direct sibling imports
+_BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+if _BACKEND_DIR not in sys.path:
+    sys.path.insert(0, _BACKEND_DIR)
+
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Mixing Studio | 智能参考混音工作站</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col select-none font-sans">
+
+  <!-- 顶部导航栏 -->
+  <header class="bg-zinc-900/90 border-b border-zinc-800 px-6 py-3 flex items-center justify-between sticky top-0 z-50 backdrop-blur">
+    <div class="flex items-center space-x-4">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+        <i class="fa-solid fa-sliders text-white text-base"></i>
+      </div>
+      <div>
+        <h1 class="text-base font-bold tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
+          Smart Mixing Studio
+        </h1>
+        <p class="text-xs text-zinc-400">Phase 1 MVP: 多轨参考混音 & LLM 混音助理</p>
+      </div>
+    </div>
+
+    <!-- 播放与走带控制 (Transport Controls) -->
+    <div class="flex items-center space-x-4 bg-zinc-950/80 px-4 py-1.5 rounded-full border border-zinc-800 shadow-inner">
+      <button id="btn-play-pause" class="w-8 h-8 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white transition shadow-md shadow-indigo-600/30">
+        <i class="fa-solid fa-play text-xs ml-0.5" id="play-icon"></i>
+      </button>
+      <button id="btn-stop" class="w-8 h-8 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-300 transition">
+        <i class="fa-solid fa-stop text-xs"></i>
+      </button>
+      <div class="h-4 w-px bg-zinc-700"></div>
+      <div class="text-sm font-mono tracking-widest text-indigo-400 font-medium" id="time-display">00:00.00</div>
+      <div class="h-4 w-px bg-zinc-700"></div>
+      
+      <!-- A/B 监听源切换 -->
+      <div class="flex items-center space-x-1 bg-zinc-900 rounded-lg p-0.5 text-xs">
+        <button id="listen-raw" class="px-2.5 py-1 rounded-md font-medium transition text-zinc-400 hover:text-white" title="监听原始多轨合流">
+          原分轨
+        </button>
+        <button id="listen-mix" class="px-2.5 py-1 rounded-md font-medium transition bg-indigo-600 text-white shadow" title="监听 AI 智能混音成品">
+          AI 混音
+        </button>
+        <button id="listen-ref" class="px-2.5 py-1 rounded-md font-medium transition text-zinc-400 hover:text-white" title="监听商业参考曲">
+          参考曲
+        </button>
+      </div>
+    </div>
+
+    <!-- 右侧动作栏 -->
+    <div class="flex items-center space-x-3">
+      <button id="btn-auto-mix" class="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-medium text-xs flex items-center space-x-2 shadow-lg shadow-indigo-500/25 transition">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        <span>一键参考混音</span>
+      </button>
+
+      <!-- 导出下拉 -->
+      <div class="relative group">
+        <button class="px-3 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium flex items-center space-x-1.5 transition">
+          <i class="fa-solid fa-download"></i>
+          <span>导出</span>
+          <i class="fa-solid fa-chevron-down text-[10px] text-zinc-400 ml-1"></i>
+        </button>
+        <div class="absolute right-0 mt-1 w-44 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl py-1 hidden group-hover:block z-50">
+          <a href="/api/export/master" class="block px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white">
+            <i class="fa-solid fa-music mr-2 text-indigo-400"></i>导出母带 (WAV)
+          </a>
+          <a href="/api/export/stems_zip" class="block px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white">
+            <i class="fa-solid fa-layer-group mr-2 text-purple-400"></i>导出处理后分轨 (ZIP)
+          </a>
+        </div>
+      </div>
+
+      <button id="btn-open-settings" class="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-zinc-200 transition" title="LLM 模型设置">
+        <i class="fa-solid fa-gear text-sm"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- 工作区主体 -->
+  <main class="flex-1 flex overflow-hidden">
+
+    <!-- 左侧 & 中间：多轨控制台与参考曲画像 -->
+    <div class="flex-1 flex flex-col overflow-y-auto p-6 space-y-6">
+
+      <!-- 顶部状态栏与上传快捷入口 -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- 分轨上传框 -->
+        <div class="bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 flex flex-col justify-between hover:border-zinc-700 transition">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-zinc-300 flex items-center space-x-1.5">
+              <i class="fa-solid fa-bars-staggered text-indigo-400"></i>
+              <span>录音分轨</span>
+            </span>
+            <span id="track-count-badge" class="text-[11px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">0 轨</span>
+          </div>
+          <p class="text-xs text-zinc-400 mb-3">支持上传人声、鼓、贝斯、吉他等独立分轨 (WAV/MP3)</p>
+          <label class="cursor-pointer border border-dashed border-zinc-700 hover:border-indigo-500 rounded-lg p-2.5 text-center transition block bg-zinc-950/40">
+            <i class="fa-solid fa-cloud-arrow-up text-zinc-400 mr-1 text-xs"></i>
+            <span class="text-xs text-zinc-300 font-medium">点击或拖拽添加分轨</span>
+            <input type="file" id="input-tracks" multiple accept="audio/*" class="hidden">
+          </label>
+        </div>
+
+        <!-- 参考曲上传框 -->
+        <div class="bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 flex flex-col justify-between hover:border-zinc-700 transition">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-zinc-300 flex items-center space-x-1.5">
+              <i class="fa-solid fa-compact-disc text-purple-400"></i>
+              <span>风格参考曲 (Reference)</span>
+            </span>
+            <span id="ref-status-badge" class="text-[11px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">未导入</span>
+          </div>
+          <p class="text-xs text-zinc-400 mb-3" id="ref-filename">上传目标商业曲目，AI 将提取其声学特征与频响</p>
+          <label class="cursor-pointer border border-dashed border-zinc-700 hover:border-purple-500 rounded-lg p-2.5 text-center transition block bg-zinc-950/40">
+            <i class="fa-solid fa-file-audio text-zinc-400 mr-1 text-xs"></i>
+            <span class="text-xs text-zinc-300 font-medium">导入商业参考音频</span>
+            <input type="file" id="input-reference" accept="audio/*" class="hidden">
+          </label>
+        </div>
+
+        <!-- 当前混音状态卡片 -->
+        <div class="bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-zinc-300 flex items-center space-x-1.5">
+              <i class="fa-solid fa-chart-line text-emerald-400"></i>
+              <span>混音母带指标</span>
+            </span>
+            <span id="mix-status-badge" class="text-[11px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">待混音</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-center my-auto">
+            <div class="bg-zinc-950/70 p-2 rounded-lg border border-zinc-800/60">
+              <div class="text-[10px] text-zinc-400">综合响度 (LUFS)</div>
+              <div class="text-sm font-bold text-emerald-400 font-mono mt-0.5" id="val-lufs">--</div>
+            </div>
+            <div class="bg-zinc-950/70 p-2 rounded-lg border border-zinc-800/60">
+              <div class="text-[10px] text-zinc-400">真实峰值 (Peak)</div>
+              <div class="text-sm font-bold text-indigo-400 font-mono mt-0.5" id="val-peak">--</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 参考曲声学画像 (若已上传) -->
+      <div id="ref-analysis-panel" class="bg-zinc-900/70 border border-zinc-800 rounded-xl p-4 hidden">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-xs font-semibold text-zinc-200 flex items-center space-x-2">
+            <i class="fa-solid fa-wave-square text-purple-400"></i>
+            <span>参考曲声学画像解构 (Acoustic Blueprint)</span>
+          </h2>
+          <div class="flex items-center space-x-3 text-xs text-zinc-400 font-mono">
+            <span>响度: <b class="text-purple-300" id="ref-lufs">--</b> LUFS</span>
+            <span>峰值: <b class="text-purple-300" id="ref-peak">--</b> dB</span>
+            <span>立体声相关度: <b class="text-purple-300" id="ref-stereo">--</b></span>
+          </div>
+        </div>
+        <!-- 8 频段能量条柱 -->
+        <div class="grid grid-cols-8 gap-2" id="spectrum-bars-container">
+          <!-- 动态注入柱状图 -->
+        </div>
+      </div>
+
+      <!-- 分轨工作台 (Multitrack Rack) -->
+      <div class="bg-zinc-900/40 border border-zinc-800/80 rounded-xl p-4 flex-1 flex flex-col">
+        <div class="flex items-center justify-between pb-3 border-b border-zinc-800/80 mb-3">
+          <h2 class="text-xs font-bold text-zinc-200 uppercase tracking-wider flex items-center space-x-2">
+            <i class="fa-solid fa-layer-group text-indigo-400"></i>
+            <span>分轨轨道列表 (Tracks Timeline)</span>
+          </h2>
+          <span class="text-xs text-zinc-400">支持独立调节各轨音量推子、声相、独奏与静音</span>
+        </div>
+
+        <div id="tracks-container" class="space-y-3 overflow-y-auto pr-1 flex-1">
+          <!-- 空状态提示 -->
+          <div id="empty-tracks-hint" class="py-16 flex flex-col items-center justify-center text-zinc-400 text-center">
+            <div class="w-14 h-14 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mb-3">
+              <i class="fa-solid fa-microphone-lines text-xl text-zinc-600"></i>
+            </div>
+            <p class="text-sm font-medium text-zinc-400">暂无分轨音频</p>
+            <p class="text-xs text-zinc-400 mt-1">请从上方上传人声、鼓、贝斯、乐器分轨，或直接拖拽文件至此</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 右侧：AI 混音 Copilot 对话交互面板 -->
+    <aside class="w-96 bg-zinc-900 border-l border-zinc-800 flex flex-col">
+      <!-- 面板头 -->
+      <div class="p-4 border-b border-zinc-800 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+          <h2 class="text-xs font-bold text-zinc-200 uppercase tracking-wider">Mixing Copilot</h2>
+        </div>
+        <span class="text-[11px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded" id="current-llm-label">内置专家引擎</span>
+      </div>
+
+      <!-- 消息列表 -->
+      <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 text-xs leading-relaxed">
+        <!-- 消息卡片动态渲染 -->
+      </div>
+
+      <!-- 快速意图气泡 -->
+      <div class="px-4 py-2 bg-zinc-950/60 border-t border-zinc-800/80 flex flex-wrap gap-1.5">
+        <button class="quick-chip" data-msg="副歌人声更贴耳、更有空气感">✨ 人声贴耳空气感</button>
+        <button class="quick-chip" data-msg="消除中低频浑浊，声音更通透清爽">🧹 去浑浊发闷</button>
+        <button class="quick-chip" data-msg="立体声场拓宽，把伴奏往两边推开">🎧 拓宽立体声场</button>
+        <button class="quick-chip" data-msg="增加声音温暖度与厚度">☕ 温暖饱满</button>
+        <button class="quick-chip" data-msg="提升总体商业响度与冲击力">💥 提升冲击力</button>
+      </div>
+
+      <!-- 自然语言输入框 -->
+      <div class="p-3 border-t border-zinc-800 bg-zinc-900">
+        <form id="chat-form" class="flex items-center space-x-2">
+          <input 
+            type="text" 
+            id="chat-input" 
+            placeholder="用自然语言告诉 AI 您的混音想法..." 
+            class="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 placeholder-zinc-400 focus:outline-none focus:border-indigo-500 transition"
+          />
+          <button 
+            type="submit" 
+            id="btn-send-chat" 
+            class="w-8 h-8 rounded-lg bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white transition flex-shrink-0"
+          >
+            <i class="fa-solid fa-arrow-up text-xs"></i>
+          </button>
+        </form>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- LLM 设置弹窗 (Modal) -->
+  <div id="settings-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <h3 class="text-sm font-bold text-zinc-100 flex items-center space-x-2">
+          <i class="fa-solid fa-microchip text-indigo-400"></i>
+          <span>LLM 混音大脑设置</span>
+        </h3>
+        <button id="btn-close-settings" class="text-zinc-400 hover:text-zinc-200">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <p class="text-xs text-zinc-400">默认无需配置即可使用内置离线专家混音算法；如需接入大模型以获得更深度的声学分析与对话微调，可在下方配置 API。</p>
+      
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-zinc-300 font-medium mb-1">API Key (OpenAI / Claude 兼容协议)</label>
+          <input type="password" id="input-api-key" placeholder="sk-..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-zinc-300 font-medium mb-1">API Base URL</label>
+          <input type="text" id="input-api-base" value="https://api.openai.com/v1" placeholder="https://api.openai.com/v1" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500">
+          <span class="text-[10px] text-zinc-400">本地 Ollama 可填: http://localhost:11434/v1</span>
+        </div>
+        <div>
+          <label class="block text-zinc-300 font-medium mb-1">Model Name</label>
+          <input type="text" id="input-model" value="gpt-4o" placeholder="gpt-4o, qwen2.5, llama3" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500">
+        </div>
+      </div>
+
+      <div class="pt-2 flex justify-end space-x-2">
+        <button id="btn-save-settings" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs transition">保存并应用</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>

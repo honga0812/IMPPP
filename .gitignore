@@ -1,0 +1,30 @@
+# Python virtual environment
+.venv/
+venv/
+ENV/
+
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# OS generated
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project runtime audio files
+projects/default/stems/*
+projects/default/reference/*
+projects/default/exports/*
+!projects/default/stems/.gitkeep
+!projects/default/reference/.gitkeep
+!projects/default/exports/.gitkeep
+
+# Test workspace artifacts
+tests/test_workspace/

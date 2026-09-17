@@ -86,6 +86,44 @@
     <!-- 左侧 & 中间：多轨控制台与参考曲画像 -->
     <div class="flex-1 flex flex-col overflow-y-auto p-6 space-y-6">
 
+      <!-- 混音操作向导条 (Workflow Guide) -->
+      <div class="bg-zinc-900/90 border border-zinc-800/90 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-md">
+        <div class="flex items-center space-x-2">
+          <div class="w-6 h-6 rounded-full bg-indigo-600/30 border border-indigo-500/40 text-indigo-400 flex items-center justify-center font-bold text-xs">1</div>
+          <div>
+            <div class="text-xs font-semibold text-zinc-200">导入录音分轨</div>
+            <div class="text-[10px] text-zinc-400">人声/多吉他/钢琴/鼓组等</div>
+          </div>
+        </div>
+        <i class="fa-solid fa-chevron-right text-zinc-600 text-xs hidden md:block"></i>
+        
+        <div class="flex items-center space-x-2">
+          <div class="w-6 h-6 rounded-full bg-purple-600/30 border border-purple-500/40 text-purple-400 flex items-center justify-center font-bold text-xs">2</div>
+          <div>
+            <div class="text-xs font-semibold text-zinc-200">设定商业参考风格</div>
+            <div class="text-[10px] text-zinc-400">选择流行/民谣/摇滚或上传</div>
+          </div>
+        </div>
+        <i class="fa-solid fa-chevron-right text-zinc-600 text-xs hidden md:block"></i>
+
+        <div class="flex items-center space-x-2">
+          <div class="w-6 h-6 rounded-full bg-pink-600/30 border border-pink-500/40 text-pink-400 flex items-center justify-center font-bold text-xs">3</div>
+          <div>
+            <div class="text-xs font-semibold text-zinc-200">AI 智能声学混音</div>
+            <div class="text-[10px] text-zinc-400">乐器针对性EQ/避让/总线胶水</div>
+          </div>
+        </div>
+        <i class="fa-solid fa-chevron-right text-zinc-600 text-xs hidden md:block"></i>
+
+        <div class="flex items-center space-x-2">
+          <div class="w-6 h-6 rounded-full bg-emerald-600/30 border border-emerald-500/40 text-emerald-400 flex items-center justify-center font-bold text-xs">4</div>
+          <div>
+            <div class="text-xs font-semibold text-zinc-200">A/B 盲听对比与导出</div>
+            <div class="text-[10px] text-zinc-400">单轨试听 / 母带与分轨打包</div>
+          </div>
+        </div>
+      </div>
+
       <!-- 顶部状态栏与上传快捷入口 -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <!-- 分轨上传框 -->
@@ -93,31 +131,55 @@
           <div class="flex items-center justify-between mb-2">
             <span class="text-xs font-semibold text-zinc-300 flex items-center space-x-1.5">
               <i class="fa-solid fa-bars-staggered text-indigo-400"></i>
-              <span>录音分轨</span>
+              <span>录音分轨管理</span>
             </span>
             <span id="track-count-badge" class="text-[11px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">0 轨</span>
           </div>
-          <p class="text-xs text-zinc-400 mb-3">支持上传人声、鼓、贝斯、吉他等独立分轨 (WAV/MP3)</p>
-          <label class="cursor-pointer border border-dashed border-zinc-700 hover:border-indigo-500 rounded-lg p-2.5 text-center transition block bg-zinc-950/40">
+          <div class="flex items-center space-x-2 mb-2">
+            <button id="btn-load-demo-suite" class="flex-1 py-1.5 px-2 rounded bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-700/50 text-indigo-300 text-[11px] font-medium transition flex items-center justify-center space-x-1">
+              <i class="fa-solid fa-sparkles text-[10px]"></i>
+              <span>一键载入 12 轨示范工程</span>
+            </button>
+          </div>
+          <label class="cursor-pointer border border-dashed border-zinc-700 hover:border-indigo-500 rounded-lg p-2 text-center transition block bg-zinc-950/40">
             <i class="fa-solid fa-cloud-arrow-up text-zinc-400 mr-1 text-xs"></i>
-            <span class="text-xs text-zinc-300 font-medium">点击或拖拽添加分轨</span>
+            <span class="text-xs text-zinc-300 font-medium">点击或拖拽添加自身录音分轨</span>
             <input type="file" id="input-tracks" multiple accept="audio/*" class="hidden">
           </label>
         </div>
 
-        <!-- 参考曲上传框 -->
+        <!-- 参考曲上传与预置选择框 -->
         <div class="bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 flex flex-col justify-between hover:border-zinc-700 transition">
-          <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center justify-between mb-1.5">
             <span class="text-xs font-semibold text-zinc-300 flex items-center space-x-1.5">
               <i class="fa-solid fa-compact-disc text-purple-400"></i>
-              <span>风格参考曲 (Reference)</span>
+              <span>商业风格参考 (Reference)</span>
             </span>
             <span id="ref-status-badge" class="text-[11px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">未导入</span>
           </div>
-          <p class="text-xs text-zinc-400 mb-3" id="ref-filename">上传目标商业曲目，AI 将提取其声学特征与频响</p>
-          <label class="cursor-pointer border border-dashed border-zinc-700 hover:border-purple-500 rounded-lg p-2.5 text-center transition block bg-zinc-950/40">
+          
+          <!-- 预置商业流派快速选择 -->
+          <div class="mb-2">
+            <div class="text-[10px] text-zinc-400 mb-1 flex items-center justify-between">
+              <span>一键选择市面主流风格：</span>
+              <span class="text-[10px] text-purple-400 font-mono" id="current-ref-style-label"></span>
+            </div>
+            <div class="grid grid-cols-3 gap-1.5">
+              <button class="preset-ref-btn px-1.5 py-1.5 rounded bg-zinc-800 hover:bg-purple-950/70 hover:border-purple-500/60 border border-zinc-700 text-[10px] text-zinc-300 transition text-center font-medium" data-style="pop">
+                🎵 流行榜单
+              </button>
+              <button class="preset-ref-btn px-1.5 py-1.5 rounded bg-zinc-800 hover:bg-purple-950/70 hover:border-purple-500/60 border border-zinc-700 text-[10px] text-zinc-300 transition text-center font-medium" data-style="folk">
+                🍃 原声民谣
+              </button>
+              <button class="preset-ref-btn px-1.5 py-1.5 rounded bg-zinc-800 hover:bg-purple-950/70 hover:border-purple-500/60 border border-zinc-700 text-[10px] text-zinc-300 transition text-center font-medium" data-style="rock">
+                🎸 摇滚/R&B
+              </button>
+            </div>
+          </div>
+
+          <label class="cursor-pointer border border-dashed border-zinc-700 hover:border-purple-500 rounded-lg p-1.5 text-center transition block bg-zinc-950/40">
             <i class="fa-solid fa-file-audio text-zinc-400 mr-1 text-xs"></i>
-            <span class="text-xs text-zinc-300 font-medium">导入商业参考音频</span>
+            <span class="text-xs text-zinc-300 font-medium">或导入自备商业参考音频</span>
             <input type="file" id="input-reference" accept="audio/*" class="hidden">
           </label>
         </div>

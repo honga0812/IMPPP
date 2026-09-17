@@ -18,23 +18,37 @@ class MixingCopilot:
             self.model = model
 
     def identify_instrument(self, track_name: str) -> str:
-        """根据分轨名称智能推断乐器类型"""
+        """根据分轨名称智能精准推断具体乐器与声部类型"""
         name = track_name.lower()
-        if any(k in name for k in ["voc", "sing", "lead_v", "voice", "人声", "主唱"]):
-            return "vocal"
+        if any(k in name for k in ["back", "harmony", "和声", "伴唱"]):
+            return "vocal_backing"
+        elif any(k in name for k in ["lead_v", "voc", "sing", "voice", "主唱", "人声"]):
+            return "vocal_lead"
         elif any(k in name for k in ["kick", "bd", "底鼓", "大鼓"]):
             return "kick"
-        elif any(k in name for k in ["snare", "sd", "军鼓"]):
+        elif any(k in name for k in ["snare", "sd", "hihat", "hh", "军鼓", "踩镲"]):
             return "snare"
-        elif any(k in name for k in ["drum", "beat", "perc", "hihat", "hh", "鼓"]):
+        elif any(k in name for k in ["drum", "beat", "perc", "鼓"]):
             return "drums"
         elif any(k in name for k in ["bass", "808", "sub", "低音", "贝斯"]):
             return "bass"
-        elif any(k in name for k in ["guitar", "gtr", "ac_gtr", "elec_gtr", "吉他"]):
-            return "guitar"
-        elif any(k in name for k in ["piano", "keys", "rhodes", "ep", "钢琴", "键盘"]):
-            return "piano"
-        elif any(k in name for k in ["synth", "pad", "lead", "string", "合成器", "弦乐"]):
+        elif any(k in name for k in ["arpeggio", "arp", "分解"]):
+            return "guitar_arpeggio"
+        elif any(k in name for k in ["strum", "扫弦"]):
+            return "guitar_strum"
+        elif any(k in name for k in ["nylon", "古典", "尼龙"]):
+            return "guitar_nylon"
+        elif any(k in name for k in ["solo", "elec_gtr", "overdrive", "电吉他"]):
+            return "guitar_solo"
+        elif any(k in name for k in ["guitar", "gtr", "吉他"]):
+            return "guitar_acoustic"
+        elif any(k in name for k in ["rhodes", "ep", "电钢琴"]):
+            return "piano_rhodes"
+        elif any(k in name for k in ["hybrid", "pad", "synth_piano", "混合钢琴"]):
+            return "synth_hybrid"
+        elif any(k in name for k in ["grand", "piano", "keys", "钢琴"]):
+            return "piano_grand"
+        elif any(k in name for k in ["synth", "lead", "string", "合成器", "弦乐"]):
             return "synth"
         return "other"
 
@@ -44,30 +58,27 @@ class MixingCopilot:
         ref_analysis: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
-        内置资深混音师启发式专业算法 (离线兜底，无需 API Key 即可达到出色的混音效果)
+        内置资深混音师启发式专业算法 (针对细分乐器声学特性与声部空间布局)
         """
         target_lufs = -14.0
         if ref_analysis and "integrated_lufs" in ref_analysis:
             target_lufs = ref_analysis["integrated_lufs"]
-            # 限制在商业标准区间 [-16.0, -9.0]
-            target_lufs = float(max(min(target_lufs, -9.0), -16.0))
+            target_lufs = float(max(min(target_lufs, -8.0), -16.0))
 
         ref_spectrum = ref_analysis.get("spectral_bands_db", {}) if ref_analysis else {}
         ref_air = ref_spectrum.get("air", -25.0)
         ref_bass = ref_spectrum.get("bass", -12.0)
 
         track_actions = []
-        guitar_count = 0
-        synth_count = 0
 
         for trk in tracks_data:
             tid = trk["id"]
             name = trk.get("name", tid)
-            instrument = self.identify_instrument(name)
+            inst = self.identify_instrument(name)
 
             action = {
                 "track_id": tid,
-                "instrument": instrument,
+                "instrument": inst,
                 "high_pass_hz": 0,
                 "eq_adjustments": [],
                 "compressor": None,
@@ -76,83 +87,160 @@ class MixingCopilot:
                 "volume": trk.get("volume", 1.0)
             }
 
-            if instrument == "vocal":
-                # 人声声学处理：去除 90Hz 杂音，削弱 300Hz 浊音，提升 10kHz 空气感
+            if inst == "vocal_lead":
+                # 主唱人声：居中近景、穿透力、空气感、平稳动态
                 action["high_pass_hz"] = 90
                 action["eq_adjustments"] = [
-                    {"freq": 320, "gain_db": -2.0, "q": 1.2},
-                    {"freq": 3500, "gain_db": 1.5, "q": 1.0}, # 提高穿透力
-                    {"freq": 10500, "gain_db": 2.0, "q": 0.7} # 空气感
+                    {"freq": 320, "gain_db": -2.5, "q": 1.2}, # 掏空箱体浊音
+                    {"freq": 3500, "gain_db": 2.0, "q": 1.0}, # 增强字音穿透
+                    {"freq": 10500, "gain_db": 2.5, "q": 0.7} # 空气感 Air
                 ]
                 action["compressor"] = {
                     "threshold_db": -16.0,
-                    "ratio": 3.0,
+                    "ratio": 3.2,
                     "attack_ms": 15.0,
                     "release_ms": 100.0
                 }
                 action["pan"] = 0.0
                 action["gain_trim_db"] = 0.5
 
-            elif instrument in ["kick", "bass"]:
-                # 低频根基：绝对居中，动态紧致
-                action["high_pass_hz"] = 30
-                if instrument == "kick":
-                    action["eq_adjustments"] = [
-                        {"freq": 65, "gain_db": 2.0, "q": 1.4},
-                        {"freq": 400, "gain_db": -3.0, "q": 1.5}, # 掏空箱体浑浊感
-                        {"freq": 3200, "gain_db": 1.8, "q": 1.2}  # 踩锤打击感
-                    ]
-                    action["compressor"] = {
-                        "threshold_db": -14.0,
-                        "ratio": 4.0,
-                        "attack_ms": 25.0,
-                        "release_ms": 60.0
-                    }
-                else: # bass
-                    action["eq_adjustments"] = [
-                        {"freq": 90, "gain_db": 1.5, "q": 1.2},
-                        {"freq": 800, "gain_db": 1.0, "q": 1.0},
-                        {"freq": 5000, "gain_db": -4.0, "q": 0.7} # 切掉多余高频
-                    ]
-                    action["compressor"] = {
-                        "threshold_db": -15.0,
-                        "ratio": 3.5,
-                        "attack_ms": 20.0,
-                        "release_ms": 80.0
-                    }
-                action["pan"] = 0.0
-
-            elif instrument in ["drums", "snare"]:
-                action["high_pass_hz"] = 60
+            elif inst == "vocal_backing":
+                # 和声音轨：左右展开、垫在主唱后方、低切更高、适度减弱中频
+                action["high_pass_hz"] = 150
                 action["eq_adjustments"] = [
-                    {"freq": 200, "gain_db": 1.0, "q": 1.0},
-                    {"freq": 5000, "gain_db": 1.5, "q": 1.0}
+                    {"freq": 400, "gain_db": -2.0, "q": 1.0},
+                    {"freq": 2800, "gain_db": -1.5, "q": 1.2}, # 让人声主旋律更突出
+                    {"freq": 8000, "gain_db": 1.5, "q": 0.8}
                 ]
                 action["compressor"] = {
-                    "threshold_db": -12.0,
+                    "threshold_db": -14.0,
                     "ratio": 2.5,
                     "attack_ms": 20.0,
-                    "release_ms": 100.0
+                    "release_ms": 120.0
                 }
+                action["pan"] = 0.5 # 偏右或立体声两侧
 
-            elif instrument in ["guitar", "piano", "synth"]:
-                # 中频乐器声场扩展与低频避让
+            elif inst == "kick":
+                # 底鼓：绝对居中、60Hz 冲击力、400Hz 掏空
+                action["high_pass_hz"] = 30
+                action["eq_adjustments"] = [
+                    {"freq": 60, "gain_db": 2.2, "q": 1.5},
+                    {"freq": 380, "gain_db": -3.5, "q": 1.4},
+                    {"freq": 3200, "gain_db": 2.0, "q": 1.2}
+                ]
+                action["compressor"] = {
+                    "threshold_db": -14.0,
+                    "ratio": 4.0,
+                    "attack_ms": 25.0,
+                    "release_ms": 50.0
+                }
+                action["pan"] = 0.0
+
+            elif inst in ["snare", "drums"]:
+                # 军鼓与踩镲：清脆响亮、瞬态饱满
+                action["high_pass_hz"] = 80
+                action["eq_adjustments"] = [
+                    {"freq": 200, "gain_db": 1.2, "q": 1.1}, # 军鼓身躯
+                    {"freq": 5500, "gain_db": 2.0, "q": 0.9}  # 响弦清脆度
+                ]
+                action["compressor"] = {
+                    "threshold_db": -13.0,
+                    "ratio": 2.8,
+                    "attack_ms": 15.0,
+                    "release_ms": 80.0
+                }
+                action["pan"] = 0.05
+
+            elif inst == "bass":
+                # 贝斯：80-120Hz 根基、避让底鼓 60Hz、800Hz 拨片摩擦感、切除 4.5kHz
+                action["high_pass_hz"] = 35
+                action["eq_adjustments"] = [
+                    {"freq": 60, "gain_db": -1.5, "q": 1.6}, # 避让底鼓
+                    {"freq": 100, "gain_db": 2.0, "q": 1.3}, # 温暖低频基频
+                    {"freq": 800, "gain_db": 1.5, "q": 1.0}, # 贝斯线条穿透
+                    {"freq": 4500, "gain_db": -4.5, "q": 0.8}
+                ]
+                action["compressor"] = {
+                    "threshold_db": -15.0,
+                    "ratio": 3.8,
+                    "attack_ms": 20.0,
+                    "release_ms": 80.0
+                }
+                action["pan"] = 0.0
+
+            elif inst == "guitar_arpeggio":
+                # 木吉他分解和弦：偏左 L35、晶莹剔透、100Hz 高通
                 action["high_pass_hz"] = 100
                 action["eq_adjustments"] = [
-                    {"freq": 280, "gain_db": -1.5, "q": 1.0}, # 避免与贝斯打架
-                    {"freq": 2500, "gain_db": -1.0, "q": 1.2} # 让人声突出
+                    {"freq": 280, "gain_db": -2.0, "q": 1.2},
+                    {"freq": 3800, "gain_db": 1.8, "q": 0.9} # 拨弦泛音
                 ]
-                # 交替立体声声相排列
-                if instrument == "guitar":
-                    guitar_count += 1
-                    action["pan"] = -0.35 if guitar_count % 2 == 1 else 0.35
-                elif instrument == "synth":
-                    synth_count += 1
-                    action["pan"] = 0.4 if synth_count % 2 == 1 else -0.4
-                else: # piano
-                    action["pan"] = -0.2
+                action["compressor"] = {"threshold_db": -15.0, "ratio": 2.2, "attack_ms": 20, "release_ms": 100}
+                action["pan"] = -0.35
+
+            elif inst == "guitar_strum":
+                # 木吉他扫弦：偏右 R35、律动强劲、避让人声中频
+                action["high_pass_hz"] = 120
+                action["eq_adjustments"] = [
+                    {"freq": 300, "gain_db": -2.5, "q": 1.0},
+                    {"freq": 2500, "gain_db": -1.2, "q": 1.2}
+                ]
+                action["compressor"] = {"threshold_db": -13.0, "ratio": 2.6, "attack_ms": 15, "release_ms": 90}
+                action["pan"] = 0.35
+
+            elif inst == "guitar_nylon":
+                # 尼龙古典吉他：偏左 L15、温暖中频、高频柔美不刺耳
+                action["high_pass_hz"] = 90
+                action["eq_adjustments"] = [
+                    {"freq": 450, "gain_db": 1.5, "q": 1.0},
+                    {"freq": 7000, "gain_db": -1.0, "q": 0.8}
+                ]
+                action["compressor"] = {"threshold_db": -16.0, "ratio": 2.0, "attack_ms": 25, "release_ms": 120}
+                action["pan"] = -0.15
+
+            elif inst == "guitar_solo":
+                # 电吉他 Solo：居中或微偏、强延音压缩、3kHz 咬合穿透
+                action["high_pass_hz"] = 110
+                action["eq_adjustments"] = [
+                    {"freq": 800, "gain_db": 1.2, "q": 1.0},
+                    {"freq": 3000, "gain_db": 2.2, "q": 1.1}
+                ]
+                action["compressor"] = {"threshold_db": -18.0, "ratio": 3.5, "attack_ms": 10, "release_ms": 150}
+                action["pan"] = 0.05
+
+            elif inst == "piano_grand":
+                # 原声大钢琴：偏左 L20、宽广动态、避让低频
+                action["high_pass_hz"] = 90
+                action["eq_adjustments"] = [
+                    {"freq": 250, "gain_db": -1.8, "q": 1.1},
+                    {"freq": 4500, "gain_db": 1.2, "q": 0.8}
+                ]
+                action["compressor"] = {"threshold_db": -14.0, "ratio": 2.0, "attack_ms": 30, "release_ms": 120}
+                action["pan"] = -0.2
+
+            elif inst == "piano_rhodes":
+                # 复古电钢琴：偏右 R25、温暖中频钟鸣质感
+                action["high_pass_hz"] = 100
+                action["eq_adjustments"] = [
+                    {"freq": 1200, "gain_db": 1.5, "q": 1.0},
+                    {"freq": 350, "gain_db": 1.0, "q": 1.2}
+                ]
+                action["compressor"] = {"threshold_db": -15.0, "ratio": 2.3, "attack_ms": 20, "release_ms": 100}
+                action["pan"] = 0.25
+
+            elif inst == "synth_hybrid":
+                # 混合长音铺底钢琴：环绕声场 L45/R45、深邃空间感
+                action["high_pass_hz"] = 130
+                action["eq_adjustments"] = [
+                    {"freq": 300, "gain_db": -2.0, "q": 1.0},
+                    {"freq": 9000, "gain_db": 2.0, "q": 0.7}
+                ]
+                action["compressor"] = {"threshold_db": -12.0, "ratio": 2.0, "attack_ms": 35, "release_ms": 150}
+                action["pan"] = -0.45
+
             else:
-                action["high_pass_hz"] = 70
+                action["high_pass_hz"] = 80
+                action["pan"] = 0.0
 
             track_actions.append(action)
 

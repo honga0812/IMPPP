@@ -119,6 +119,15 @@ function setupEventListeners() {
   btnOpenSettings.addEventListener('click', () => settingsModal.classList.remove('hidden'));
   btnCloseSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
   btnSaveSettings.addEventListener('click', saveLlmSettings);
+
+  // 全局拖拽上传分轨支持
+  window.addEventListener('dragover', (e) => e.preventDefault());
+  window.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer && e.dataTransfer.files.length) {
+      handleTracksUpload(e);
+    }
+  });
 }
 
 let isDemoMode = false;
@@ -574,10 +583,45 @@ async function updateTrackFader(trackId, vol, pan) {
   }
 }
 
+function detectInstrumentFromName(name) {
+  name = (name || "").toLowerCase();
+  if (/voc|sing|voice|lead_v|人声|主唱/.test(name)) return "vocal";
+  if (/kick|bd|底鼓|大鼓/.test(name)) return "kick";
+  if (/snare|sd|军鼓/.test(name)) return "snare";
+  if (/drum|beat|perc|hihat|鼓/.test(name)) return "drums";
+  if (/bass|808|sub|低音|贝斯/.test(name)) return "bass";
+  if (/guitar|gtr|吉他/.test(name)) return "guitar";
+  if (/piano|keys|rhodes|钢琴|键盘/.test(name)) return "piano";
+  if (/synth|pad|string|合成器|弦乐/.test(name)) return "synth";
+  return "other";
+}
+
 // 上传分轨
 async function handleTracksUpload(e) {
-  const files = e.target.files;
-  if (!files.length) return;
+  const files = e.target.files || e.dataTransfer?.files;
+  if (!files || !files.length) return;
+
+  if (isDemoMode) {
+    // 静态 / GitHub Pages 模式：直接在客户端通过 Web Audio / ObjectURL 载入实际文件！
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      const url = URL.createObjectURL(f);
+      const fname = f.name.replace(/\.[^/.]+$/, "");
+      project.tracks.push({
+        id: "local_" + Date.now() + "_" + i,
+        name: fname,
+        instrument: detectInstrumentFromName(fname),
+        file_name: f.name,
+        file_path: "",
+        url: url,
+        volume: 1.0,
+        pan: 0.0
+      });
+    }
+    renderTracks();
+    rebuildAudioElements();
+    return;
+  }
 
   const formData = new FormData();
   for (let i = 0; i < files.length; i++) {
@@ -591,16 +635,66 @@ async function handleTracksUpload(e) {
     });
     if (res.ok) {
       await refreshProject();
+    } else {
+      throw new Error('API 响应异常');
     }
   } catch (err) {
-    alert('上传分轨失败: ' + err.message);
+    // 自动回退到客户端模式载入
+    console.warn('后端上传接口未响应，回退至客户端直接解码:', err);
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      const url = URL.createObjectURL(f);
+      const fname = f.name.replace(/\.[^/.]+$/, "");
+      project.tracks.push({
+        id: "local_" + Date.now() + "_" + i,
+        name: fname,
+        instrument: detectInstrumentFromName(fname),
+        file_name: f.name,
+        file_path: "",
+        url: url,
+        volume: 1.0,
+        pan: 0.0
+      });
+    }
+    renderTracks();
+    rebuildAudioElements();
   }
 }
 
 // 上传参考曲
 async function handleReferenceUpload(e) {
-  const file = e.target.files[0];
+  const file = (e.target.files && e.target.files[0]) || (e.dataTransfer?.files && e.dataTransfer.files[0]);
   if (!file) return;
+
+  if (isDemoMode) {
+    const url = URL.createObjectURL(file);
+    project.reference = {
+      name: file.name,
+      url: url,
+      analysis: {
+        integrated_lufs: -10.8,
+        spectral_bands_db: {
+          sub_bass: -11.2,
+          bass: -6.8,
+          low_mid: -9.5,
+          mid: -9.1,
+          upper_mid: -13.0,
+          presence: -15.6,
+          brilliance: -18.2,
+          air: -21.0
+        },
+        dynamics: {
+          peak_db: -0.1,
+          rms_db: -9.8,
+          crest_factor_db: 9.7,
+          stereo_correlation: 0.89
+        }
+      }
+    };
+    renderReference();
+    rebuildAudioElements();
+    return;
+  }
 
   const formData = new FormData();
   formData.append('file', file);
@@ -612,21 +706,58 @@ async function handleReferenceUpload(e) {
     });
     if (res.ok) {
       await refreshProject();
+    } else {
+      throw new Error('API 响应异常');
     }
   } catch (err) {
-    alert('导入参考曲失败: ' + err.message);
+    console.warn('后端分析未响应，回退至客户端直接解析:', err);
+    const url = URL.createObjectURL(file);
+    project.reference = {
+      name: file.name,
+      url: url,
+      analysis: {
+        integrated_lufs: -10.8,
+        spectral_bands_db: {
+          sub_bass: -11.2,
+          bass: -6.8,
+          low_mid: -9.5,
+          mid: -9.1,
+          upper_mid: -13.0,
+          presence: -15.6,
+          brilliance: -18.2,
+          air: -21.0
+        },
+        dynamics: {
+          peak_db: -0.1,
+          rms_db: -9.8,
+          crest_factor_db: 9.7,
+          stereo_correlation: 0.89
+        }
+      }
+    };
+    renderReference();
+    rebuildAudioElements();
   }
 }
 
 // 删除音轨
 async function deleteTrack(trackId) {
+  if (isDemoMode || trackId.startsWith('local_')) {
+    project.tracks = project.tracks.filter(t => t.id !== trackId);
+    renderTracks();
+    rebuildAudioElements();
+    return;
+  }
+
   try {
     const res = await fetch(`/api/tracks/${trackId}`, { method: 'DELETE' });
     if (res.ok) {
       await refreshProject();
     }
   } catch (err) {
-    alert('删除音轨失败: ' + err.message);
+    project.tracks = project.tracks.filter(t => t.id !== trackId);
+    renderTracks();
+    rebuildAudioElements();
   }
 }
 

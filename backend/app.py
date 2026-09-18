@@ -149,8 +149,8 @@ def clear_project():
 def load_demo_project(song_id: str = "song_01"):
     clear_project()
     song_folders = {
-        "song_01": ("Song_01_Acoustic_Pop", "曲目一：原声流行《暖阳》 (Acoustic Pop)"),
-        "song_02": ("Song_02_Electric_Rock", "曲目二：现代流行摇滚《风暴》 (Modern Rock)")
+        "song_01": ("Song_01_Country_Ballad", "曲目一：抒情乡村风《Country Ballad》 (Country Ballad)"),
+        "song_02": ("Song_02_Kpop_Modern", "曲目二：K-pop流行音乐风格《K-Pop Modern Pop》 (K-Pop)")
     }
     folder_name, title = song_folders.get(song_id, song_folders["song_01"])
     src_dir = os.path.join(ROOT_DIR, "demo_assets", folder_name)

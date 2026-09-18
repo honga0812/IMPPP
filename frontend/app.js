@@ -41,7 +41,9 @@ const instrumentMeta = {
   "kick": { name: "纯净底鼓", color: "bg-red-950/70 text-red-300 border-red-700/50", icon: "fa-drum", hex: "#ef4444" },
   "snare": { name: "军鼓/踩镲", color: "bg-rose-950/70 text-rose-300 border-rose-700/50", icon: "fa-drum", hex: "#f43f5e" },
   "drums": { name: "原声全鼓组", color: "bg-orange-950/70 text-orange-300 border-orange-700/50", icon: "fa-drum", hex: "#f97316" },
+  "drums_electronic": { name: "K-pop电音鼓组", color: "bg-orange-950/70 text-orange-300 border-orange-700/50", icon: "fa-drum", hex: "#f97316" },
   "bass": { name: "低音电贝斯", color: "bg-emerald-950/70 text-emerald-300 border-emerald-700/50", icon: "fa-guitar", hex: "#10b981" },
+  "bass_808": { name: "K-pop 808重低音", color: "bg-emerald-950/70 text-emerald-300 border-emerald-700/50", icon: "fa-guitar", hex: "#10b981" },
   "guitar_arpeggio": { name: "指弹木吉他", color: "bg-amber-950/70 text-amber-300 border-amber-700/50", icon: "fa-guitar", hex: "#f59e0b" },
   "guitar_strum": { name: "扫弦木吉他", color: "bg-amber-900/70 text-amber-200 border-amber-600/50", icon: "fa-guitar", hex: "#fbbf24" },
   "guitar_nylon": { name: "尼龙古典吉他", color: "bg-yellow-950/70 text-yellow-300 border-yellow-700/50", icon: "fa-guitar", hex: "#eab308" },
@@ -51,6 +53,8 @@ const instrumentMeta = {
   "piano_rhodes": { name: "复古电钢琴", color: "bg-cyan-950/70 text-cyan-300 border-cyan-700/50", icon: "fa-keyboard", hex: "#06b6d4" },
   "synth_hybrid": { name: "混合铺底钢琴", color: "bg-indigo-950/70 text-indigo-300 border-indigo-700/50", icon: "fa-wave-square", hex: "#6366f1" },
   "synth": { name: "合成器铺底", color: "bg-indigo-950/70 text-indigo-300 border-indigo-700/50", icon: "fa-wave-square", hex: "#6366f1" },
+  "synth_lead": { name: "K-pop主音合成器", color: "bg-pink-950/70 text-pink-300 border-pink-700/50", icon: "fa-bolt", hex: "#ec4899" },
+  "fiddle": { name: "原声乡村小提琴", color: "bg-amber-950/70 text-amber-200 border-amber-700/50", icon: "fa-music", hex: "#f59e0b" },
   "cello": { name: "原声大提琴", color: "bg-teal-950/70 text-teal-300 border-teal-700/50", icon: "fa-music", hex: "#14b8a6" },
   "other": { name: "乐器分轨", color: "bg-zinc-800 text-zinc-300 border-zinc-700", icon: "fa-sliders", hex: "#94a3b8" }
 };
@@ -59,34 +63,34 @@ const instrumentMeta = {
 const DEMO_SONG_PROJECTS = {
   "song_01": {
     id: "song_01",
-    title: "曲目一：原声流行《暖阳》 (Acoustic Pop)",
-    shortName: "原声流行《暖阳》",
-    folder: "Song_01_Acoustic_Pop",
-    description: "全真实录音棚原声编制，包含纯正指弹木吉他、温暖扫弦木吉他、真声女声主唱、录音棚鼓组、电贝斯、复古 Rhodes 电钢及大钢琴铺底。",
+    title: "曲目一：抒情乡村风《Country Ballad》",
+    shortName: "抒情乡村《Country Ballad》",
+    folder: "Song_01_Country_Ballad",
+    description: "全真实录音棚原声乡村编制，包含纯正指弹木吉他、温暖扫弦木吉他、真声乡村男声主唱、原声小提琴优美旋律、低音贝斯与轻柔刷鼓组，重现纳什维尔录音棚温暖声学空间。",
     reference: {
-      name: "Reference_Acoustic_Pop_Master.wav",
-      url: "./demo_assets/Song_01_Acoustic_Pop/Reference_Acoustic_Pop_Master.wav",
+      name: "Reference_Country_Ballad_Master.wav",
+      url: "./demo_assets/Song_01_Country_Ballad/Reference_Country_Ballad_Master.wav",
       analysis: {
-        integrated_lufs: -11.5,
+        integrated_lufs: -12.8,
         spectral_bands_db: {
-          sub_bass: -11.0, bass: -5.2, low_mid: -9.1, mid: -8.5,
-          upper_mid: -12.8, presence: -14.5, brilliance: -17.5, air: -21.2
+          sub_bass: -12.5, bass: -6.2, low_mid: -8.8, mid: -7.9,
+          upper_mid: -11.5, presence: -13.8, brilliance: -16.8, air: -20.5
         },
-        dynamics: { peak_db: -0.15, rms_db: -9.2, crest_factor_db: 9.05, stereo_correlation: 0.92 }
+        dynamics: { peak_db: -0.2, rms_db: -10.5, crest_factor_db: 10.3, stereo_correlation: 0.93 }
       },
-      note: "特点：实录商业母带标杆，高频空气感通透，低频温润结实不浑浊。"
+      note: "特点：乡村民谣商业母带标杆，高频木吉他泛音通透，空间感自然开阔，无刺耳高频。"
     },
     tracks: [
       {
         id: "s1_01",
-        name: "01_Lead_Vocal",
-        file_name: "01_Lead_Vocal.wav",
+        name: "01_Country_Lead_Vocal",
+        file_name: "01_Country_Lead_Vocal.wav",
         instrument: "vocal_lead",
         volume: 1.05,
         pan: 0.0,
-        hpf: "85 Hz (切除人声杂音与喷麦低频)",
-        eq: "+2.5dB@3.5kHz (咬字穿透感), +2.0dB@11kHz (空气感光泽)",
-        comp: "4:1, 阈值 -18dB, 启动 15ms (人声压实平整)",
+        hpf: "90 Hz (切除人声低频喷麦杂音)",
+        eq: "+2.0dB@3.2kHz (乡村咬字亲切感), +1.8dB@12kHz (空气感光泽)",
+        comp: "3.5:1, 阈值 -18dB, 启动 18ms (温和压平动态)",
         pan_desc: "Center 0% (舞台正中央)"
       },
       {
@@ -96,9 +100,9 @@ const DEMO_SONG_PROJECTS = {
         instrument: "guitar_arpeggio",
         volume: 0.85,
         pan: -0.35,
-        hpf: "115 Hz (避让贝斯与地鼓基频)",
-        eq: "+2.0dB@4.5kHz (透亮指弹颗粒), -2.5dB@320Hz (消除箱体共鸣)",
-        comp: "2.8:1, 阈值 -17dB (动态平滑)",
+        hpf: "120 Hz (避让贝斯与鼓组基频)",
+        eq: "+2.2dB@4kHz (透亮指弹颗粒), -2.8dB@300Hz (消除琴身箱体共振)",
+        comp: "2.8:1, 阈值 -17dB (动态细腻平滑)",
         pan_desc: "L35 (偏左对称)"
       },
       {
@@ -109,163 +113,115 @@ const DEMO_SONG_PROJECTS = {
         volume: 0.85,
         pan: 0.35,
         hpf: "110 Hz (低频切净让位)",
-        eq: "-3.0dB@280Hz (去浑浊木质杂频), +2.2dB@8kHz (通透开扬扫弦)",
+        eq: "-3.0dB@260Hz (去除中低频浑浊), +2.0dB@8kHz (开阔扫弦质感)",
         comp: "3:1, 阈值 -16dB, 释放 120ms",
         pan_desc: "R35 (偏右开阔声场)"
       },
       {
         id: "s1_04",
-        name: "04_Studio_Drums",
-        file_name: "04_Studio_Drums.wav",
+        name: "04_Country_Brushes_Drums",
+        file_name: "04_Country_Brushes_Drums.wav",
         instrument: "drums",
         volume: 0.95,
         pan: 0.0,
-        hpf: "32 Hz (超低频切除保留底频)",
-        eq: "+3.0dB@65Hz (拳拳到肉底频), +2.5dB@5.5kHz (军鼓镲片清脆度)",
-        comp: "4:1, 瞬态保留 30ms (强劲律动骨架)",
+        hpf: "35 Hz (超低频切除保留底频)",
+        eq: "+2.5dB@70Hz (柔和低频底鼓), +2.0dB@5kHz (刷鼓轻柔颗粒)",
+        comp: "3.5:1, 瞬态保留 25ms (乡村轻盈律动骨架)",
         pan_desc: "Center 0% (全立体声底架)"
       },
       {
         id: "s1_05",
-        name: "05_Electric_Bass",
-        file_name: "05_Electric_Bass.wav",
+        name: "05_Country_Bass",
+        file_name: "05_Country_Bass.wav",
         instrument: "bass",
         volume: 1.0,
         pan: 0.0,
         hpf: "35 Hz (次低频收紧防浑浊)",
-        eq: "-3.5dB@65Hz (为底鼓精准避让划槽), +2.8dB@700Hz (金属拨片质感)",
-        comp: "5:1, 阈值 -20dB (紧凑低频地基)",
+        eq: "-3.0dB@70Hz (为底鼓避让), +2.5dB@600Hz (木质箱琴低音线条)",
+        comp: "4.5:1, 阈值 -19dB (稳固温暖低频地基)",
         pan_desc: "Center 0% (绝对居中防相位抵消)"
       },
       {
         id: "s1_06",
-        name: "06_Rhodes_Electric_Piano",
-        file_name: "06_Rhodes_Electric_Piano.wav",
-        instrument: "piano_rhodes",
+        name: "06_Country_Fiddle_Acoustic",
+        file_name: "06_Country_Fiddle_Acoustic.wav",
+        instrument: "fiddle",
         volume: 0.85,
-        pan: -0.25,
-        hpf: "100 Hz (清除驻波杂音)",
-        eq: "-2.0dB@300Hz (让人声中频更突出), +1.8dB@4kHz (电钢泛音)",
-        comp: "2.5:1, 阈值 -15dB (柔和模拟润色)",
-        pan_desc: "L25 (偏左复古空间铺垫)"
-      },
-      {
-        id: "s1_07",
-        name: "07_Grand_Piano_Layer",
-        file_name: "07_Grand_Piano_Layer.wav",
-        instrument: "piano_grand",
-        volume: 0.80,
-        pan: 0.25,
-        hpf: "105 Hz (低频切除)",
-        eq: "+2.0dB@2.5kHz (晶莹通透度), -2.0dB@400Hz",
-        comp: "2.5:1, 阈值 -16dB",
-        pan_desc: "R25 (偏右空间辉映)"
+        pan: 0.20,
+        hpf: "150 Hz (低频杂音切除)",
+        eq: "+2.0dB@2.8kHz (小提琴琴弦光彩), -2.0dB@500Hz",
+        comp: "2.5:1, 阈值 -15dB (柔和悠扬润色)",
+        pan_desc: "R20 (偏右小提琴悠扬呼应)"
       }
     ]
   },
   "song_02": {
     id: "song_02",
-    title: "曲目二：流行摇滚《风暴》 (Modern Rock)",
-    shortName: "流行摇滚《风暴》",
-    folder: "Song_02_Electric_Rock",
-    description: "现代流行摇滚与电声乐器编制，包含失真电吉他强力和弦、节奏电吉他、高亢 Overdrive 电吉他 Solo、摇滚重鼓组、金属质感电贝斯及大提琴 Pad。",
+    title: "曲目二：K-pop流行音乐风格《K-Pop Modern Pop》",
+    shortName: "K-pop流行《Modern Pop》",
+    folder: "Song_02_Kpop_Modern",
+    description: "顶级 K-pop 现代舞曲实录分轨，包含高穿透力 K-pop 女声主唱、重拳击胸电子鼓组、下潜深邃的 808 超低音、抓耳洗脑的合成器主音 Hook，呈现强劲现代榜单级声学动态。",
     reference: {
-      name: "Reference_Rock_Master.wav",
-      url: "./demo_assets/Song_02_Electric_Rock/Reference_Rock_Master.wav",
+      name: "Reference_Kpop_Master.wav",
+      url: "./demo_assets/Song_02_Kpop_Modern/Reference_Kpop_Master.wav",
       analysis: {
-        integrated_lufs: -9.5,
+        integrated_lufs: -8.5,
         spectral_bands_db: {
-          sub_bass: -10.0, bass: -4.8, low_mid: -8.6, mid: -8.2,
-          upper_mid: -12.0, presence: -14.0, brilliance: -16.8, air: -20.2
+          sub_bass: -7.5, bass: -4.2, low_mid: -8.0, mid: -7.8,
+          upper_mid: -10.5, presence: -12.2, brilliance: -14.5, air: -17.8
         },
-        dynamics: { peak_db: -0.1, rms_db: -8.8, crest_factor_db: 8.7, stereo_correlation: 0.94 }
+        dynamics: { peak_db: -0.1, rms_db: -7.5, crest_factor_db: 7.4, stereo_correlation: 0.95 }
       },
-      note: "特点：高能级摇滚母带，冲击力鼓点与失真电吉他紧密咬合，大动态高响度。"
+      note: "特点：顶级商业 K-Pop 母带，极致低频冲击力 (-8.5 LUFS 高响度)，明亮通透人声与立体声合成器环绕。"
     },
     tracks: [
       {
         id: "s2_01",
-        name: "01_Rock_Lead_Vocal",
-        file_name: "01_Rock_Lead_Vocal.wav",
+        name: "01_Kpop_Lead_Vocal",
+        file_name: "01_Kpop_Lead_Vocal.wav",
         instrument: "vocal_lead",
         volume: 1.05,
         pan: 0.0,
-        hpf: "90 Hz (高切低频噪音)",
-        eq: "+3.0dB@3.8kHz (穿透狂躁摇滚乐器层), +1.8dB@10kHz (亮色)",
-        comp: "5:1, 阈值 -19dB, 快速压限 (防止破音并稳居前排)",
+        hpf: "95 Hz (切除超低频杂音)",
+        eq: "+3.5dB@4.0kHz (极致高频穿透与现代近场感), +2.5dB@10kHz (亮丽空气感)",
+        comp: "5:1, 阈值 -18dB, 启动 10ms (现代紧凑人声)",
         pan_desc: "Center 0% (绝对中央主唱)"
       },
       {
         id: "s2_02",
-        name: "02_Rock_Drums",
-        file_name: "02_Rock_Drums.wav",
-        instrument: "drums",
+        name: "02_Kpop_Electronic_Drums",
+        file_name: "02_Kpop_Electronic_Drums.wav",
+        instrument: "drums_electronic",
         volume: 1.0,
         pan: 0.0,
-        hpf: "30 Hz (超低频截断)",
-        eq: "+3.5dB@60Hz (重击力量), +3.0dB@4.5kHz (军鼓抽打感)",
-        comp: "4.5:1, 瞬态增强 (强劲敲击冲力)",
-        pan_desc: "Center 0% (立体声全鼓组)"
+        hpf: "28 Hz (极低频切除保留下潜)",
+        eq: "+3.5dB@55Hz (底鼓下潜冲击), +3.0dB@3kHz (击打爆破力)",
+        comp: "4:1, 快速启动 (紧凑舞曲节奏骨架)",
+        pan_desc: "Center 0% (宽阔电子立体声鼓组)"
       },
       {
         id: "s2_03",
-        name: "03_Rock_Bass",
-        file_name: "03_Rock_Bass.wav",
-        instrument: "bass",
+        name: "03_Kpop_808_Bass",
+        file_name: "03_Kpop_808_Bass.wav",
+        instrument: "bass_808",
         volume: 0.95,
         pan: 0.0,
-        hpf: "35 Hz (次低频收缩)",
-        eq: "-3.0dB@60Hz (为摇滚地鼓避让), +3.2dB@850Hz (过载金属颗粒)",
-        comp: "6:1, 阈值 -22dB (钢条般紧硬平直)",
-        pan_desc: "Center 0% (居中低频骨干)"
+        hpf: "30 Hz (次低频收紧)",
+        eq: "+3.0dB@45Hz (次低频震动), -3.0dB@250Hz (避让中频)",
+        comp: "6:1, 阈值 -22dB (钢条般平整平直)",
+        pan_desc: "Center 0% (绝对居中808基底)"
       },
       {
         id: "s2_04",
-        name: "04_Electric_Guitar_Power_Chords",
-        file_name: "04_Electric_Guitar_Power_Chords.wav",
-        instrument: "guitar_solo",
-        volume: 0.85,
-        pan: 0.40,
-        hpf: "100 Hz (切净泥泞杂频)",
-        eq: "+2.5dB@2.8kHz (失真力量感), -2.0dB@4kHz (去除刺耳蜂鸣)",
-        comp: "3.5:1, 阈值 -16dB",
-        pan_desc: "R40 (右侧强力电吉他墙)"
-      },
-      {
-        id: "s2_05",
-        name: "05_Electric_Guitar_Rhythm",
-        file_name: "05_Electric_Guitar_Rhythm.wav",
-        instrument: "guitar_acoustic",
-        volume: 0.85,
-        pan: -0.40,
-        hpf: "100 Hz (切净低频)",
-        eq: "+2.0dB@2.2kHz (节奏突出), -2.0dB@500Hz",
-        comp: "3.2:1, 阈值 -16dB",
-        pan_desc: "L40 (左侧对称电吉他墙)"
-      },
-      {
-        id: "s2_06",
-        name: "06_Electric_Guitar_Overdrive_Solo",
-        file_name: "06_Electric_Guitar_Overdrive_Solo.wav",
-        instrument: "guitar_solo",
+        name: "04_Kpop_Synth_Lead_Hook",
+        file_name: "04_Kpop_Synth_Lead_Hook.wav",
+        instrument: "synth_lead",
         volume: 0.85,
         pan: 0.15,
-        hpf: "90 Hz (低频切除)",
-        eq: "+3.5dB@3kHz (破音Solo歌唱性), 模拟延音增强",
-        comp: "4:1, 延音饱满",
-        pan_desc: "R15 (前排主奏 Solo)"
-      },
-      {
-        id: "s2_07",
-        name: "07_Rock_Cello_Pad",
-        file_name: "07_Rock_Cello_Pad.wav",
-        instrument: "cello",
-        volume: 0.80,
-        pan: -0.20,
-        hpf: "80 Hz (基频保留)",
-        eq: "+2.0dB@1.5kHz (弦乐厚度), -2.0dB@600Hz",
-        comp: "2.8:1, 慢释放 (沉浸弦乐底铺)",
-        pan_desc: "L20 (左侧沉浸弦乐铺底)"
+        hpf: "130 Hz (切净泥泞杂频)",
+        eq: "+2.5dB@3kHz (洗脑旋律穿透), 宽广立体声扩散",
+        comp: "3.5:1, 阈值 -16dB",
+        pan_desc: "R15 (立体声主音合成器)"
       }
     ]
   }
@@ -276,17 +232,24 @@ const DEMO_REAL_STUDIO_TRACKS = DEMO_SONG_PROJECTS["song_01"].tracks;
 
 // 预置商业流派定义
 const PRESET_COMMERCIAL_STYLES = {
-  pop: {
-    name: "真实商业流行标杆 (Real Commercial Master)",
-    styleLabel: "商业流行标杆",
-    url: "./demo_assets/Song_01_Acoustic_Pop/Reference_Acoustic_Pop_Master.wav",
+  country: {
+    name: "纳什维尔抒情乡村 (Country Ballad)",
+    styleLabel: "抒情乡村风格",
+    url: "./demo_assets/Song_01_Country_Ballad/Reference_Country_Ballad_Master.wav",
     analysis: DEMO_SONG_PROJECTS["song_01"].reference.analysis,
-    note: "特点：实录商业母带，12kHz+ 空气感透明，声场开阔，低频结实饱满不浑浊。"
+    note: "特点：乡村民谣商业母带标杆，高频木吉他泛音细腻，中低频温暖，空间自然开扬。"
+  },
+  kpop: {
+    name: "顶级商业K-Pop现代舞曲 (K-Pop Modern Pop)",
+    styleLabel: "K-pop流行风格",
+    url: "./demo_assets/Song_02_Kpop_Modern/Reference_Kpop_Master.wav",
+    analysis: DEMO_SONG_PROJECTS["song_02"].reference.analysis,
+    note: "特点：极致低频冲击力与紧实鼓组 (-8.5 LUFS 高响度)，人声极度贴耳穿透。"
   },
   folk: {
     name: "原声民谣暖色 (Acoustic Folk)",
     styleLabel: "原声民谣风格",
-    url: "./demo_assets/Song_01_Acoustic_Pop/Reference_Acoustic_Pop_Master.wav",
+    url: "./demo_assets/Song_01_Country_Ballad/Reference_Country_Ballad_Master.wav",
     analysis: {
       integrated_lufs: -13.8,
       spectral_bands_db: {
@@ -296,13 +259,6 @@ const PRESET_COMMERCIAL_STYLES = {
       dynamics: { peak_db: -0.3, rms_db: -12.4, crest_factor_db: 12.1, stereo_correlation: 0.88 }
     },
     note: "特点：保留大动态呼吸感，木吉他拨弦通透细腻，中频温暖饱满，空间宽广。"
-  },
-  rock: {
-    name: "录音棚流行摇滚 (Studio Modern Rock)",
-    styleLabel: "摇滚/R&B风格",
-    url: "./demo_assets/Song_02_Electric_Rock/Reference_Rock_Master.wav",
-    analysis: DEMO_SONG_PROJECTS["song_02"].reference.analysis,
-    note: "特点：律动鼓组与金属贝斯紧密胶合，电吉他立体声饱满，富有音乐感染力。"
   }
 };
 
@@ -578,7 +534,7 @@ function selectPresetCommercialStyle(styleKey, triggerNotice = true) {
   }
 }
 
-// 刷新服务端工程状态
+// 刷新服务端工程状态 (根据用户需求：进入页面时不默认载入示范档案曲目，保持干净空白工程)
 async function refreshProject() {
   try {
     const res = await fetch('/api/project');
@@ -588,13 +544,35 @@ async function refreshProject() {
       project = data;
       isDemoMode = false;
     } else {
-      await loadDemoProjectSuite('song_01');
-      return;
+      project = {
+        tracks: [],
+        reference: null,
+        current_mix: null,
+        current_strategy: null,
+        chat_history: [
+          {
+            role: "assistant",
+            content: "欢迎使用 AI 智能多轨混音工作站！工程当前为空白状态。\n• 可在上方【选择示范曲目工程】下拉菜单中选择「抒情乡村风」或「K-pop流行音乐风格」并点击【载入曲目】；\n• 或点击【添加自身录音分轨】导入自备分轨工程，并导入商业参考曲进行一键参考混音。"
+          }
+        ]
+      };
+      isDemoMode = false;
     }
   } catch (err) {
-    console.warn('后端 API 未连接或处于静态环境，自动初始化演示工程:', err);
-    await loadDemoProjectSuite('song_01');
-    return;
+    console.info('未连接动态后端或处于静态展示环境，初始化空工程:', err);
+    project = {
+      tracks: [],
+      reference: null,
+      current_mix: null,
+      current_strategy: null,
+      chat_history: [
+        {
+          role: "assistant",
+          content: "欢迎使用 AI 智能多轨混音工作站！工程当前为空白状态。\n• 可在上方【选择示范曲目工程】下拉菜单中选择「抒情乡村风」或「K-pop流行音乐风格」并点击【载入曲目】；\n• 或点击【添加自身录音分轨】导入自备分轨工程，并导入商业参考曲进行一键参考混音。"
+        }
+      ]
+    };
+    isDemoMode = false;
   }
   renderAll();
 }

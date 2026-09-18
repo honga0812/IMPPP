@@ -48,9 +48,9 @@ class MixingCopilot:
             return "synth_hybrid"
         elif any(k in name for k in ["grand", "piano", "keys", "钢琴"]):
             return "piano_grand"
-        elif any(k in name for k in ["cello", "大提琴"]):
-            return "cello"
-        elif any(k in name for k in ["synth", "lead", "string", "合成器", "弦乐"]):
+        elif any(k in name for k in ["fiddle", "violin", "小提琴"]):
+            return "fiddle"
+        elif any(k in name for k in ["synth", "lead", "string", "hook", "合成器", "弦乐"]):
             return "synth"
         return "other"
 

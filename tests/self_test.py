@@ -7,55 +7,29 @@ import numpy as np
 
 def test_audio_assets():
     print('=' * 60)
-    print('[Self-Test 1/3] 正在验证所有真实实录分轨与商业参考曲资产...')
+    print('[Self-Test 1/3] 正在验证全新抒情乡村风与 K-pop 风格实录分轨及商业母带资产...')
     print('=' * 60)
-    
-    required_files = [
-        '01_Real_Lead_Vocal.wav',
-        '02_Real_Acoustic_Guitar_Strum.wav',
-        '03_Real_Electric_Guitar_Solo.wav',
-        '04_Real_Acoustic_Guitar_Rhythm.wav',
-        '05_Real_Studio_Drums.wav',
-        '06_Real_Electric_Bass.wav',
-        '07_Real_Rhodes_Keys.wav',
-        '08_Real_Acoustic_Cello.wav',
-        'Ref_Real_Commercial_Pop.wav'
-    ]
-    
-    folders = ['demo_assets', 'frontend/demo_assets']
-    
-    for folder in folders:
-        for fname in required_files:
-            fpath = os.path.join(folder, fname)
-            assert os.path.exists(fpath), f'❌ 文件丢失: {fpath}'
-            
-            data, sr = sf.read(fpath)
-            assert sr == 44100, f'❌ 采样率不正确: {fpath} (sr={sr})'
-            dur = len(data) / sr
-            assert dur >= 15.5, f'❌ 时长过短: {fpath} ({dur:.2f}s)'
-            peak = float(np.max(np.abs(data)))
-            rms = float(np.sqrt(np.mean(data**2)))
-            assert peak > 0.30, f'❌ 检测到静音或极弱音轨: {fpath} (peak={peak:.4f})'
-            assert rms > 0.05, f'❌ RMS 能量过低: {fpath} (rms={rms:.4f})'
 
     # 验证曲目一与曲目二专属目录文件
     for base in ['demo_assets', 'frontend/demo_assets']:
-        s1_dir = os.path.join(base, 'Song_01_Acoustic_Pop')
-        s2_dir = os.path.join(base, 'Song_02_Electric_Rock')
-        for sdir, tag in [(s1_dir, '曲目一:原声流行'), (s2_dir, '曲目二:现代摇滚')]:
+        s1_dir = os.path.join(base, 'Song_01_Country_Ballad')
+        s2_dir = os.path.join(base, 'Song_02_Kpop_Modern')
+        for sdir, tag, min_tracks in [(s1_dir, '曲目一:抒情乡村', 7), (s2_dir, '曲目二:K-pop流行', 5)]:
             assert os.path.exists(sdir), f'❌ 目录不存在: {sdir}'
-            wav_files = [f for f in os.listdir(sdir) if f.endswith('.wav')]
-            assert len(wav_files) >= 7, f'❌ 音轨数量不足: {sdir} ({len(wav_files)} 轨)'
+            wav_files = sorted([f for f in os.listdir(sdir) if f.endswith('.wav')])
+            assert len(wav_files) >= min_tracks, f'❌ 音轨数量不足: {sdir} ({len(wav_files)} < {min_tracks} 轨)'
             for wf in wav_files:
                 p = os.path.join(sdir, wf)
                 data, sr = sf.read(p)
                 dur = len(data) / sr
                 peak = float(np.max(np.abs(data)))
                 rms = float(np.sqrt(np.mean(data**2)))
+                assert sr == 44100, f'❌ 采样率不正确: {p} (sr={sr})'
+                assert dur >= 15.5, f'❌ 时长不足: {p} ({dur:.2f}s)'
                 assert peak > 0.35, f'❌ 弱音轨: {p} ({peak:.2f})'
                 assert rms > 0.05, f'❌ 低能量: {p} ({rms:.3f})'
-                print(f"  ✓ [{tag}] {wf:36} | 时长: {dur:.1f}s | 峰值: {peak:.2f} | RMS: {rms:.3f}")
-            
+                print(f"  ✓ [{tag}] {wf:38} | 时长: {dur:.1f}s | 峰值: {peak:.2f} | RMS: {rms:.3f}")
+
     print("\n✅ 所有音频文件校验通过：100% 具备真实响度与清晰演奏声，零静音！\n")
 
 def test_frontend_integrity():

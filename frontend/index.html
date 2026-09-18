@@ -154,12 +154,12 @@
           <div class="space-y-1.5 mb-2.5">
             <div class="flex items-center justify-between">
               <span class="text-[10px] text-zinc-400">选择示范曲目工程：</span>
-              <span class="text-[10px] text-indigo-400 font-mono font-medium" id="current-demo-song-label">原声流行《暖阳》</span>
+              <span class="text-[10px] text-indigo-400 font-mono font-medium" id="current-demo-song-label">待选择</span>
             </div>
             <div class="flex items-center space-x-1.5">
               <select id="select-demo-song" class="flex-1 bg-[#121622] text-zinc-200 border border-indigo-700/60 rounded-lg px-2 py-1.5 text-[11px] font-medium focus:outline-none focus:border-indigo-400">
-                <option value="song_01">🎵 曲目一：原声流行《暖阳》 (7轨原声实录/真木吉他/电钢/鼓贝斯)</option>
-                <option value="song_02">⚡ 曲目二：流行摇滚《风暴》 (7轨电声失真/真电吉他Solo与节奏)</option>
+                <option value="song_01">🌾 曲目一：抒情乡村风《Country Ballad》 (6轨纯木吉他/实录乡村人声/小提琴/贝斯鼓组)</option>
+                <option value="song_02">⚡ 曲目二：K-pop流行音乐风格《K-Pop Modern Pop》 (4轨强劲808/电音全鼓/女声主唱/电音Lead)</option>
               </select>
               <button id="btn-load-demo-suite" type="button" class="py-1.5 px-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/60 text-white text-[11px] font-bold transition flex items-center space-x-1 shadow-md shadow-indigo-600/30 flex-shrink-0" title="载入所选示范曲目的所有分轨及参考母带">
                 <i class="fa-solid fa-cloud-arrow-down text-[10px]"></i>
@@ -191,14 +191,14 @@
               <span class="text-[10px] text-purple-400 font-mono" id="current-ref-style-label"></span>
             </div>
             <div class="grid grid-cols-3 gap-1.5">
-              <button class="preset-ref-btn px-1.5 py-1.5 rounded bg-zinc-800 hover:bg-purple-950/70 hover:border-purple-500/60 border border-zinc-700 text-[10px] text-zinc-300 transition text-center font-medium" data-style="pop">
-                🎵 流行榜单
+              <button class="preset-ref-btn px-1.5 py-1.5 rounded bg-zinc-800 hover:bg-purple-950/70 hover:border-purple-500/60 border border-zinc-700 text-[10px] text-zinc-300 transition text-center font-medium" data-style="country">
+                🌾 抒情乡村
+              </button>
+              <button class="preset-ref-btn px-1.5 py-1.5 rounded bg-zinc-800 hover:bg-purple-950/70 hover:border-purple-500/60 border border-zinc-700 text-[10px] text-zinc-300 transition text-center font-medium" data-style="kpop">
+                ⚡ K-pop流行
               </button>
               <button class="preset-ref-btn px-1.5 py-1.5 rounded bg-zinc-800 hover:bg-purple-950/70 hover:border-purple-500/60 border border-zinc-700 text-[10px] text-zinc-300 transition text-center font-medium" data-style="folk">
                 🍃 原声民谣
-              </button>
-              <button class="preset-ref-btn px-1.5 py-1.5 rounded bg-zinc-800 hover:bg-purple-950/70 hover:border-purple-500/60 border border-zinc-700 text-[10px] text-zinc-300 transition text-center font-medium" data-style="rock">
-                🎸 摇滚/R&B
               </button>
             </div>
           </div>

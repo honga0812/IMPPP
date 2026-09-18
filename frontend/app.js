@@ -2320,43 +2320,57 @@ function renderTracks() {
 
         <!-- 独奏 S、静音 M 与删除按键组 -->
         <div class="flex items-center space-x-1 flex-shrink-0">
-          <button class="btn-solo w-6 h-6 rounded text-[10px] font-bold border border-[#273045] ${
+          <button class="btn-solo w-7 h-7 sm:w-6 sm:h-6 rounded text-[10px] font-bold border border-[#273045] ${
             isSolo ? "active" : "bg-[#141824] text-zinc-400 hover:text-zinc-200"
           }" data-tid="${track.id}" title="独奏 (Solo)">S</button>
-          <button class="btn-mute w-6 h-6 rounded text-[10px] font-bold border border-[#273045] ${
+          <button class="btn-mute w-7 h-7 sm:w-6 sm:h-6 rounded text-[10px] font-bold border border-[#273045] ${
             isMute ? "active" : "bg-[#141824] text-zinc-400 hover:text-zinc-200"
           }" data-tid="${track.id}" title="静音 (Mute)">M</button>
-          <button class="btn-del-track text-zinc-600 hover:text-red-400 p-1 transition flex-shrink-0" data-tid="${track.id}" title="移除轨道">
+          <button class="btn-del-track text-zinc-600 hover:text-red-400 p-1.5 transition flex-shrink-0" data-tid="${track.id}" title="移除轨道">
             <i class="fa-regular fa-trash-can text-xs"></i>
           </button>
         </div>
       </div>
 
-      <!-- 行 2 (移动端) / 中间栏: 通道推子与声相 + Mini EQ + GR 增益衰减表 -->
-      <div class="flex items-center justify-between gap-2 w-full md:w-auto flex-shrink-0">
-        <!-- 通道推子与声相控制 -->
-        <div class="flex-1 md:w-56 bg-[#080a10] px-2 sm:px-2.5 py-1.5 rounded-lg border border-[#182030] flex items-center space-x-2">
-          <div class="flex-1 flex items-center space-x-1 sm:space-x-1.5">
-            <span class="text-[9px] text-zinc-500 font-mono">VOL</span>
-            <input type="range" min="0" max="1.5" step="0.05" value="${track.volume || 1.0}" class="fader-vol flex-1" data-tid="${track.id}">
-            <span class="text-[9px] font-mono text-cyan-400 w-7 text-right">${Math.round((track.volume || 1.0) * 100)}%</span>
+      <!-- 行 2 (移动端) / 中间栏 (桌面端): 声学与增益控制条 (VOL 增益 / PAN 声相 / 频响分布 EQ / 增益衰减 GR) -->
+      <div class="track-channel-controls flex flex-row items-center gap-2 w-full md:w-auto flex-shrink-0">
+        <!-- 增益与声相控制模块 (VOL / PAN) -->
+        <div class="track-gain-strip flex-1 min-w-0 md:w-56 bg-[#07090e] px-2.5 py-1.5 rounded-lg border border-[#161c2b] flex flex-col justify-center gap-1.5">
+          <!-- VOL 增益推子 -->
+          <div class="flex items-center space-x-1.5">
+            <span class="text-[9px] text-zinc-400 font-mono font-bold w-6 flex-shrink-0" title="通道音量增益 (Volume Gain)">VOL</span>
+            <input type="range" min="0" max="1.5" step="0.05" value="${track.volume || 1.0}" class="fader-vol flex-1 min-w-0" data-tid="${track.id}" title="音量增益: ${Math.round((track.volume || 1.0) * 100)}%">
+            <span class="fader-vol-val text-[9px] font-mono text-cyan-400 font-bold w-8 text-right flex-shrink-0">${Math.round((track.volume || 1.0) * 100)}%</span>
           </div>
-          <div class="flex-1 flex items-center space-x-1 sm:space-x-1.5">
-            <span class="text-[9px] text-zinc-500 font-mono">PAN</span>
-            <input type="range" min="-1" max="1" step="0.05" value="${track.pan || 0.0}" class="fader-pan flex-1" data-tid="${track.id}">
-            <span class="text-[9px] font-mono text-purple-400 w-6 text-right">${formatPan(track.pan || 0.0)}</span>
+          <!-- PAN 声相推子 -->
+          <div class="flex items-center space-x-1.5">
+            <span class="text-[9px] text-zinc-400 font-mono font-bold w-6 flex-shrink-0" title="立体声声相平衡 (Stereo Pan)">PAN</span>
+            <input type="range" min="-1" max="1" step="0.05" value="${track.pan || 0.0}" class="fader-pan flex-1 min-w-0" data-tid="${track.id}" title="声相: ${formatPan(track.pan || 0.0)}">
+            <span class="fader-pan-val text-[9px] font-mono text-purple-400 font-bold w-8 text-right flex-shrink-0">${formatPan(track.pan || 0.0)}</span>
           </div>
         </div>
 
-        <!-- 可视化微型 EQ 频响曲线与 GR 表 -->
-        <div class="flex items-center space-x-1.5 flex-shrink-0">
-          <div class="mini-eq-box flex-shrink-0" title="通道参量 EQ 频响曲线 (${meta.name})">
-            <canvas class="mini-eq-canvas" width="76" height="32" data-tid="${track.id}"></canvas>
+        <!-- 频响分布 (Mini EQ) 与动态增益衰减表 (GR) 模块 -->
+        <div class="track-acoustic-strip flex-shrink-0 bg-[#07090e] px-2 py-1.5 rounded-lg border border-[#161c2b] flex items-center space-x-2">
+          <!-- 频率分布可视化微型 EQ 曲线 -->
+          <div class="flex flex-col min-w-0">
+            <div class="flex items-center justify-between text-[8px] font-mono text-zinc-400 mb-0.5 px-0.5 w-[80px] sm:w-[88px]">
+              <span class="text-sky-400 font-medium">频响分布</span>
+              <span class="text-zinc-500 scale-90">20-20k</span>
+            </div>
+            <div class="mini-eq-box flex-shrink-0" title="通道参量 EQ 频响分布 (${meta.name})">
+              <canvas class="mini-eq-canvas" width="88" height="28" data-tid="${track.id}"></canvas>
+            </div>
           </div>
-          <div class="gr-meter-container flex-shrink-0" title="动态压限增益衰减表 (Gain Reduction)">
-            <div class="gr-meter-scale">GR</div>
-            <div class="gr-meter-bar">
-              <div class="gr-meter-fill" id="gr-fill-${track.id}"></div>
+
+          <!-- 动态压限增益衰减表 (GR) -->
+          <div class="flex flex-col items-center flex-shrink-0">
+            <span class="text-[8px] font-mono text-red-400 font-bold mb-0.5">GR</span>
+            <div class="gr-meter-container flex-shrink-0" title="动态压限增益衰减表 (Gain Reduction)">
+              <div class="gr-meter-scale">GR</div>
+              <div class="gr-meter-bar">
+                <div class="gr-meter-fill" id="gr-fill-${track.id}"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -2376,14 +2390,18 @@ function renderTracks() {
     const volInput = card.querySelector(".fader-vol");
     volInput.addEventListener("input", (e) => {
       const v = parseFloat(e.target.value);
-      card.querySelector(".fader-vol + span").textContent = `${Math.round(v * 100)}%`;
+      const valSpan = card.querySelector(".fader-vol-val") || card.querySelector(".fader-vol + span");
+      if (valSpan) valSpan.textContent = `${Math.round(v * 100)}%`;
+      volInput.title = `音量增益: ${Math.round(v * 100)}%`;
       updateTrackFader(track.id, v, null);
     });
 
     const panInput = card.querySelector(".fader-pan");
     panInput.addEventListener("input", (e) => {
       const p = parseFloat(e.target.value);
-      card.querySelector(".fader-pan + span").textContent = formatPan(p);
+      const valSpan = card.querySelector(".fader-pan-val") || card.querySelector(".fader-pan + span");
+      if (valSpan) valSpan.textContent = formatPan(p);
+      panInput.title = `声相: ${formatPan(p)}`;
       updateTrackFader(track.id, null, p);
     });
 

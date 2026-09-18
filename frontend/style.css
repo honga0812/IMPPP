@@ -86,11 +86,23 @@ body {
 input[type=range] {
   -webkit-appearance: none;
   background: transparent;
+  width: 100%;
+  min-width: 0;
+  touch-action: pan-y;
 }
 input[type=range]:focus {
   outline: none;
 }
 input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 5px;
+  cursor: pointer;
+  background: #141824;
+  border-radius: 3px;
+  border: 1px solid #242c40;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.6);
+}
+input[type=range]::-moz-range-track {
   width: 100%;
   height: 5px;
   cursor: pointer;
@@ -111,9 +123,43 @@ input[type=range]::-webkit-slider-thumb {
   border: 1px solid #a5b4fc;
   transition: transform 0.1s, background-color 0.1s;
 }
+input[type=range]::-moz-range-thumb {
+  height: 14px;
+  width: 10px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #6366f1 0%, #4338ca 100%);
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.6), 0 2px 4px rgba(0, 0, 0, 0.8);
+  border: 1px solid #a5b4fc;
+  transition: transform 0.1s, background-color 0.1s;
+}
 input[type=range]::-webkit-slider-thumb:hover {
   transform: scale(1.15);
   background: linear-gradient(180deg, #818cf8 0%, #4f46e5 100%);
+}
+
+/* VOL 增益专用推子滑块 (荧光青色) */
+.fader-vol::-webkit-slider-thumb {
+  background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%) !important;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.7), 0 2px 4px rgba(0, 0, 0, 0.8) !important;
+  border: 1px solid #bae6fd !important;
+}
+.fader-vol::-moz-range-thumb {
+  background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%) !important;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.7), 0 2px 4px rgba(0, 0, 0, 0.8) !important;
+  border: 1px solid #bae6fd !important;
+}
+
+/* PAN 声相专用推子滑块 (霓虹紫色) */
+.fader-pan::-webkit-slider-thumb {
+  background: linear-gradient(180deg, #c084fc 0%, #9333ea 100%) !important;
+  box-shadow: 0 0 8px rgba(192, 132, 252, 0.7), 0 2px 4px rgba(0, 0, 0, 0.8) !important;
+  border: 1px solid #f3e8ff !important;
+}
+.fader-pan::-moz-range-thumb {
+  background: linear-gradient(180deg, #c084fc 0%, #9333ea 100%) !important;
+  box-shadow: 0 0 8px rgba(192, 132, 252, 0.7), 0 2px 4px rgba(0, 0, 0, 0.8) !important;
+  border: 1px solid #f3e8ff !important;
 }
 
 /* 独奏 (Solo) 与静音 (Mute) 实体发光按键 */
@@ -273,14 +319,42 @@ input[type=range]::-webkit-slider-thumb:hover {
 /* ==========================================================================
    通道条微型 EQ 曲线与 GR 增益衰减指示表 (Mini EQ & Gain Reduction Meters)
    ========================================================================== */
+.track-channel-controls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .track-channel-controls {
+    width: auto;
+    flex-shrink: 0;
+  }
+}
+
+/* 超窄屏手机 (< 360px) 自动平铺，保障绝对不出现横向溢出 */
+@media (max-width: 359px) {
+  .track-channel-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.track-gain-strip {
+  min-width: 0;
+}
+
 .mini-eq-box {
-  width: 76px;
-  height: 32px;
+  width: 88px;
+  height: 28px;
   background: #06080d;
   border: 1px solid #1c2436;
   border-radius: 4px;
   overflow: hidden;
   position: relative;
+  flex-shrink: 0;
 }
 .mini-eq-canvas {
   width: 100%;
@@ -290,27 +364,29 @@ input[type=range]::-webkit-slider-thumb:hover {
 
 /* GR (Gain Reduction) 动态增益衰减表 - 由上至下反向衰减 */
 .gr-meter-container {
-  width: 18px;
-  height: 36px;
+  width: 16px;
+  height: 28px;
   background: #06080d;
   border: 1px solid #1d2538;
   border-radius: 3px;
-  padding: 1.5px;
+  padding: 1px;
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
 }
 .gr-meter-scale {
   position: absolute;
   top: 1px;
   right: 1px;
-  font-size: 7px;
+  font-size: 6px;
   font-family: monospace;
   color: #ef4444;
   line-height: 1;
   pointer-events: none;
+  opacity: 0.6;
 }
 .gr-meter-bar {
   width: 100%;

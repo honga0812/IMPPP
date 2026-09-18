@@ -317,6 +317,7 @@ let globalActionProgress;
 let mixVersionsContainer, quickVersionsList, activeVersionBadge;
 let topActiveVersionTag, topActiveVersionName, step3ActiveVersion, abVersionSelect;
 let copilotVersionCount, copilotActiveVersionTag, copilotVersionsList;
+let btnExportMaster, btnExportStems, btnExportProjectJson, exportMasterVerLabel, exportStemsCountLabel;
 let btnToggleToolsDeck, toggleDeckIcon, guidedToolsDeck;
 let btnUnmuteAll, btnUnsoloAll;
 
@@ -419,6 +420,11 @@ function initDomReferences() {
   copilotVersionCount = document.getElementById("copilot-version-count");
   copilotActiveVersionTag = document.getElementById("copilot-active-version-tag");
   copilotVersionsList = document.getElementById("copilot-versions-list");
+  btnExportMaster = document.getElementById("btn-export-master");
+  btnExportStems = document.getElementById("btn-export-stems");
+  btnExportProjectJson = document.getElementById("btn-export-project-json");
+  exportMasterVerLabel = document.getElementById("export-master-ver-label");
+  exportStemsCountLabel = document.getElementById("export-stems-count-label");
   btnToggleToolsDeck = document.getElementById("btn-toggle-tools-deck");
   toggleDeckIcon = document.getElementById("toggle-deck-icon");
   guidedToolsDeck = document.getElementById("guided-tools-deck");
@@ -655,6 +661,17 @@ function initEventListeners() {
         selectMixVersion(abVersionSelect.value);
       }
     });
+  }
+
+  // 顶部菜单导出功能监听
+  if (btnExportMaster) {
+    btnExportMaster.addEventListener("click", () => exportMasterAudio());
+  }
+  if (btnExportStems) {
+    btnExportStems.addEventListener("click", () => exportStemsZip());
+  }
+  if (btnExportProjectJson) {
+    btnExportProjectJson.addEventListener("click", () => exportProjectJson());
   }
 
   // Copilot 对话
@@ -1084,22 +1101,24 @@ async function loadDemoProjectSuite(songId = "song_01") {
     const res = await fetch(`/api/demo/load?song_id=${songId}`, { method: "POST" });
     if (res.ok) {
       const data = await res.json();
-      project = data.project;
-      isDemoMode = false;
-      listenMode = "raw"; // 载入后默认设为 raw 分轨模式，确保按播放即响！
-      renderAll();
-      if (btnLoadDemoText) {
-        btnLoadDemoText.textContent = `确认导入所选示范曲分轨 (${project.tracks.length} 轨完整和声)`;
+      if (data && data.project) {
+        project = data.project;
+        isDemoMode = false;
+        listenMode = "raw"; // 载入后默认设为 raw 分轨模式，确保按播放即响！
+        renderAll();
+        if (btnLoadDemoText) {
+          btnLoadDemoText.textContent = `确认导入所选示范曲分轨 (${project.tracks.length} 轨完整和声)`;
+        }
+        if (demoLoadStatus && demoLoadStatusText) {
+          demoLoadStatusText.textContent = `已成功导入【${songData.title}】共 ${project.tracks.length} 轨实录分轨与商业参考母带！`;
+          demoLoadStatus.classList.remove("hidden");
+        }
+        showNotification(`✅ 已成功导入【${songData.title}】共 ${project.tracks.length} 轨实录分轨与商业参考母带！`, "success");
+        if (step1ImportedManifest) {
+          step1ImportedManifest.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+        return;
       }
-      if (demoLoadStatus && demoLoadStatusText) {
-        demoLoadStatusText.textContent = `已成功导入【${songData.title}】共 ${project.tracks.length} 轨实录分轨与商业参考母带！`;
-        demoLoadStatus.classList.remove("hidden");
-      }
-      showNotification(`✅ 已成功导入【${songData.title}】共 ${project.tracks.length} 轨实录分轨与商业参考母带！`, "success");
-      if (step1ImportedManifest) {
-        step1ImportedManifest.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      }
-      return;
     }
   } catch (err) {
     console.log("以客户端静态/GitHub Pages模式挂载示范曲:", err);
@@ -1913,7 +1932,11 @@ function renderMixVersions() {
               <div class="font-bold text-cyan-400 mt-0.5">${v.peak_db !== undefined ? v.peak_db + ' dB' : '--'}</div>
             </div>
           </div>
-          <div class="pt-1 flex justify-end">
+          <div class="pt-1 flex items-center justify-between">
+            <button type="button" class="btn-export-version px-2.5 py-1.5 rounded-lg bg-[#141824] hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700/60 text-xs font-medium transition flex items-center space-x-1" data-vid="${escapeHtml(v.id)}" title="下载此版本 24-bit 母带 WAV">
+              <i class="fa-solid fa-download text-[10px] text-indigo-400"></i>
+              <span>导出 WAV</span>
+            </button>
             ${isCur 
               ? `<span class="text-xs font-bold text-cyan-300 flex items-center space-x-1 py-1"><i class="fa-solid fa-volume-high text-xs mr-1"></i>正在监听</span>`
               : `<button class="btn-select-version px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition flex items-center space-x-1.5" data-vid="${escapeHtml(v.id)}">
@@ -1927,6 +1950,11 @@ function renderMixVersions() {
         const btn = card.querySelector(".btn-select-version");
         if (btn) {
           btn.addEventListener("click", () => selectMixVersion(v.id));
+        }
+
+        const exportBtn = card.querySelector(".btn-export-version");
+        if (exportBtn) {
+          exportBtn.addEventListener("click", () => exportMasterAudio(v.id));
         }
 
         mixVersionsContainer.appendChild(card);
@@ -2004,6 +2032,15 @@ function renderMixVersions() {
   if (activeVersionBadge) {
     const curV = versions.find(v => v.id === activeId);
     activeVersionBadge.textContent = curV ? curV.name : "尚未混音";
+  }
+
+  // 8. 同步更新顶部导出菜单中的版本描述
+  if (exportMasterVerLabel) {
+    const curV = versions.find(v => v.id === activeId);
+    exportMasterVerLabel.textContent = curV ? `${curV.id}: ${(curV.name || '').split(':')[1] ? curV.name.split(':')[1].trim().slice(0, 10) : curV.id}` : "尚未混音";
+  }
+  if (exportStemsCountLabel) {
+    exportStemsCountLabel.textContent = `共 ${project.tracks ? project.tracks.length : 0} 轨通道分轨`;
   }
 }
 
@@ -2606,3 +2643,192 @@ async function uploadReferenceFile(file) {
   showNotification(`✅ 成功挂载本地参考音频《${file.name}》！`, "success");
   switchStep(2);
 }
+
+// ==========================================
+// 专业 DAW 音频导出引擎 (Audio Export Engine)
+// ==========================================
+
+async function triggerFileDownload(url, filename) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename || "mix_audio.wav";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+    return true;
+  } catch (err) {
+    console.warn("Blob download fallback to direct link:", err);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename || "mix_audio.wav";
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    return true;
+  }
+}
+
+async function exportMasterAudio(versionId = null) {
+  triggerGlobalProgress(500);
+
+  const versions = project.mix_versions || [];
+  let targetVersion = null;
+  if (versionId) {
+    targetVersion = versions.find(v => v.id === versionId);
+  } else {
+    targetVersion = project.current_mix || (versions.length > 0 ? (versions.find(v => v.id === project.active_version_id) || versions[0]) : null);
+  }
+
+  if (!targetVersion && (!project.tracks || project.tracks.length === 0)) {
+    showNotification("⚠️ 当前工程尚未导入分轨，请先在【步骤 1】载入示范曲或上传分轨！", "warning");
+    return;
+  }
+
+  if (!targetVersion) {
+    showNotification("⚠️ 尚未生成混音成品，请先点击顶部【一键参考混音】！", "warning");
+    return;
+  }
+
+  const vName = (targetVersion.name || targetVersion.id || "Master").replace(/[/\\?%*:|"<>]/g, "_");
+  const fileName = `Master_${targetVersion.id || 'Mix'}_${vName}.wav`;
+
+  showNotification(`🚀 正在准备导出混音母带【${targetVersion.id || 'Mix'}】...`, "info");
+
+  // 1. 若后端在线，优先走后端无损导出
+  try {
+    const res = await fetch(`/api/export/master?version_id=${encodeURIComponent(targetVersion.id || '')}`);
+    if (res.ok) {
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+      showNotification(`✅ 成功导出 24-bit 混音母带：${fileName}`, "success");
+      return;
+    }
+  } catch (e) {
+    // 静态离线回退
+  }
+
+  // 2. 静态离线模式（GitHub Pages）
+  const fallbackUrl = targetVersion.master_url || project.reference?.url || (project.tracks && project.tracks[0]?.url);
+  if (!fallbackUrl) {
+    showNotification("⚠️ 未找到母带音频文件地址，请重新执行混音！", "error");
+    return;
+  }
+
+  await triggerFileDownload(fallbackUrl, fileName);
+  showNotification(`✅ 成功导出混音母带：${fileName}`, "success");
+}
+
+async function exportStemsZip() {
+  triggerGlobalProgress(600);
+  const tracks = project.tracks || [];
+  if (tracks.length === 0) {
+    showNotification("⚠️ 当前工程无音轨，请先在【步骤 1】导入音轨分轨！", "warning");
+    return;
+  }
+
+  showNotification(`📦 正在打包全部分轨 (${tracks.length} 轨 ZIP)...`, "info");
+
+  // 1. 服务端在线优先
+  try {
+    const res = await fetch("/api/export/stems_zip");
+    if (res.ok) {
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `SmartMixingStudio_Stems_${Date.now()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+      showNotification(`✅ 成功导出全部分轨包 (${tracks.length} 轨 ZIP)！`, "success");
+      return;
+    }
+  } catch (e) {
+    // 静态模式回退
+  }
+
+  // 2. 浏览器端静态打包 (JSZip)
+  if (typeof JSZip !== "undefined") {
+    try {
+      const zip = new JSZip();
+      let successCount = 0;
+      for (let i = 0; i < tracks.length; i++) {
+        const t = tracks[i];
+        const safeName = `${String(i + 1).padStart(2, '0')}_${(t.name || 'track').replace(/[/\\?%*:|"<>]/g, '_')}.wav`;
+        if (t.url) {
+          try {
+            const trkRes = await fetch(t.url);
+            if (trkRes.ok) {
+              const buf = await trkRes.arrayBuffer();
+              zip.file(safeName, buf);
+              successCount++;
+            }
+          } catch (fetchErr) {
+            console.warn("Fetch track error:", t.name, fetchErr);
+          }
+        }
+      }
+
+      if (successCount === 0) {
+        showNotification("⚠️ 未能读取到分轨音频数据，请检查网络或重新导入分轨", "error");
+        return;
+      }
+
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const blobUrl = URL.createObjectURL(zipBlob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `SmartMixingStudio_Stems_${tracks.length}Tracks.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+      showNotification(`✅ 成功导出全部 ${successCount} 轨分轨 ZIP 打包！`, "success");
+      return;
+    } catch (zipErr) {
+      console.warn("JSZip bundling failed:", zipErr);
+    }
+  }
+
+  // 3. 如果 JSZip 无法工作，逐轨触发下载
+  showNotification(`⚠️ 正在逐一保存 ${tracks.length} 轨音频文件...`, "info");
+  for (let i = 0; i < tracks.length; i++) {
+    const t = tracks[i];
+    if (t.url) {
+      const safeName = `${String(i + 1).padStart(2, '0')}_${(t.name || 'track').replace(/[/\\?%*:|"<>]/g, '_')}.wav`;
+      await triggerFileDownload(t.url, safeName);
+    }
+  }
+  showNotification("✅ 全部分轨音频已完成导出保存！", "success");
+}
+
+function exportProjectJson() {
+  triggerGlobalProgress(400);
+  const jsonStr = JSON.stringify(project, null, 2);
+  const blob = new Blob([jsonStr], { type: "application/json" });
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = `SmartMixingStudio_Project_${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+  showNotification("✅ 成功导出工程配置文件 (JSON)！", "success");
+}
+

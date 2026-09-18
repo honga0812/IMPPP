@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Smart Mixing Studio | AI 智能多轨混音工作站 (Professional DAW)</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="./style.css">
 </head>
@@ -101,18 +102,34 @@
 
         <!-- 导出菜单 -->
         <div class="relative group">
-          <button class="px-3 py-1.5 rounded-lg bg-[#171c2b] hover:bg-[#222a40] border border-[#263148] text-zinc-200 text-xs font-medium flex items-center space-x-1.5 transition">
+          <button id="btn-export-menu" type="button" class="px-3 py-1.5 rounded-lg bg-[#171c2b] hover:bg-[#222a40] border border-[#263148] text-zinc-200 text-xs font-medium flex items-center space-x-1.5 transition">
             <i class="fa-solid fa-download text-indigo-400"></i>
             <span>导出</span>
             <i class="fa-solid fa-chevron-down text-[10px] text-zinc-400 ml-0.5"></i>
           </button>
-          <div class="absolute right-0 mt-1 w-48 bg-[#111520] border border-[#263148] rounded-lg shadow-2xl py-1 hidden group-hover:block z-50">
-            <a href="/api/export/master" class="block px-3 py-2 text-xs text-zinc-300 hover:bg-indigo-950/70 hover:text-white">
-              <i class="fa-solid fa-music mr-2 text-indigo-400"></i>导出 24-bit 母带 (WAV)
-            </a>
-            <a href="/api/export/stems_zip" class="block px-3 py-2 text-xs text-zinc-300 hover:bg-purple-950/70 hover:text-white">
-              <i class="fa-solid fa-layer-group mr-2 text-purple-400"></i>导出全分轨包 (ZIP)
-            </a>
+          <div class="absolute right-0 mt-1 w-52 bg-[#111520] border border-[#263148] rounded-xl shadow-2xl py-1.5 hidden group-hover:block z-50">
+            <button type="button" id="btn-export-master" class="w-full text-left px-3 py-2 text-xs text-zinc-300 hover:bg-indigo-950/70 hover:text-white flex items-center space-x-2 transition">
+              <i class="fa-solid fa-music text-indigo-400 w-4 text-center"></i>
+              <div class="min-w-0 flex-1">
+                <div class="font-medium">导出混音母带 (WAV)</div>
+                <div class="text-[10px] text-zinc-500 font-mono truncate" id="export-master-ver-label">当前激活版本</div>
+              </div>
+            </button>
+            <button type="button" id="btn-export-stems" class="w-full text-left px-3 py-2 text-xs text-zinc-300 hover:bg-purple-950/70 hover:text-white flex items-center space-x-2 transition">
+              <i class="fa-solid fa-layer-group text-purple-400 w-4 text-center"></i>
+              <div class="min-w-0 flex-1">
+                <div class="font-medium">导出全分轨包 (ZIP)</div>
+                <div class="text-[10px] text-zinc-500 font-mono truncate" id="export-stems-count-label">全部通道分轨</div>
+              </div>
+            </button>
+            <div class="border-t border-[#1d2538] my-1"></div>
+            <button type="button" id="btn-export-project-json" class="w-full text-left px-3 py-2 text-xs text-zinc-300 hover:bg-emerald-950/70 hover:text-white flex items-center space-x-2 transition">
+              <i class="fa-solid fa-file-code text-emerald-400 w-4 text-center"></i>
+              <div class="min-w-0 flex-1">
+                <div class="font-medium">导出工程配置 (JSON)</div>
+                <div class="text-[10px] text-zinc-500 font-mono">完整音轨与混音策略</div>
+              </div>
+            </button>
           </div>
         </div>
 

@@ -403,22 +403,50 @@ def select_version(req: VersionSelectRequest):
     return {"status": "ok", "active_version": target, "project": project_state}
 
 @app.get("/api/export/master")
-def export_master():
-    master_path = os.path.join(EXPORTS_DIR, "master_output.wav")
-    if not os.path.exists(master_path):
-        raise HTTPException(status_code=404, detail="尚未生成混音成品")
-    return FileResponse(master_path, media_type="audio/wav", filename="Master_Mix_Output.wav")
+def export_master(version_id: Optional[str] = None):
+    target_path = None
+    if version_id:
+        v_path = os.path.join(EXPORTS_DIR, f"master_output_{version_id}.wav")
+        if os.path.exists(v_path):
+            target_path = v_path
+    
+    if not target_path:
+        default_path = os.path.join(EXPORTS_DIR, "master_output.wav")
+        if os.path.exists(default_path):
+            target_path = default_path
+
+    # 如果还未生成混音文件，尝试从工程的参考曲或第一个分轨回退
+    if not target_path or not os.path.exists(target_path):
+        ref_url = project_state.get("reference", {}).get("url", "")
+        if ref_url and ref_url.startswith("/media/"):
+            rel_path = ref_url.split("?")[0].replace("/media/", "", 1)
+            candidate = os.path.join(PROJECT_DIR, rel_path)
+            if os.path.exists(candidate):
+                target_path = candidate
+
+    if not target_path or not os.path.exists(target_path):
+        raise HTTPException(status_code=404, detail="尚未生成混音成品，请先点击一键参考混音")
+    
+    safe_name = f"Master_Mix_{version_id or 'Output'}.wav"
+    return FileResponse(target_path, media_type="audio/wav", filename=safe_name)
 
 @app.get("/api/export/stems_zip")
 def export_stems_zip():
-    if not os.path.exists(PROCESSED_STEMS_DIR):
-        raise HTTPException(status_code=404, detail="尚无处理后的分轨")
+    source_dir = None
+    if os.path.exists(PROCESSED_STEMS_DIR) and any(os.path.isfile(os.path.join(PROCESSED_STEMS_DIR, f)) for f in os.listdir(PROCESSED_STEMS_DIR)):
+        source_dir = PROCESSED_STEMS_DIR
+    elif os.path.exists(STEMS_DIR) and any(os.path.isfile(os.path.join(STEMS_DIR, f)) for f in os.listdir(STEMS_DIR)):
+        source_dir = STEMS_DIR
 
+    if not source_dir:
+        raise HTTPException(status_code=404, detail="工程中尚无可导出的分轨音频文件")
+
+    os.makedirs(EXPORTS_DIR, exist_ok=True)
     zip_path = os.path.join(EXPORTS_DIR, "Processed_Stems.zip")
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, _, files in os.walk(PROCESSED_STEMS_DIR):
+        for root, _, files in os.walk(source_dir):
             for file in files:
-                if file.endswith((".wav", ".flac", ".mp3")):
+                if file.endswith((".wav", ".flac", ".mp3", ".aac", ".m4a")):
                     file_full = os.path.join(root, file)
                     zipf.write(file_full, arcname=file)
 

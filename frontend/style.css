@@ -1,14 +1,14 @@
 /* ==========================================================================
-   Smart Mixing Studio - Professional Audio Workstation (DAW) Aesthetics
+   Smart Mixing Studio - Professional Audio Workstation (DAW) Aesthetics v3.0
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap");
 
 :root {
-  --studio-bg: #0b0d13;
-  --rack-surface: #131620;
-  --rack-border: #22283a;
-  --rack-highlight: #2f374e;
+  --studio-bg: #090b10;
+  --rack-surface: #11141c;
+  --rack-border: #1e2433;
+  --rack-highlight: #283145;
   --cyan-led: #00f2fe;
   --amber-led: #f59e0b;
   --purple-led: #a855f7;
@@ -17,14 +17,15 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: var(--studio-bg);
   color: #e2e8f0;
   background-image: 
-    radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.08) 0%, transparent 60%),
-    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-  background-size: 100% 100%, 32px 32px, 32px 32px;
+    radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.09) 0%, transparent 65%),
+    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+  background-size: 100% 100%, 28px 28px, 28px 28px;
+  overflow-x: hidden;
 }
 
 /* 专业滚动条 */
@@ -33,29 +34,29 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(11, 13, 19, 0.8);
+  background: rgba(9, 11, 16, 0.8);
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a3144;
+  background: #232a3d;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4f46e5;
+  background: #6366f1;
 }
 
 /* 机架暗色面板修饰 */
 .studio-rack-panel {
-  background: linear-gradient(180deg, #161924 0%, #11141d 100%);
-  border: 1px solid #232a3d;
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  background: linear-gradient(180deg, #151824 0%, #0d1017 100%);
+  border: 1px solid #202738;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 /* 走带控制台液晶表头 LCD Display */
 .lcd-screen {
-  background: #06080d;
-  border: 1px solid #1a2233;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.9);
-  font-family: 'JetBrains Mono', monospace;
+  background: #05070c;
+  border: 1px solid #161e2e;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.95);
+  font-family: "JetBrains Mono", monospace;
 }
 .lcd-text {
   color: #00f2fe;
@@ -64,19 +65,19 @@ body {
 
 /* 立体声双通道 LED 电平表 (Dual Channel VU Meter) */
 .vu-meter-bar {
-  width: 4px;
-  height: 24px;
-  background: #090c14;
+  width: 5px;
+  height: 26px;
+  background: #07090f;
   border-radius: 2px;
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column-reverse;
-  border: 1px solid #1c2438;
+  border: 1px solid #192033;
 }
 .vu-meter-fill {
   width: 100%;
-  background: linear-gradient(to top, #10b981 60%, #f59e0b 85%, #ef4444 100%);
+  background: linear-gradient(to top, #10b981 60%, #f59e0b 82%, #ef4444 100%);
   border-radius: 1px;
   transition: height 0.08s ease-out;
 }
@@ -93,9 +94,9 @@ input[type=range]::-webkit-slider-runnable-track {
   width: 100%;
   height: 5px;
   cursor: pointer;
-  background: #181d2a;
+  background: #141824;
   border-radius: 3px;
-  border: 1px solid #283248;
+  border: 1px solid #242c40;
   box-shadow: inset 0 1px 2px rgba(0,0,0,0.6);
 }
 input[type=range]::-webkit-slider-thumb {
@@ -141,20 +142,20 @@ input[type=range]::-webkit-slider-thumb:hover {
 .btn-track-play.active {
   background: #10b981 !important;
   color: #000000 !important;
-  box-shadow: 0 0 14px rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.7);
   transform: scale(1.05);
 }
 
 /* 专业 DAW 轨道波形区域 */
 .track-waveform-box {
-  background: radial-gradient(circle at center, #0b0e18 0%, #06080e 100%);
-  border: 1px solid #1c2438;
+  background: radial-gradient(circle at center, #0a0d16 0%, #05070d 100%);
+  border: 1px solid #1a2133;
   position: relative;
   overflow: hidden;
   box-shadow: inset 0 2px 6px rgba(0,0,0,0.85);
   border-radius: 6px;
   cursor: crosshair;
-  min-height: 42px;
+  min-height: 46px;
 }
 
 .track-waveform-box:hover {
@@ -181,8 +182,8 @@ input[type=range]::-webkit-slider-thumb:hover {
 
 /* 快速提示词胶囊按钮 */
 .quick-chip {
-  background: #161a26;
-  border: 1px solid #283147;
+  background: #141824;
+  border: 1px solid #242d42;
   color: #94a3b8;
   font-size: 11px;
   padding: 4px 10px;
@@ -211,4 +212,60 @@ input[type=range]::-webkit-slider-thumb:hover {
 }
 .dsp-pulse {
   animation: pulseGlow 1.8s infinite ease-in-out;
+}
+
+/* ==========================================================================
+   分步骤工作流导航卡片 (5-Step Guided Stepper)
+   ========================================================================== */
+.daw-step-tab {
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid #1f2638;
+  background: #0f121b;
+}
+.daw-step-tab:hover {
+  background: #171c2a;
+  border-color: #313c57;
+}
+.daw-step-tab.active {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(168, 85, 247, 0.15) 100%);
+  border-color: #6366f1;
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+.daw-step-tab.active .step-num {
+  background: #6366f1;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.8);
+}
+
+/* 机架模块卡片 (Rack Slot) */
+.rack-slot {
+  background: linear-gradient(180deg, #131722 0%, #0c0f16 100%);
+  border: 1px solid #202738;
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
+}
+.rack-slot:hover {
+  border-color: #313d59;
+}
+
+/* 侧链闪避流动光晕动画 */
+@keyframes sidechainFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.sidechain-badge {
+  background: linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6, #ec4899);
+  background-size: 200% 200%;
+  animation: sidechainFlow 3s ease infinite;
+}
+
+/* 防缩放折断实用工具 */
+.safe-nowrap {
+  white-space: nowrap;
+  flex-shrink: 0;
 }

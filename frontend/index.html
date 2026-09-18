@@ -3,311 +3,489 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Mixing Studio | 智能参考混音工作站</title>
+  <title>Smart Mixing Studio | AI 智能多轨混音工作站 (Professional DAW)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="./style.css">
 </head>
-<body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col select-none font-sans">
+<body class="bg-[#080a0f] text-zinc-100 min-h-screen flex flex-col select-none font-sans overflow-x-hidden">
 
-  <!-- 顶部导航栏 -->
-  <header class="bg-zinc-900/90 border-b border-zinc-800 px-6 py-3 flex items-center justify-between sticky top-0 z-50 backdrop-blur">
-    <div class="flex items-center space-x-4">
-      <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
-        <i class="fa-solid fa-sliders text-white text-base"></i>
-      </div>
-      <div>
-        <h1 class="text-base font-bold tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
-          Smart Mixing Studio
-        </h1>
-        <p class="text-xs text-zinc-400">Phase 1 MVP: 多轨参考混音 & LLM 混音助理</p>
-      </div>
-    </div>
-
-    <!-- 走带控制与母带双通道立体声电平表 (Master Transport) -->
-    <div class="flex items-center space-x-3 bg-[#0d1017] px-3.5 py-1.5 rounded-xl border border-[#232a3d] shadow-2xl">
-      <button id="btn-play-pause" class="w-8 h-8 rounded-lg bg-gradient-to-b from-indigo-500 to-indigo-700 hover:from-indigo-400 hover:to-indigo-600 flex items-center justify-center text-white transition shadow-lg shadow-indigo-600/30 border border-indigo-400/30">
-        <i class="fa-solid fa-play text-xs ml-0.5" id="play-icon"></i>
-      </button>
-      <button id="btn-stop" class="w-8 h-8 rounded-lg bg-[#181d2a] hover:bg-[#252c3f] border border-[#283248] flex items-center justify-center text-zinc-300 transition">
-        <i class="fa-solid fa-stop text-xs"></i>
-      </button>
+  <!-- ========================================================================
+       顶部专业 DAW 走带控制台 (Master Transport Deck & Global Toolbar)
+       ======================================================================== -->
+  <header class="bg-[#0f131d]/95 border-b border-[#1e2538] px-4 py-2.5 sticky top-0 z-50 backdrop-blur shadow-xl">
+    <div class="max-w-[1920px] mx-auto flex flex-wrap items-center justify-between gap-3">
       
-      <!-- 液晶高精度时间码 -->
-      <div class="lcd-screen px-3 py-1 rounded-md flex items-center space-x-2">
-        <span class="text-[9px] uppercase tracking-wider text-cyan-400/70 font-mono">TIME</span>
-        <span class="lcd-text text-sm font-mono tracking-wider font-bold" id="time-display">00:00.00</span>
-      </div>
-
-      <!-- 模拟双通道立体声 VU Peak 电平表 -->
-      <div class="flex items-center space-x-1 px-1 py-0.5 bg-[#07090e] border border-[#1b2233] rounded">
-        <div class="vu-meter-bar" title="Master Left"><div class="vu-meter-fill" id="vu-meter-l" style="height: 6%;"></div></div>
-        <div class="vu-meter-bar" title="Master Right"><div class="vu-meter-fill" id="vu-meter-r" style="height: 6%;"></div></div>
-      </div>
-
-      <!-- A/B 监听源切换 -->
-      <div class="flex items-center space-x-1 bg-[#141824] rounded-lg p-0.5 border border-[#252d42] text-xs">
-        <button id="listen-raw" class="px-2.5 py-1 rounded-md font-semibold transition text-zinc-400 hover:text-white" title="监听原始多轨合流">
-          原分轨
-        </button>
-        <button id="listen-mix" class="px-2.5 py-1 rounded-md font-semibold transition bg-indigo-600 text-white shadow" title="监听 AI 智能混音成品">
-          AI 混音
-        </button>
-        <button id="listen-ref" class="px-2.5 py-1 rounded-md font-semibold transition text-zinc-400 hover:text-white" title="监听商业参考曲">
-          参考曲
-        </button>
-      </div>
-    </div>
-
-    <!-- 右侧动作栏 -->
-    <div class="flex items-center space-x-2.5">
-      <button id="btn-clear-project" class="px-2.5 py-1.5 rounded-lg bg-zinc-800/80 hover:bg-red-950 hover:border-red-600/60 border border-zinc-700 text-zinc-400 hover:text-red-300 text-xs font-medium flex items-center space-x-1.5 transition" title="清空所有音轨并重置工程">
-        <i class="fa-regular fa-trash-can text-xs"></i>
-        <span>清空工程</span>
-      </button>
-
-      <button id="btn-auto-mix" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-medium text-xs flex items-center space-x-1.5 shadow-lg shadow-indigo-500/25 transition">
-        <i class="fa-solid fa-wand-magic-sparkles"></i>
-        <span>一键参考混音</span>
-      </button>
-
-      <!-- 导出下拉 -->
-      <div class="relative group">
-        <button class="px-3 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium flex items-center space-x-1.5 transition">
-          <i class="fa-solid fa-download"></i>
-          <span>导出</span>
-          <i class="fa-solid fa-chevron-down text-[10px] text-zinc-400 ml-1"></i>
-        </button>
-        <div class="absolute right-0 mt-1 w-44 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl py-1 hidden group-hover:block z-50">
-          <a href="/api/export/master" class="block px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white">
-            <i class="fa-solid fa-music mr-2 text-indigo-400"></i>导出母带 (WAV)
-          </a>
-          <a href="/api/export/stems_zip" class="block px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white">
-            <i class="fa-solid fa-layer-group mr-2 text-purple-400"></i>导出处理后分轨 (ZIP)
-          </a>
+      <!-- 品牌标识与工程状态 -->
+      <div class="flex items-center space-x-3 min-w-0">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20 flex-shrink-0">
+          <i class="fa-solid fa-sliders text-white text-base"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center space-x-2">
+            <h1 class="text-sm md:text-base font-bold tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent truncate">
+              Smart Mixing Studio
+            </h1>
+            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-950/80 border border-indigo-700/50 text-indigo-300">DAW Pro v3.0</span>
+          </div>
+          <p class="text-[11px] text-zinc-400 truncate">32-bit Float DSP • 智能声学对齐 • 侧链多轨雕塑</p>
         </div>
       </div>
 
-      <button id="btn-open-settings" class="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-zinc-200 transition" title="LLM 模型设置">
-        <i class="fa-solid fa-gear text-sm"></i>
-      </button>
+      <!-- 走带控制与液晶表头 (Transport Controls & Master Deck) -->
+      <div class="flex items-center flex-wrap gap-2 bg-[#080b12] px-3 py-1.5 rounded-xl border border-[#1e263a] shadow-2xl">
+        <!-- 走带按键组 -->
+        <div class="flex items-center space-x-1.5">
+          <button id="btn-rewind" class="w-8 h-8 rounded-lg bg-[#141824] hover:bg-[#20273a] border border-[#252e44] flex items-center justify-center text-zinc-300 hover:text-white transition" title="返回起始点 (00:00.00)">
+            <i class="fa-solid fa-backward-step text-xs"></i>
+          </button>
+          <button id="btn-stop" class="w-8 h-8 rounded-lg bg-[#141824] hover:bg-[#20273a] border border-[#252e44] flex items-center justify-center text-zinc-300 hover:text-white transition" title="停止走带">
+            <i class="fa-solid fa-stop text-xs"></i>
+          </button>
+          <button id="btn-play-pause" class="w-9 h-8 rounded-lg bg-gradient-to-b from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 flex items-center justify-center text-black font-bold transition shadow-lg shadow-emerald-600/30 border border-emerald-400/40" title="全局播放 / 暂停 (空格键)">
+            <i class="fa-solid fa-play text-xs ml-0.5" id="play-icon"></i>
+          </button>
+        </div>
+
+        <!-- 液晶高精度时间码与节拍码 (LCD Timecode) -->
+        <div class="lcd-screen px-2.5 py-1 rounded-md flex items-center space-x-2">
+          <div class="flex flex-col text-right">
+            <span class="text-[8px] uppercase tracking-wider text-cyan-400/70 font-mono leading-none">BAR.BEAT</span>
+            <span class="text-[11px] font-mono font-bold text-cyan-300 tracking-wider">001.01.00</span>
+          </div>
+          <div class="h-4 w-[1px] bg-cyan-900/60"></div>
+          <div class="flex flex-col">
+            <span class="text-[8px] uppercase tracking-wider text-cyan-400/70 font-mono leading-none">TIMECODE</span>
+            <span class="lcd-text text-xs md:text-sm font-mono tracking-wider font-bold" id="time-display">00:00.00</span>
+          </div>
+        </div>
+
+        <!-- 立体声双通道 VU Peak 电平表 -->
+        <div class="flex items-center space-x-1 px-1.5 py-1 bg-[#06080d] border border-[#182033] rounded" title="Master L/R VU Meter">
+          <div class="vu-meter-bar"><div class="vu-meter-fill" id="vu-meter-l" style="height: 6%;"></div></div>
+          <div class="vu-meter-bar"><div class="vu-meter-fill" id="vu-meter-r" style="height: 6%;"></div></div>
+          <span class="text-[9px] font-mono text-zinc-500 pl-0.5">dB</span>
+        </div>
+
+        <!-- A/B 监听源三态热切开关 -->
+        <div class="flex items-center space-x-1 bg-[#121622] rounded-lg p-0.5 border border-[#222b40] text-xs">
+          <button id="listen-raw" class="px-2 py-1 rounded-md font-medium transition text-zinc-400 hover:text-white" title="监听原始多轨合流 (未做混音干声)">
+            原分轨
+          </button>
+          <button id="listen-mix" class="px-2 py-1 rounded-md font-semibold transition bg-indigo-600 text-white shadow" title="监听 AI 智能混音成品">
+            AI 混音
+          </button>
+          <button id="listen-ref" class="px-2 py-1 rounded-md font-medium transition text-zinc-400 hover:text-white" title="监听商业母带参考曲">
+            参考曲
+          </button>
+        </div>
+      </div>
+
+      <!-- 右侧工程与动作控制 -->
+      <div class="flex items-center flex-wrap gap-2">
+        <button id="btn-clear-project" class="px-2.5 py-1.5 rounded-lg bg-[#141824] hover:bg-red-950/70 hover:border-red-600/60 border border-[#263045] text-zinc-400 hover:text-red-300 text-xs font-medium flex items-center space-x-1.5 transition" title="清空所有分轨并重置工程">
+          <i class="fa-regular fa-trash-can text-xs"></i>
+          <span class="hidden sm:inline">清空工程</span>
+        </button>
+
+        <button id="btn-auto-mix" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-600 hover:from-indigo-400 hover:to-pink-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg shadow-purple-600/30 transition">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>一键参考混音</span>
+        </button>
+
+        <!-- 导出菜单 -->
+        <div class="relative group">
+          <button class="px-3 py-1.5 rounded-lg bg-[#171c2b] hover:bg-[#222a40] border border-[#263148] text-zinc-200 text-xs font-medium flex items-center space-x-1.5 transition">
+            <i class="fa-solid fa-download text-indigo-400"></i>
+            <span>导出</span>
+            <i class="fa-solid fa-chevron-down text-[10px] text-zinc-400 ml-0.5"></i>
+          </button>
+          <div class="absolute right-0 mt-1 w-48 bg-[#111520] border border-[#263148] rounded-lg shadow-2xl py-1 hidden group-hover:block z-50">
+            <a href="/api/export/master" class="block px-3 py-2 text-xs text-zinc-300 hover:bg-indigo-950/70 hover:text-white">
+              <i class="fa-solid fa-music mr-2 text-indigo-400"></i>导出 24-bit 母带 (WAV)
+            </a>
+            <a href="/api/export/stems_zip" class="block px-3 py-2 text-xs text-zinc-300 hover:bg-purple-950/70 hover:text-white">
+              <i class="fa-solid fa-layer-group mr-2 text-purple-400"></i>导出全分轨包 (ZIP)
+            </a>
+          </div>
+        </div>
+
+        <button id="btn-open-settings" class="w-8 h-8 rounded-lg bg-[#141824] hover:bg-[#20273a] border border-[#263045] flex items-center justify-center text-zinc-400 hover:text-zinc-200 transition" title="LLM 模型设置">
+          <i class="fa-solid fa-gear text-xs"></i>
+        </button>
+      </div>
     </div>
-    <!-- 全局操作实时进度光条 -->
+
+    <!-- 全局进度走带指示灯条 -->
     <div id="global-action-progress" class="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-500 w-0 transition-all duration-300 pointer-events-none"></div>
   </header>
 
-  <!-- 工作区主体 -->
-  <main class="flex-1 flex overflow-hidden">
-
-    <!-- 左侧 & 中间：多轨控制台与参考曲画像 -->
-    <div class="flex-1 flex flex-col overflow-y-auto p-6 space-y-6">
-
-      <!-- 混音操作向导条 (Workflow Guide) -->
-      <div class="bg-zinc-900/90 border border-zinc-800/90 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-md">
-        <div class="flex items-center space-x-2">
-          <div class="w-6 h-6 rounded-full bg-indigo-600/30 border border-indigo-500/40 text-indigo-400 flex items-center justify-center font-bold text-xs">1</div>
-          <div>
-            <div class="text-xs font-semibold text-zinc-200">导入录音分轨</div>
-            <div class="text-[10px] text-zinc-400">人声/多吉他/钢琴/鼓组等</div>
-          </div>
-        </div>
-        <i class="fa-solid fa-chevron-right text-zinc-600 text-xs hidden md:block"></i>
-        
-        <div class="flex items-center space-x-2">
-          <div class="w-6 h-6 rounded-full bg-purple-600/30 border border-purple-500/40 text-purple-400 flex items-center justify-center font-bold text-xs">2</div>
-          <div>
-            <div class="text-xs font-semibold text-zinc-200">设定商业参考风格</div>
-            <div class="text-[10px] text-zinc-400">选择流行/民谣/摇滚或上传</div>
-          </div>
-        </div>
-        <i class="fa-solid fa-chevron-right text-zinc-600 text-xs hidden md:block"></i>
-
-        <div class="flex items-center space-x-2">
-          <div class="w-6 h-6 rounded-full bg-pink-600/30 border border-pink-500/40 text-pink-400 flex items-center justify-center font-bold text-xs">3</div>
-          <div>
-            <div class="text-xs font-semibold text-zinc-200">AI 智能声学混音</div>
-            <div class="text-[10px] text-zinc-400">乐器针对性EQ/避让/总线胶水</div>
-          </div>
-        </div>
-        <i class="fa-solid fa-chevron-right text-zinc-600 text-xs hidden md:block"></i>
-
-        <div class="flex items-center space-x-2">
-          <div class="w-6 h-6 rounded-full bg-emerald-600/30 border border-emerald-500/40 text-emerald-400 flex items-center justify-center font-bold text-xs">4</div>
-          <div>
-            <div class="text-xs font-semibold text-zinc-200">A/B 盲听对比与导出</div>
-            <div class="text-[10px] text-zinc-400">单轨试听 / 母带与分轨打包</div>
-          </div>
+  <!-- ========================================================================
+       分步骤工作流向导导航 (5-Step Guided Workflow Navigation)
+       ======================================================================== -->
+  <nav class="bg-[#0b0e16] border-b border-[#181f30] px-4 py-2">
+    <div class="max-w-[1920px] mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+      
+      <!-- 步骤 1 -->
+      <div id="step-tab-1" class="daw-step-tab active p-2 rounded-lg flex items-center space-x-2.5">
+        <span class="step-num w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold bg-indigo-600 text-white flex-shrink-0">1</span>
+        <div class="min-w-0">
+          <div class="text-[11px] font-bold text-zinc-200 truncate">工程建立与导入</div>
+          <div class="text-[9px] text-zinc-400 truncate">示范歌曲 / 自备分轨</div>
         </div>
       </div>
 
-      <!-- 顶部状态栏与上传快捷入口 -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <!-- 分轨上传框 -->
-        <div class="bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 flex flex-col justify-between hover:border-zinc-700 transition">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-semibold text-zinc-300 flex items-center space-x-1.5">
-              <i class="fa-solid fa-bars-staggered text-indigo-400"></i>
-              <span>录音分轨管理</span>
-            </span>
-            <span id="track-count-badge" class="text-[11px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">0 轨</span>
-          </div>
-          <div class="space-y-1.5 mb-2.5">
+      <!-- 步骤 2 -->
+      <div id="step-tab-2" class="daw-step-tab p-2 rounded-lg flex items-center space-x-2.5">
+        <span class="step-num w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold bg-zinc-800 text-zinc-400 flex-shrink-0">2</span>
+        <div class="min-w-0">
+          <div class="text-[11px] font-bold text-zinc-200 truncate">多轨控制台与通道条</div>
+          <div class="text-[9px] text-zinc-400 truncate">分轨试听 / 真实波形</div>
+        </div>
+      </div>
+
+      <!-- 步骤 3 -->
+      <div id="step-tab-3" class="daw-step-tab p-2 rounded-lg flex items-center space-x-2.5">
+        <span class="step-num w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold bg-zinc-800 text-zinc-400 flex-shrink-0">3</span>
+        <div class="min-w-0">
+          <div class="text-[11px] font-bold text-zinc-200 truncate">商业参考风格设定</div>
+          <div class="text-[9px] text-zinc-400 truncate">8 频段声学画像基准</div>
+        </div>
+      </div>
+
+      <!-- 步骤 4 -->
+      <div id="step-tab-4" class="daw-step-tab p-2 rounded-lg flex items-center space-x-2.5">
+        <span class="step-num w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold bg-zinc-800 text-zinc-400 flex-shrink-0">4</span>
+        <div class="min-w-0">
+          <div class="text-[11px] font-bold text-zinc-200 truncate">AI 混音与参数机架</div>
+          <div class="text-[9px] text-zinc-400 truncate">侧链避让 / 动态EQ / 压缩</div>
+        </div>
+      </div>
+
+      <!-- 步骤 5 -->
+      <div id="step-tab-5" class="daw-step-tab p-2 rounded-lg flex items-center space-x-2.5">
+        <span class="step-num w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold bg-zinc-800 text-zinc-400 flex-shrink-0">5</span>
+        <div class="min-w-0">
+          <div class="text-[11px] font-bold text-zinc-200 truncate">A/B 对照与声学诊断</div>
+          <div class="text-[9px] text-zinc-400 truncate">Raw vs Mix vs Ref 听感</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ========================================================================
+       工作台主体核心区 (Main Workstation Layout)
+       ======================================================================== -->
+  <main class="flex-1 flex overflow-hidden max-w-[1920px] w-full mx-auto">
+    
+    <!-- 左侧主操作区 (随步骤切换内容，也可随时展开浏览) -->
+    <div class="flex-1 flex flex-col overflow-y-auto p-4 md:p-6 space-y-6">
+
+      <!-- ==================================================================
+           【步骤 1 面板】工程导入与示范曲库 (Step 1: Setup & Import)
+           ================================================================== -->
+      <section id="step-panel-1" class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-zinc-200 flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+            <span>步骤 1：工程建立与音轨导入 (Project Setup & Stem Import)</span>
+          </h2>
+          <span id="track-count-badge" class="text-xs font-mono px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400">0 轨</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- 示范曲目工程选择器卡片 -->
+          <div class="rack-slot p-4 space-y-3">
             <div class="flex items-center justify-between">
-              <span class="text-[10px] text-zinc-400">选择示范曲目工程：</span>
-              <span class="text-[10px] text-indigo-400 font-mono font-medium" id="current-demo-song-label">待选择</span>
+              <span class="text-xs font-bold text-zinc-300 flex items-center space-x-1.5">
+                <i class="fa-solid fa-music text-indigo-400"></i>
+                <span>载入官方实录示范曲目</span>
+              </span>
+              <span class="text-[11px] text-indigo-400 font-mono" id="current-demo-song-label">待选择</span>
             </div>
-            <div class="flex items-center space-x-1.5">
-              <select id="select-demo-song" class="flex-1 bg-[#121622] text-zinc-200 border border-indigo-700/60 rounded-lg px-2 py-1.5 text-[11px] font-medium focus:outline-none focus:border-indigo-400">
-                <option value="song_01">🌾 曲目一：抒情乡村风《Country Ballad》 (6轨纯木吉他/实录乡村人声/小提琴/贝斯鼓组)</option>
+            <p class="text-xs text-zinc-400 leading-relaxed">
+              内置 100% 真实录音室分轨工程（纯指弹木吉他、真声人声、808 贝斯、原声小提琴等），按独立目录严格隔离封装。
+            </p>
+            <div class="flex items-center space-x-2 pt-1">
+              <select id="select-demo-song" class="flex-1 bg-[#0c0f17] text-zinc-200 border border-indigo-700/60 rounded-lg px-2.5 py-2 text-xs font-medium focus:outline-none focus:border-indigo-400">
+                <option value="song_01">🌾 曲目一：抒情乡村风《Country Ballad》 (6轨纯木吉他/实录乡村男声/小提琴/贝斯鼓组)</option>
                 <option value="song_02">⚡ 曲目二：K-pop流行音乐风格《K-Pop Modern Pop》 (4轨强劲808/电音全鼓/女声主唱/电音Lead)</option>
               </select>
-              <button id="btn-load-demo-suite" type="button" class="py-1.5 px-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/60 text-white text-[11px] font-bold transition flex items-center space-x-1 shadow-md shadow-indigo-600/30 flex-shrink-0" title="载入所选示范曲目的所有分轨及参考母带">
-                <i class="fa-solid fa-cloud-arrow-down text-[10px]"></i>
+              <button id="btn-load-demo-suite" type="button" class="py-2 px-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/60 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-md shadow-indigo-600/30 flex-shrink-0">
+                <i class="fa-solid fa-cloud-arrow-down text-xs"></i>
                 <span>载入曲目</span>
               </button>
             </div>
           </div>
-          <label class="cursor-pointer border border-dashed border-zinc-700 hover:border-indigo-500 rounded-lg p-2 text-center transition block bg-zinc-950/40">
-            <i class="fa-solid fa-cloud-arrow-up text-zinc-400 mr-1 text-xs"></i>
-            <span class="text-xs text-zinc-300 font-medium">点击或拖拽添加自身录音分轨</span>
-            <input type="file" id="input-tracks" multiple accept="audio/*" class="hidden">
-          </label>
+
+          <!-- 自备分轨上传卡片 -->
+          <div class="rack-slot p-4 space-y-3 flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-zinc-300 flex items-center space-x-1.5">
+                <i class="fa-solid fa-folder-open text-purple-400"></i>
+                <span>或导入自备多轨音频 (Local Stems)</span>
+              </span>
+              <span class="text-[10px] text-zinc-500 font-mono">支持 WAV / MP3 / FLAC</span>
+            </div>
+            <label class="cursor-pointer border border-dashed border-zinc-700 hover:border-purple-500 rounded-lg p-4 text-center transition block bg-[#090b12] hover:bg-[#0e121e]">
+              <i class="fa-solid fa-cloud-arrow-up text-zinc-400 text-lg mb-1 block"></i>
+              <span class="text-xs text-zinc-300 font-medium">点击或批量拖拽音频分轨至此处</span>
+              <input type="file" id="input-tracks" multiple accept="audio/*" class="hidden">
+            </label>
+            <div class="flex justify-end">
+              <button class="btn-step-next px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-indigo-600 text-zinc-200 text-xs font-medium transition flex items-center space-x-1" data-target="2">
+                <span>前往步骤 2：预览各轨</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================================================================
+           【步骤 2 面板】DAW 多轨控制台与通道条 (Step 2: Multitrack Console)
+           ================================================================== -->
+      <section id="step-panel-2" class="space-y-4">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h2 class="text-sm font-bold text-zinc-200 flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+              <span>步骤 2：多轨预览、通道条与真实包络波形 (Multitrack Console & Strips)</span>
+            </h2>
+            <p class="text-[11px] text-zinc-400">每轨独立支持：独奏 (Solo)、静音 (Mute)、音量推子、左右声相 (Pan) 以及绿色独立单轨试听；顶部播放键可驱动全轨同步播放。</p>
+          </div>
+          <button class="btn-step-next px-3 py-1.5 rounded-lg bg-indigo-600/80 hover:bg-indigo-600 text-white text-xs font-medium transition flex items-center space-x-1" data-target="3">
+            <span>下一步：设定风格参考</span>
+            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+          </button>
         </div>
 
-        <!-- 参考曲上传与预置选择框 -->
-        <div class="bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 flex flex-col justify-between hover:border-zinc-700 transition">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-xs font-semibold text-zinc-300 flex items-center space-x-1.5">
-              <i class="fa-solid fa-compact-disc text-purple-400"></i>
-              <span>商业风格参考 (Reference)</span>
-            </span>
-            <span id="ref-status-badge" class="text-[11px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">未导入</span>
-          </div>
-          
-          <!-- 预置商业流派快速选择 -->
-          <div class="mb-2">
-            <div class="text-[10px] text-zinc-400 mb-1 flex items-center justify-between">
-              <span>一键选择市面主流风格：</span>
-              <span class="text-[10px] text-purple-400 font-mono" id="current-ref-style-label"></span>
+        <!-- 轨道列表容器 -->
+        <div class="studio-rack-panel rounded-xl p-3 space-y-2.5">
+          <!-- 轨道列表表头标尺 -->
+          <div class="hidden md:flex items-center px-3 py-1.5 text-[10px] text-zinc-500 uppercase font-mono tracking-wider border-b border-[#1f2638]">
+            <div class="w-48">音轨名称与声部角色</div>
+            <div class="w-24 text-center">监听 / 独奏 / 静音</div>
+            <div class="w-48 px-2">通道电平推子 & 声相</div>
+            <div class="flex-1 pl-3 flex justify-between">
+              <span>DAW 真实音频包络采样波形 (280 列高密度采样)</span>
+              <span>00:00.00 ~ 00:16.00</span>
             </div>
-            <div class="grid grid-cols-3 gap-1.5">
-              <button class="preset-ref-btn px-1.5 py-1.5 rounded bg-zinc-800 hover:bg-purple-950/70 hover:border-purple-500/60 border border-zinc-700 text-[10px] text-zinc-300 transition text-center font-medium" data-style="country">
+          </div>
+
+          <!-- 动态音轨卡片容器 -->
+          <div id="tracks-container" class="space-y-2">
+            <!-- 动态生成轨道卡片 -->
+          </div>
+
+          <!-- 空白工程提示卡片 -->
+          <div id="empty-tracks-hint" class="py-12 px-4 text-center">
+            <div class="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto mb-3 text-zinc-500">
+              <i class="fa-solid fa-compact-disc text-xl"></i>
+            </div>
+            <h3 class="text-sm font-semibold text-zinc-300">当前尚未载入任何分轨</h3>
+            <p class="text-xs text-zinc-500 mt-1 max-w-md mx-auto">
+              请在上方【步骤 1】中选择官方示范曲（如抒情乡村风《Country Ballad》或 K-Pop 舞曲）并点击【载入曲目】，或拖入您自己的录音分轨。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================================================================
+           【步骤 3 面板】商业风格参考基准 (Step 3: Commercial Reference)
+           ================================================================== -->
+      <section id="step-panel-3" class="space-y-4">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h2 class="text-sm font-bold text-zinc-200 flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+              <span>步骤 3：商业风格参考与声学画像解构 (Reference Target Blueprint)</span>
+            </h2>
+            <p class="text-[11px] text-zinc-400">选择预置商业母带标杆或上传自备母带，AI 将提取 ITU-R BS.1770-4 响度与 8 频段能量画像作为对齐目标。</p>
+          </div>
+          <button class="btn-step-next px-3 py-1.5 rounded-lg bg-purple-600/80 hover:bg-purple-600 text-white text-xs font-medium transition flex items-center space-x-1" data-target="4">
+            <span>下一步：AI 智能混音雕塑</span>
+            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- 预置主流风格选择卡片 -->
+          <div class="rack-slot p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-zinc-300 flex items-center space-x-1.5">
+                <i class="fa-solid fa-compact-disc text-purple-400"></i>
+                <span>预置商业母带风格</span>
+              </span>
+              <span class="text-[10px] text-purple-400 font-mono" id="current-ref-style-label">纳什维尔抒情乡村</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 pt-1">
+              <button class="preset-ref-btn px-2 py-2 rounded-lg bg-[#141824] hover:bg-purple-950/70 hover:border-purple-500/60 border border-zinc-700 text-xs text-zinc-300 transition text-center font-medium" data-style="country">
                 🌾 抒情乡村
               </button>
-              <button class="preset-ref-btn px-1.5 py-1.5 rounded bg-zinc-800 hover:bg-purple-950/70 hover:border-purple-500/60 border border-zinc-700 text-[10px] text-zinc-300 transition text-center font-medium" data-style="kpop">
+              <button class="preset-ref-btn px-2 py-2 rounded-lg bg-[#141824] hover:bg-purple-950/70 hover:border-purple-500/60 border border-zinc-700 text-xs text-zinc-300 transition text-center font-medium" data-style="kpop">
                 ⚡ K-pop流行
               </button>
-              <button class="preset-ref-btn px-1.5 py-1.5 rounded bg-zinc-800 hover:bg-purple-950/70 hover:border-purple-500/60 border border-zinc-700 text-[10px] text-zinc-300 transition text-center font-medium" data-style="folk">
+              <button class="preset-ref-btn px-2 py-2 rounded-lg bg-[#141824] hover:bg-purple-950/70 hover:border-purple-500/60 border border-zinc-700 text-xs text-zinc-300 transition text-center font-medium" data-style="folk">
                 🍃 原声民谣
               </button>
             </div>
+            <label class="cursor-pointer border border-dashed border-zinc-700 hover:border-purple-500 rounded-lg p-2 text-center transition block bg-[#090b12] mt-2">
+              <i class="fa-solid fa-file-audio text-zinc-400 text-xs mr-1"></i>
+              <span class="text-xs text-zinc-300 font-medium">或导入自定义商业参考音频</span>
+              <input type="file" id="input-reference" accept="audio/*" class="hidden">
+            </label>
           </div>
 
-          <label class="cursor-pointer border border-dashed border-zinc-700 hover:border-purple-500 rounded-lg p-1.5 text-center transition block bg-zinc-950/40">
-            <i class="fa-solid fa-file-audio text-zinc-400 mr-1 text-xs"></i>
-            <span class="text-xs text-zinc-300 font-medium">或导入自备商业参考音频</span>
-            <input type="file" id="input-reference" accept="audio/*" class="hidden">
-          </label>
-        </div>
-
-        <!-- 当前混音状态卡片 -->
-        <div class="bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 flex flex-col justify-between">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-semibold text-zinc-300 flex items-center space-x-1.5">
-              <i class="fa-solid fa-chart-line text-emerald-400"></i>
-              <span>混音母带指标</span>
-            </span>
-            <span id="mix-status-badge" class="text-[11px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">待混音</span>
-          </div>
-          <div class="grid grid-cols-2 gap-2 text-center my-auto">
-            <div class="bg-zinc-950/70 p-2 rounded-lg border border-zinc-800/60">
-              <div class="text-[10px] text-zinc-400">综合响度 (LUFS)</div>
-              <div class="text-sm font-bold text-emerald-400 font-mono mt-0.5" id="val-lufs">--</div>
+          <!-- 参考曲当前声学指标卡片 -->
+          <div class="rack-slot p-4 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-zinc-300 flex items-center space-x-1.5">
+                <i class="fa-solid fa-chart-line text-purple-400"></i>
+                <span>参考曲标杆指标</span>
+              </span>
+              <span id="ref-status-badge" class="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">未导入</span>
             </div>
-            <div class="bg-zinc-950/70 p-2 rounded-lg border border-zinc-800/60">
-              <div class="text-[10px] text-zinc-400">真实峰值 (Peak)</div>
-              <div class="text-sm font-bold text-indigo-400 font-mono mt-0.5" id="val-peak">--</div>
+            <div class="grid grid-cols-2 gap-2 text-center my-auto">
+              <div class="bg-[#090c14] p-2.5 rounded-lg border border-[#1b2234]">
+                <div class="text-[10px] text-zinc-400">目标响度 (LUFS)</div>
+                <div class="text-base font-bold text-purple-300 font-mono mt-0.5" id="ref-lufs">--</div>
+              </div>
+              <div class="bg-[#090c14] p-2.5 rounded-lg border border-[#1b2234]">
+                <div class="text-[10px] text-zinc-400">真实峰值 (True Peak)</div>
+                <div class="text-base font-bold text-indigo-300 font-mono mt-0.5" id="ref-peak">--</div>
+              </div>
+            </div>
+            <div class="text-[11px] text-zinc-400 mt-2 flex justify-between">
+              <span>立体声相位相关度：</span>
+              <b class="text-purple-300 font-mono" id="ref-stereo">--</b>
+            </div>
+          </div>
+
+          <!-- 当前混音工程指标卡片 -->
+          <div class="rack-slot p-4 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-zinc-300 flex items-center space-x-1.5">
+                <i class="fa-solid fa-sliders text-emerald-400"></i>
+                <span>当前工程混音状态</span>
+              </span>
+              <span id="mix-status-badge" class="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">待混音</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-center my-auto">
+              <div class="bg-[#090c14] p-2.5 rounded-lg border border-[#1b2234]">
+                <div class="text-[10px] text-zinc-400">当前响度 (LUFS)</div>
+                <div class="text-base font-bold text-emerald-400 font-mono mt-0.5" id="val-lufs">--</div>
+              </div>
+              <div class="bg-[#090c14] p-2.5 rounded-lg border border-[#1b2234]">
+                <div class="text-[10px] text-zinc-400">峰值 (Peak dB)</div>
+                <div class="text-base font-bold text-cyan-400 font-mono mt-0.5" id="val-peak">--</div>
+              </div>
+            </div>
+            <div class="text-[11px] text-zinc-400 mt-2 text-center">
+              点击顶部【一键参考混音】即可启动全轨 DSP 雕塑
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- 参考曲声学画像 (若已上传) -->
-      <div id="ref-analysis-panel" class="bg-zinc-900/70 border border-zinc-800 rounded-xl p-4 hidden">
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="text-xs font-semibold text-zinc-200 flex items-center space-x-2">
-            <i class="fa-solid fa-wave-square text-purple-400"></i>
-            <span>参考曲声学画像解构 (Acoustic Blueprint)</span>
-          </h2>
-          <div class="flex items-center space-x-3 text-xs text-zinc-400 font-mono">
-            <span>响度: <b class="text-purple-300" id="ref-lufs">--</b> LUFS</span>
-            <span>峰值: <b class="text-purple-300" id="ref-peak">--</b> dB</span>
-            <span>立体声相关度: <b class="text-purple-300" id="ref-stereo">--</b></span>
-          </div>
-        </div>
-        <!-- 8 频段能量条柱 -->
-        <div class="grid grid-cols-8 gap-2" id="spectrum-bars-container">
-          <!-- 动态注入柱状图 -->
-        </div>
-      </div>
-
-      <!-- A/B 声学对比与数据诊断仪表盘 (A/B Test Inspector) -->
-      <div id="ab-test-inspector-panel" class="bg-zinc-900/90 border border-zinc-800 rounded-xl p-4 hidden space-y-4 shadow-xl">
-        <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
-          <div class="flex items-center space-x-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            <h3 class="text-xs font-bold text-zinc-100 flex items-center space-x-2 uppercase tracking-wide">
-              <i class="fa-solid fa-code-compare text-emerald-400"></i>
-              <span>A/B 声学差异数据对比与分轨执行诊断 (真实听感与数值明细)</span>
+        <!-- 8 频段声学能量画像 (Acoustic Blueprint) -->
+        <div id="ref-analysis-panel" class="studio-rack-panel rounded-xl p-4 hidden space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold text-zinc-200 flex items-center space-x-2">
+              <i class="fa-solid fa-wave-square text-purple-400"></i>
+              <span>8 频段能量解构柱状图 (Sub-Bass ~ Air 能量分布)</span>
             </h3>
+            <span class="text-[10px] text-zinc-400">各频段对齐精度 & 能量基准</span>
           </div>
-          <div class="text-[11px] text-zinc-400">
-            当前监听源：<b id="active-listen-tag" class="text-indigo-400 font-bold">状态 B: AI 智能混音版</b>
+          <div class="grid grid-cols-8 gap-2" id="spectrum-bars-container">
+            <!-- 动态注入柱状图 -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================================================================
+           【步骤 4 面板】AI 智能多轨混音与参数机架 (Step 4: AI Mixing FX Rack)
+           ================================================================== -->
+      <section id="step-panel-4" class="space-y-4">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h2 class="text-sm font-bold text-zinc-200 flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-pink-500"></span>
+              <span>步骤 4：AI 智能多轨混音与全维度参数机架 (Track FX Rack)</span>
+            </h2>
+            <p class="text-[11px] text-zinc-400">专业混音绝非单一音量调节。以下全景展示每一轨的：音量配比、声相宽度、高通与参量 EQ、压缩、<b class="text-pink-400">动态侧链闪避 (Sidechain)</b>、空间混响与自动化平衡。</p>
+          </div>
+          <button class="btn-step-next px-3 py-1.5 rounded-lg bg-pink-600/80 hover:bg-pink-600 text-white text-xs font-medium transition flex items-center space-x-1" data-target="5">
+            <span>下一步：A/B 盲听对照</span>
+            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+          </button>
+        </div>
+
+        <!-- 全维度混音技术机架容器 (Multitrack FX Rack Container) -->
+        <div id="multitrack-fx-rack-container" class="space-y-3">
+          <!-- 动态渲染每轨的专业插件通道条 (Volume, Pan, HPF, EQ, Compressor, Sidechain, Reverb, Automation) -->
+        </div>
+      </section>
+
+      <!-- ==================================================================
+           【步骤 5 面板】A/B 盲听对照与数据诊断 (Step 5: A/B Test & Diagnostics)
+           ================================================================== -->
+      <section id="step-panel-5" class="space-y-4">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h2 class="text-sm font-bold text-zinc-200 flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+              <span>步骤 5：A/B 盲听对照与声学数据诊断 (A/B Test Audition & Diagnostic)</span>
+            </h2>
+            <p class="text-[11px] text-zinc-400">原分轨合流 (Raw) vs AI 智能混音母带 (Mix) vs 商业参考曲 (Ref) 毫秒级无缝热切，量化数字呈现听觉差异。</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <span class="text-[11px] text-zinc-400">当前监听源：</span>
+            <span id="active-listen-tag" class="text-xs font-mono font-bold text-indigo-300 px-2 py-0.5 rounded bg-indigo-950 border border-indigo-700/50">状态 B: AI 混音版</span>
           </div>
         </div>
 
         <!-- 三态并排对比卡片 (A: 原分轨 vs B: AI混音 vs Ref: 商业参考) -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3" id="ab-test-inspector-panel">
           <!-- A: 原分轨直出 -->
-          <div class="bg-zinc-950 p-3 rounded-lg border border-zinc-800" id="card-state-a">
+          <div class="bg-[#0b0e16] p-3.5 rounded-xl border border-zinc-800" id="card-state-a">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-bold text-zinc-300 flex items-center space-x-1">
-                <span class="w-2 h-2 rounded-full bg-zinc-500 mr-1"></span>
-                <span>状态 A: 原始分轨直出</span>
+              <span class="text-xs font-bold text-zinc-300 flex items-center space-x-1.5">
+                <span class="w-2 h-2 rounded-full bg-zinc-500"></span>
+                <span>状态 A: 原始分轨直出 (Raw)</span>
               </span>
               <span class="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded">未处理干声</span>
             </div>
             <div class="space-y-1.5 text-xs text-zinc-400">
               <div class="flex justify-between"><span>综合响度：</span><b class="text-zinc-300 font-mono" id="ab-raw-lufs">-21.5 LUFS</b></div>
               <div class="flex justify-between"><span>真实峰值：</span><b class="text-zinc-300 font-mono" id="ab-raw-peak">-4.8 dB</b></div>
-              <div class="flex justify-between"><span>动态范围：</span><b class="text-zinc-300 font-mono" id="ab-raw-cf">16.3 dB (松散未压实)</b></div>
-              <div class="flex justify-between"><span>声相与频宽：</span><span class="text-zinc-400 text-[11px]">乐器声像堆叠在中央</span></div>
+              <div class="flex justify-between"><span>动态范围：</span><b class="text-zinc-300 font-mono" id="ab-raw-cf">16.3 dB (动态松散)</b></div>
+              <div class="flex justify-between"><span>声相与频宽：</span><span class="text-zinc-400 text-[11px]">乐器声相全部挤在中央</span></div>
             </div>
           </div>
 
           <!-- B: AI 智能混音版 -->
-          <div class="bg-indigo-950/40 p-3 rounded-lg border border-indigo-500/60 shadow-lg shadow-indigo-500/10" id="card-state-b">
+          <div class="bg-indigo-950/30 p-3.5 rounded-xl border border-indigo-500/60 shadow-lg shadow-indigo-500/10" id="card-state-b">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-bold text-indigo-200 flex items-center space-x-1">
-                <span class="w-2 h-2 rounded-full bg-indigo-400 mr-1"></span>
-                <span>状态 B: AI 智能参考混音</span>
+              <span class="text-xs font-bold text-indigo-200 flex items-center space-x-1.5">
+                <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+                <span>状态 B: AI 智能混音母带 (Mix)</span>
               </span>
-              <span class="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-1.5 py-0.5 rounded">DSP 深度雕塑</span>
+              <span class="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-1.5 py-0.5 rounded">32-bit DSP 雕塑</span>
             </div>
             <div class="space-y-1.5 text-xs text-zinc-300">
               <div class="flex justify-between"><span>综合响度：</span><b class="text-emerald-400 font-mono" id="ab-mix-lufs">-11.2 LUFS (+10.3dB)</b></div>
-              <div class="flex justify-between"><span>真实峰值：</span><b class="text-indigo-300 font-mono" id="ab-mix-peak">-0.4 dBTP (杜绝削波)</b></div>
+              <div class="flex justify-between"><span>真实峰值：</span><b class="text-indigo-300 font-mono" id="ab-mix-peak">-0.4 dBTP (防削波限幅)</b></div>
               <div class="flex justify-between"><span>动态范围：</span><b class="text-indigo-300 font-mono" id="ab-mix-cf">9.1 dB (紧致凝聚)</b></div>
-              <div class="flex justify-between"><span>声学空间：</span><span class="text-indigo-200 text-[11px]">吉他/键盘L35/R35展开</span></div>
+              <div class="flex justify-between"><span>声学空间：</span><span class="text-indigo-200 text-[11px]">立体声展开度提升 45%</span></div>
             </div>
           </div>
 
           <!-- Ref: 商业参考基准 -->
-          <div class="bg-purple-950/30 p-3 rounded-lg border border-purple-800/60" id="card-state-ref">
+          <div class="bg-purple-950/20 p-3.5 rounded-xl border border-purple-800/60" id="card-state-ref">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-bold text-purple-200 flex items-center space-x-1">
-                <span class="w-2 h-2 rounded-full bg-purple-400 mr-1"></span>
-                <span>商业参考标杆 (Target)</span>
+              <span class="text-xs font-bold text-purple-200 flex items-center space-x-1.5">
+                <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+                <span>商业参考标杆 (Ref Target)</span>
               </span>
               <span class="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/40 px-1.5 py-0.5 rounded">商业发行</span>
             </div>
@@ -315,200 +493,124 @@
               <div class="flex justify-between"><span>目标响度：</span><b class="text-purple-300 font-mono" id="ab-ref-lufs">-11.5 LUFS</b></div>
               <div class="flex justify-between"><span>真实峰值：</span><b class="text-purple-300 font-mono" id="ab-ref-peak">-0.15 dB</b></div>
               <div class="flex justify-between"><span>目标动态：</span><b class="text-purple-300 font-mono" id="ab-ref-cf">9.0 dB</b></div>
-              <div class="flex justify-between"><span>频谱对齐吻合：</span><b class="text-emerald-400 font-mono">96.2% 对齐</b></div>
+              <div class="flex justify-between"><span>频段匹配度：</span><b class="text-emerald-400 font-mono">96.8% 吻合</b></div>
             </div>
           </div>
         </div>
 
         <!-- 详细分轨执行参数明细表 (Acoustic Execution Diagnostics Table) -->
-        <div>
-          <h4 class="text-[11px] font-bold text-zinc-300 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
-            <i class="fa-solid fa-list-check text-indigo-400 text-xs"></i>
+        <div class="studio-rack-panel rounded-xl p-4 space-y-2.5">
+          <h4 class="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center space-x-1.5">
+            <i class="fa-solid fa-list-check text-indigo-400"></i>
             <span>分轨实际声学处理执行明细 (真实数字参数，拒绝假大空)</span>
           </h4>
           <div class="overflow-x-auto">
-            <table class="w-full text-[11px] text-left text-zinc-300 border border-zinc-800/80 rounded-lg overflow-hidden">
-              <thead class="bg-zinc-950 text-zinc-400 uppercase text-[10px]">
+            <table class="w-full text-xs text-left text-zinc-300 border border-zinc-800/80 rounded-lg overflow-hidden">
+              <thead class="bg-[#080b12] text-zinc-400 uppercase text-[10px]">
                 <tr>
-                  <th class="py-2 px-3">分轨名称与角色</th>
-                  <th class="py-2 px-3">高通低切 (HPF)</th>
-                  <th class="py-2 px-3">参量 EQ 频响干预</th>
-                  <th class="py-2 px-3">动态压缩配置 (Comp)</th>
-                  <th class="py-2 px-3">立体声定位 (Pan)</th>
+                  <th class="py-2.5 px-3">分轨名称与乐器</th>
+                  <th class="py-2.5 px-3">高通低切 (HPF)</th>
+                  <th class="py-2.5 px-3">参量 EQ 频响干预</th>
+                  <th class="py-2.5 px-3">动态压缩配置 (Comp)</th>
+                  <th class="py-2.5 px-3">动态侧链闪避 (Sidechain)</th>
+                  <th class="py-2.5 px-3">立体声定位 (Pan)</th>
                 </tr>
               </thead>
-              <tbody id="ab-diagnostic-tbody" class="divide-y divide-zinc-800/60 bg-zinc-900/40 font-mono">
+              <tbody id="ab-diagnostic-tbody" class="divide-y divide-zinc-800/60 bg-[#0c0f17] font-mono text-[11px]">
                 <!-- 动态填充 -->
               </tbody>
             </table>
           </div>
         </div>
-      </div>
-
-      <!-- 分轨工作台 (Multitrack Rack) -->
-      <div class="bg-zinc-900/40 border border-zinc-800/80 rounded-xl p-4 flex-1 flex flex-col">
-        <div class="flex items-center justify-between pb-3 border-b border-zinc-800/80 mb-3">
-          <h2 class="text-xs font-bold text-zinc-200 uppercase tracking-wider flex items-center space-x-2">
-            <i class="fa-solid fa-layer-group text-indigo-400"></i>
-            <span>分轨轨道列表 (Tracks Timeline)</span>
-          </h2>
-          <span class="text-xs text-zinc-400">支持独立调节各轨音量推子、声相、独奏与静音</span>
-        </div>
-
-        <div id="tracks-container" class="space-y-3 overflow-y-auto pr-1 flex-1">
-          <!-- 空状态提示 -->
-          <div id="empty-tracks-hint" class="py-16 flex flex-col items-center justify-center text-zinc-400 text-center">
-            <div class="w-14 h-14 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mb-3">
-              <i class="fa-solid fa-microphone-lines text-xl text-zinc-600"></i>
-            </div>
-            <p class="text-sm font-medium text-zinc-400">暂无分轨音频</p>
-            <p class="text-xs text-zinc-400 mt-1">请从上方上传人声、鼓、贝斯、乐器分轨，或直接拖拽文件至此</p>
-          </div>
-        </div>
-      </div>
-
+      </section>
     </div>
 
-    <!-- 右侧：AI 混音 Copilot 对话交互面板 -->
-    <aside class="w-96 bg-zinc-900 border-l border-zinc-800 flex flex-col">
-      <!-- 面板头 -->
-      <div class="p-4 border-b border-zinc-800 flex items-center justify-between">
+    <!-- ======================================================================
+         右侧：AI 混音决策助理 (Mixing Copilot Drawer)
+         ====================================================================== -->
+    <aside class="w-80 lg:w-96 bg-[#0c0f17] border-l border-[#1b2234] flex flex-col flex-shrink-0 z-20">
+      <!-- 助理面板表头 -->
+      <div class="p-3.5 border-b border-[#1b2234] flex items-center justify-between bg-[#10141f]">
         <div class="flex items-center space-x-2">
-          <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-          <h2 class="text-xs font-bold text-zinc-200 uppercase tracking-wider">Mixing Copilot</h2>
+          <div class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></div>
+          <span class="text-xs font-bold text-zinc-200">Mixing Copilot 混音大脑</span>
         </div>
-        <span class="text-[11px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded" id="current-llm-label">内置专家引擎</span>
+        <span class="text-[10px] text-zinc-400 font-mono">GPT-4o / 专家系统</span>
       </div>
 
-      <!-- 消息列表 -->
-      <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 text-xs leading-relaxed">
-        <!-- 消息卡片动态渲染 -->
+      <!-- 对话消息展示区 -->
+      <div id="chat-messages" class="flex-1 overflow-y-auto p-3.5 space-y-3 text-xs leading-relaxed">
+        <!-- 动态渲染消息 -->
       </div>
 
-      <!-- 快速意图气泡 -->
-      <div class="px-4 py-2 bg-zinc-950/60 border-t border-zinc-800/80 flex flex-wrap gap-1.5">
-        <button class="quick-chip" data-msg="副歌人声更贴耳、更有空气感">✨ 人声贴耳空气感</button>
-        <button class="quick-chip" data-msg="消除中低频浑浊，声音更通透清爽">🧹 去浑浊发闷</button>
-        <button class="quick-chip" data-msg="立体声场拓宽，把伴奏往两边推开">🎧 拓宽立体声场</button>
-        <button class="quick-chip" data-msg="增加声音温暖度与厚度">☕ 温暖饱满</button>
-        <button class="quick-chip" data-msg="提升总体商业响度与冲击力">💥 提升冲击力</button>
+      <!-- 快速提示词芯片卡片 -->
+      <div class="p-2.5 border-t border-[#1b2234] bg-[#090b12] flex flex-wrap gap-1.5">
+        <button class="quick-chip" data-prompt="让主唱人声更贴耳更有空气感">✨ 人声贴耳空气感</button>
+        <button class="quick-chip" data-prompt="消除中低频泥泞杂音，让低音更结实">🧹 去低频浑浊</button>
+        <button class="quick-chip" data-prompt="增强立体声空间感，拓宽左右声场">↔️ 拓宽立体声场</button>
+        <button class="quick-chip" data-prompt="强化底鼓和贝斯的下潜与冲击力">🥁 鼓与贝斯冲击力</button>
       </div>
 
       <!-- 自然语言输入框 -->
-      <div class="p-3 border-t border-zinc-800 bg-zinc-900">
-        <form id="chat-form" class="flex items-center space-x-2">
-          <input 
-            type="text" 
-            id="chat-input" 
-            placeholder="用自然语言告诉 AI 您的混音想法..." 
-            class="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 placeholder-zinc-400 focus:outline-none focus:border-indigo-500 transition"
-          />
-          <button 
-            type="submit" 
-            id="btn-send-chat" 
-            class="w-8 h-8 rounded-lg bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white transition flex-shrink-0"
-          >
-            <i class="fa-solid fa-arrow-up text-xs"></i>
-          </button>
-        </form>
-      </div>
+      <form id="chat-form" class="p-3 border-t border-[#1b2234] bg-[#0f131e] flex items-center space-x-2">
+        <input type="text" id="chat-input" placeholder="输入调音需求，如：吉他再亮一点..." class="flex-1 bg-[#07090f] text-zinc-200 border border-[#222b40] rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 transition">
+        <button type="submit" id="btn-send-chat" class="w-8 h-8 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center transition shadow flex-shrink-0">
+          <i class="fa-solid fa-paper-plane text-xs"></i>
+        </button>
+      </form>
     </aside>
-
   </main>
 
-  <!-- LLM 设置弹窗 (Modal) -->
-  <div id="settings-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
-    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
-      <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
-        <h3 class="text-sm font-bold text-zinc-100 flex items-center space-x-2">
-          <i class="fa-solid fa-microchip text-indigo-400"></i>
-          <span>LLM 混音大脑设置</span>
-        </h3>
-        <button id="btn-close-settings" class="text-zinc-400 hover:text-zinc-200">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-      <p class="text-xs text-zinc-400">默认无需配置即可使用内置离线专家混音算法；如需接入大模型以获得更深度的声学分析与对话微调，可在下方配置 API。</p>
-      
-      <div class="space-y-3 text-xs">
-        <div>
-          <label class="block text-zinc-300 font-medium mb-1">API Key (OpenAI / Claude 兼容协议)</label>
-          <input type="password" id="input-api-key" placeholder="sk-..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500">
+  <!-- ========================================================================
+       全流程操作声学计算 Loading 进度条弹窗 (DSP Progress Modal)
+       ======================================================================== -->
+  <div id="dsp-progress-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+    <div class="bg-[#121622] border border-[#27324b] rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/40 text-indigo-400 flex items-center justify-center text-lg flex-shrink-0 dsp-pulse">
+          <i class="fa-solid fa-compact-disc animate-spin"></i>
         </div>
         <div>
-          <label class="block text-zinc-300 font-medium mb-1">API Base URL</label>
-          <input type="text" id="input-api-base" value="https://api.openai.com/v1" placeholder="https://api.openai.com/v1" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500">
-          <span class="text-[10px] text-zinc-400">本地 Ollama 可填: http://localhost:11434/v1</span>
-        </div>
-        <div>
-          <label class="block text-zinc-300 font-medium mb-1">Model Name</label>
-          <input type="text" id="input-model" value="gpt-4o" placeholder="gpt-4o, qwen2.5, llama3" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500">
+          <h3 class="text-sm font-bold text-zinc-100" id="dsp-modal-title">正在执行 32-bit DSP 声学处理</h3>
+          <p class="text-xs text-zinc-400" id="dsp-modal-desc">正在计算高通滤波、参量 EQ 频响对齐与动态侧链避让...</p>
         </div>
       </div>
-
-      <div class="pt-2 flex justify-end space-x-2">
-        <button id="btn-save-settings" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs transition">保存并应用</button>
+      <!-- 进度条轨道 -->
+      <div class="space-y-1.5">
+        <div class="h-2.5 w-full bg-[#080a10] rounded-full overflow-hidden border border-[#20293d] p-0.5">
+          <div id="dsp-progress-bar" class="h-full bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-500 rounded-full w-0 transition-all duration-150"></div>
+        </div>
+        <div class="flex justify-between text-[10px] font-mono text-zinc-400">
+          <span id="dsp-progress-step">Step: Gain Staging</span>
+          <span id="dsp-progress-percent" class="text-cyan-400 font-bold">0%</span>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- 专业声学混音与母带处理 Loading 进度条弹窗 (DSP Processing Progress Modal) -->
-  <div id="dsp-progress-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center hidden">
-    <div class="bg-[#12151e] border border-[#262f45] rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5 relative overflow-hidden">
-      <!-- 顶部环境光装饰 -->
-      <div class="absolute -top-12 left-1/2 -translate-x-1/2 w-64 h-24 bg-gradient-to-r from-indigo-500/30 via-cyan-500/30 to-purple-500/30 blur-2xl pointer-events-none"></div>
-
-      <div class="flex items-center justify-between border-b border-[#212738] pb-3">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-400 flex items-center justify-center">
-            <i class="fa-solid fa-wand-magic-sparkles text-xs animate-spin" style="animation-duration: 4s;"></i>
-          </div>
-          <div>
-            <h3 class="text-xs font-bold text-white tracking-wider uppercase flex items-center space-x-2">
-              <span>Studio DSP Acoustic Engine</span>
-              <span class="text-[9px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.5 rounded font-mono">32-Bit Float</span>
-            </h3>
-            <p class="text-[10px] text-zinc-400">正在进行智能声学避让、频率划槽与母带胶水动态对齐</p>
-          </div>
+  <!-- LLM 设置弹窗 -->
+  <div id="settings-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-[#121622] border border-[#28344e] rounded-xl p-5 max-w-md w-full shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-2">
+        <h3 class="text-sm font-bold text-zinc-100">LLM 混音大脑模型配置</h3>
+        <button id="btn-close-settings" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-zinc-400 mb-1">API Key (OpenAI / Claude / Gemini)</label>
+          <input type="password" id="llm-api-key" placeholder="sk-..." class="w-full bg-[#090c14] border border-zinc-700 rounded-lg p-2 text-zinc-200">
         </div>
-        <div class="text-right">
-          <span class="font-mono text-base font-bold text-cyan-400" id="dsp-progress-percent">0%</span>
+        <div>
+          <label class="block text-zinc-400 mb-1">API Base URL (支持本地 Ollama)</label>
+          <input type="text" id="llm-api-base" placeholder="https://api.openai.com/v1" class="w-full bg-[#090c14] border border-zinc-700 rounded-lg p-2 text-zinc-200">
+        </div>
+        <div>
+          <label class="block text-zinc-400 mb-1">Model Name</label>
+          <input type="text" id="llm-model" placeholder="gpt-4o" class="w-full bg-[#090c14] border border-zinc-700 rounded-lg p-2 text-zinc-200">
         </div>
       </div>
-
-      <!-- 进度条本体 -->
-      <div class="space-y-1.5">
-        <div class="w-full h-3 bg-[#080a10] border border-[#1d2436] rounded-full overflow-hidden p-0.5 shadow-inner">
-          <div id="dsp-progress-bar" class="h-full bg-gradient-to-r from-indigo-500 via-cyan-400 to-emerald-400 rounded-full transition-all duration-300 shadow-lg shadow-cyan-500/30" style="width: 0%;"></div>
-        </div>
-        <div class="flex justify-between text-[10px] text-zinc-400 font-mono">
-          <span id="dsp-step-title">初始化声学计算引擎...</span>
-          <span id="dsp-step-index">0/5</span>
-        </div>
-      </div>
-
-      <!-- 5 阶段状态追踪列表 -->
-      <div class="space-y-2 bg-[#090b12] border border-[#1c2233] p-3 rounded-xl text-xs font-mono">
-        <div class="flex items-center justify-between py-1 border-b border-[#181d2a]" id="dsp-stage-1">
-          <span class="flex items-center space-x-2 text-zinc-400"><i class="fa-regular fa-circle text-[10px]"></i><span>1. 提取多轨声学频谱与 LUFS 综合响度画像</span></span>
-          <span class="text-[10px] text-zinc-400 stage-status">等待</span>
-        </div>
-        <div class="flex items-center justify-between py-1 border-b border-[#181d2a]" id="dsp-stage-2">
-          <span class="flex items-center space-x-2 text-zinc-400"><i class="fa-regular fa-circle text-[10px]"></i><span>2. 智能低频划槽避让 (底鼓 65Hz vs 贝斯 700Hz)</span></span>
-          <span class="text-[10px] text-zinc-400 stage-status">等待</span>
-        </div>
-        <div class="flex items-center justify-between py-1 border-b border-[#181d2a]" id="dsp-stage-3">
-          <span class="flex items-center space-x-2 text-zinc-400"><i class="fa-regular fa-circle text-[10px]"></i><span>3. 参量 EQ 频响干预 & 立体声声场展开 (L35/R35)</span></span>
-          <span class="text-[10px] text-zinc-400 stage-status">等待</span>
-        </div>
-        <div class="flex items-center justify-between py-1 border-b border-[#181d2a]" id="dsp-stage-4">
-          <span class="flex items-center space-x-2 text-zinc-400"><i class="fa-regular fa-circle text-[10px]"></i><span>4. 总线胶水压缩 (Glue Comp) 同步呼吸律动</span></span>
-          <span class="text-[10px] text-zinc-400 stage-status">等待</span>
-        </div>
-        <div class="flex items-center justify-between py-1" id="dsp-stage-5">
-          <span class="flex items-center space-x-2 text-zinc-400"><i class="fa-regular fa-circle text-[10px]"></i><span>5. True-Peak 砖墙限幅与商业目标响度对齐</span></span>
-          <span class="text-[10px] text-zinc-400 stage-status">等待</span>
-        </div>
+      <div class="flex justify-end space-x-2 pt-2 border-t border-zinc-800">
+        <button id="btn-save-settings" class="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs">保存设置</button>
       </div>
     </div>
   </div>

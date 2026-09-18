@@ -112,12 +112,44 @@ def test_stem_separation_pipeline():
         print(f"  ✓ 分离通道就绪: {trk['name']:25} | 乐器: {trk['instrument']:10} | 地址: {trk['url']}")
     print("\n✅ 4-Stem 音源分离管道测试全部通过！\n")
 
+def test_youtube_reference_pipeline():
+    print('=' * 60)
+    print('[Self-Test 5/5] 正在验证 YouTube 商业参考音乐链接解析与声学画像提取接口...')
+    print('=' * 60)
+    from fastapi.testclient import TestClient
+    import backend.app as backend_app
+
+    client = TestClient(backend_app.app)
+    # 测试异常输入检验
+    bad_res = client.post('/api/reference/youtube', json={'url': 'https://example.com/invalid_url'})
+    assert bad_res.status_code == 400, f"Expected 400 for bad URL, got {bad_res.status_code}"
+    print("  ✓ 非法/不支持 URL 格式阻断与校验: PASS")
+
+    # 测试标准 YouTube 链接解析
+    test_yt_url = 'https://www.youtube.com/watch?v=k4V3Mo61fJM'
+    res = client.post('/api/reference/youtube', json={'url': test_yt_url})
+    assert res.status_code == 200, f"Expected 200 for YouTube reference extraction, got {res.status_code}: {res.text}"
+    data = res.json()
+    assert data.get('status') == 'ok', 'Status should be ok'
+    ref = data.get('reference', {})
+    assert 'name' in ref and ref['name'].startswith('YouTube:'), f"Unexpected reference name: {ref.get('name')}"
+    ana = ref.get('analysis', {})
+    assert 'integrated_lufs' in ana, 'integrated_lufs missing from analysis'
+    assert 'spectral_bands_db' in ana, 'spectral_bands_db missing from analysis'
+    assert len(ana['spectral_bands_db']) == 8, f"Expected 8 frequency bands, got {len(ana['spectral_bands_db'])}"
+    yt_meta = ref.get('youtube', {})
+    assert yt_meta.get('video_id') == 'k4V3Mo61fJM', f"Unexpected video_id: {yt_meta.get('video_id')}"
+    print(f"  ✓ YouTube 音频切片下载与声学画像提取: PASS (曲目: {ref['name']} | LUFS: {ana['integrated_lufs']:.1f})")
+    print(f"  ✓ 8-Band 频段能量与动态范围计算: PASS")
+    print("\n✅ YouTube 商业参考画像解析管道测试全部通过！\n")
+
 if __name__ == '__main__':
     try:
         test_audio_assets()
         test_frontend_integrity()
         test_backend_mixing_pipeline()
         test_stem_separation_pipeline()
+        test_youtube_reference_pipeline()
         print('*' * 60)
         print('🎉 恭喜！所有自我测试项目全部 100% 通过，系统处于生产发布就绪状态！')
         print('*' * 60)

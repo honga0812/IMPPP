@@ -143,6 +143,53 @@ def test_youtube_reference_pipeline():
     print(f"  ✓ 8-Band 频段能量与动态范围计算: PASS")
     print("\n✅ YouTube 商业参考画像解析管道测试全部通过！\n")
 
+def test_youtube_stem_separation_and_advanced_fx():
+    print('=' * 60)
+    print('[Self-Test 6/6] 正在验证 YouTube 音源分离与进阶声学特效定制混音接口...')
+    print('=' * 60)
+    from fastapi.testclient import TestClient
+    import backend.app as backend_app
+
+    client = TestClient(backend_app.app)
+
+    # 1. 验证 YouTube 4-Stem 分离
+    test_yt_url = "https://www.youtube.com/watch?v=k4V3Mo61fJM"
+    res = client.post('/api/separate/youtube', json={'url': test_yt_url})
+    assert res.status_code == 200, f"Expected 200 for YouTube stem separation, got {res.status_code}: {res.text}"
+    sep_data = res.json()
+    assert sep_data.get('status') == 'ok', 'Status should be ok'
+    tracks = sep_data.get('tracks', [])
+    assert len(tracks) == 4, f"Expected 4 separated tracks, got {len(tracks)}"
+    print(f"  ✓ YouTube 4-Stem 音源分离就绪: 包含 {len(tracks)} 轨 (人声/鼓组/贝斯/伴奏)")
+
+    # 2. 验证进阶特效定制混音
+    custom_fx = {
+        "vocal_polish": True,
+        "vocal_doubler": True,
+        "shimmer_reverb": True,
+        "sub_bass": True,
+        "tape_warmth": True,
+        "sidechain": True
+    }
+    mix_res = client.post('/api/mix/auto', json={
+        'advanced_fx': custom_fx,
+        'custom_version_name': '测试豪华特效混音版'
+    })
+    assert mix_res.status_code == 200, f"Expected 200 for custom mix, got {mix_res.status_code}: {mix_res.text}"
+    mix_data = mix_res.json()
+    assert mix_data.get('status') in ('ok', 'success'), f"Status should be ok or success, got {mix_data.get('status')}"
+    version = mix_data.get('version', {})
+    assert '测试豪华特效混音版' in version.get('name', ''), f"Version name should contain custom name: {version.get('name')}"
+    print(f"  ✓ 进阶声学特效混音渲染完成: 版本【{version.get('id')}】({version.get('name')})")
+
+    # 3. 验证处理后分轨导出
+    ver_id = version.get('id')
+    export_res = client.get(f'/api/export/stems_zip?version_id={ver_id}')
+    assert export_res.status_code == 200, f"Expected 200 for processed stems zip, got {export_res.status_code}"
+    assert export_res.headers.get('content-type') == 'application/zip', f"Expected zip content-type, got {export_res.headers.get('content-type')}"
+    print(f"  ✓ 版本【{ver_id}】处理后高保真分轨 (Processed Stems ZIP) 导出校验: PASS ({len(export_res.content)} bytes)")
+    print("\n✅ YouTube 音源分离与进阶声学特效管道测试全部通过！\n")
+
 if __name__ == '__main__':
     try:
         test_audio_assets()
@@ -150,9 +197,11 @@ if __name__ == '__main__':
         test_backend_mixing_pipeline()
         test_stem_separation_pipeline()
         test_youtube_reference_pipeline()
+        test_youtube_stem_separation_and_advanced_fx()
         print('*' * 60)
         print('🎉 恭喜！所有自我测试项目全部 100% 通过，系统处于生产发布就绪状态！')
         print('*' * 60)
     except AssertionError as e:
         print(f"\n❌ 测试未通过: {e}")
         sys.exit(1)
+

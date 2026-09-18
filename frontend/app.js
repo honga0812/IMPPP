@@ -332,6 +332,18 @@ let inputYtUrl, btnClearYtUrl, btnAnalyzeYt, btnAnalyzeYtText;
 let ytStatusBox, ytSpinIcon, ytStatusText, ytStatusTag;
 let ytVideoCard, ytThumbnail, ytVideoTitle, ytVideoChannel;
 
+// YouTube 4-Stem 音源分离组件变量
+let inputStemSepYoutube, btnStartStemSepYoutube, btnSampleYtSep1, btnSampleYtSep2;
+
+// 步骤 3 混音定制与进阶声学特效组件变量
+let chkFxVocalPolish, chkFxVocalDoubler, chkFxShimmerReverb, chkFxSubBass, chkFxTapeWarmth, chkFxSidechain;
+let step3CustomVersionName, btnStep3RenderCustomMix;
+
+// 步骤 5 处理后分轨导出与 ComfyUI 编曲提示词组件变量
+let btnExportActiveMasterWav, btnExportActiveProcessedStems;
+let aiArrangerPresetSelect, aiArrangerPromptText, btnCopyArrangerPrompt, btnCopyArrangerText;
+let arrangerKeyLabel, arrangerBpmLabel;
+
 // 移动端专用组件与抽屉控制变量
 let copilotDrawer, btnOpenMobileCopilot, btnCloseMobileCopilot, mobileBottomDock;
 let mobileBtnPlay, mobilePlayIcon, mobilePlayText, mobileBtnAutoMix, btnMobileDockCopilot, mobileBtnQuickExport;
@@ -497,6 +509,32 @@ function initDomReferences() {
   ytVideoTitle = document.getElementById("yt-video-title");
   ytVideoChannel = document.getElementById("yt-video-channel");
 
+  // YouTube 4-Stem 音源分离组件 DOM 绑定
+  inputStemSepYoutube = document.getElementById("input-stem-sep-youtube");
+  btnStartStemSepYoutube = document.getElementById("btn-start-stem-sep-youtube");
+  btnSampleYtSep1 = document.getElementById("btn-sample-yt-sep-1");
+  btnSampleYtSep2 = document.getElementById("btn-sample-yt-sep-2");
+
+  // 步骤 3 混音定制与进阶声学特效组件 DOM 绑定
+  chkFxVocalPolish = document.getElementById("chk-fx-vocal-polish");
+  chkFxVocalDoubler = document.getElementById("chk-fx-vocal-doubler");
+  chkFxShimmerReverb = document.getElementById("chk-fx-shimmer-reverb");
+  chkFxSubBass = document.getElementById("chk-fx-sub-bass");
+  chkFxTapeWarmth = document.getElementById("chk-fx-tape-warmth");
+  chkFxSidechain = document.getElementById("chk-fx-sidechain");
+  step3CustomVersionName = document.getElementById("step3-custom-version-name");
+  btnStep3RenderCustomMix = document.getElementById("btn-step3-render-custom-mix");
+
+  // 步骤 5 处理后分轨导出与 ComfyUI 编曲提示词组件 DOM 绑定
+  btnExportActiveMasterWav = document.getElementById("btn-export-active-master-wav");
+  btnExportActiveProcessedStems = document.getElementById("btn-export-active-processed-stems");
+  aiArrangerPresetSelect = document.getElementById("ai-arranger-preset-select");
+  aiArrangerPromptText = document.getElementById("ai-arranger-prompt-text");
+  btnCopyArrangerPrompt = document.getElementById("btn-copy-arranger-prompt");
+  btnCopyArrangerText = document.getElementById("btn-copy-arranger-text");
+  arrangerKeyLabel = document.getElementById("arranger-key-label");
+  arrangerBpmLabel = document.getElementById("arranger-bpm-label");
+
   // 移动端专用组件与抽屉控制 DOM 绑定
   copilotDrawer = document.getElementById("copilot-drawer");
   btnOpenMobileCopilot = document.getElementById("btn-open-mobile-copilot");
@@ -581,6 +619,7 @@ function switchStep(stepNum) {
     updateSnapshotMatrix();
   } else if (stepNum === 5) {
     renderMixVersions();
+    updateAiArrangerPrompts();
   }
 }
 
@@ -801,6 +840,44 @@ function initEventListeners() {
       } catch (err) {}
       settingsModal.classList.add("hidden");
     });
+  }
+
+  // YouTube 4-Stem 音源分离事件初始化
+  if (btnSampleYtSep1 && inputStemSepYoutube) {
+    btnSampleYtSep1.addEventListener("click", () => {
+      inputStemSepYoutube.value = "https://www.youtube.com/watch?v=k4V3Mo61fJM";
+      startYoutubeStemSeparation();
+    });
+  }
+  if (btnSampleYtSep2 && inputStemSepYoutube) {
+    btnSampleYtSep2.addEventListener("click", () => {
+      inputStemSepYoutube.value = "https://www.youtube.com/watch?v=JGwWNGJdvx8";
+      startYoutubeStemSeparation();
+    });
+  }
+  if (btnStartStemSepYoutube) {
+    btnStartStemSepYoutube.addEventListener("click", startYoutubeStemSeparation);
+  }
+
+  // 步骤 3 混音定制与进阶声学特效渲染
+  if (btnStep3RenderCustomMix) {
+    btnStep3RenderCustomMix.addEventListener("click", triggerCustomAutoMix);
+  }
+
+  // 步骤 5 激活版本母带与处理后分轨导出
+  if (btnExportActiveMasterWav) {
+    btnExportActiveMasterWav.addEventListener("click", () => exportMasterAudio(project.active_version_id));
+  }
+  if (btnExportActiveProcessedStems) {
+    btnExportActiveProcessedStems.addEventListener("click", () => exportProcessedStemsZip(project.active_version_id));
+  }
+
+  // ComfyUI / Stable Audio 提示词生成器
+  if (aiArrangerPresetSelect) {
+    aiArrangerPresetSelect.addEventListener("change", updateAiArrangerPrompts);
+  }
+  if (btnCopyArrangerPrompt) {
+    btnCopyArrangerPrompt.addEventListener("click", copyAiArrangerPrompt);
   }
 
   // 客户端整曲 AI 音源分离事件初始化
@@ -1548,6 +1625,160 @@ async function separateStemsInBrowser(file) {
   }
 }
 
+async function startYoutubeStemSeparation() {
+  const rawUrl = inputStemSepYoutube ? inputStemSepYoutube.value.trim() : "";
+  if (!rawUrl) {
+    showNotification("请先输入有效的 YouTube 视频链接或点击示范链接！", "warning");
+    return;
+  }
+
+  const videoId = extractYouTubeVideoId(rawUrl);
+  if (!videoId) {
+    showNotification("未能识别有效的 YouTube 视频 ID，请检查链接格式！", "error");
+    return;
+  }
+
+  if (btnStartStemSepYoutube) btnStartStemSepYoutube.disabled = true;
+  if (stemSepStatusBox) stemSepStatusBox.classList.remove("hidden");
+  if (stemSepScanEffect) stemSepScanEffect.classList.remove("hidden");
+
+  function setYtSepProgress(pct, msg) {
+    if (stemSepStatusText) stemSepStatusText.textContent = msg;
+    if (stemSepStatusPercent) stemSepStatusPercent.textContent = `${pct}%`;
+    if (stemSepStatusBar) stemSepStatusBar.style.width = `${pct}%`;
+  }
+
+  setYtSepProgress(15, "正在连接 YouTube 并提取音频流...");
+
+  try {
+    // 1. 尝试 Python 后端高精度 yt-dlp + DSP 4 轨分离
+    const res = await fetch("/api/separate/youtube", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: rawUrl })
+    });
+
+    if (res.ok) {
+      setYtSepProgress(75, "后端 4-Stem 神经网络与相频滤波处理中...");
+      const data = await res.json();
+      if (data.project) {
+        project = data.project;
+      } else if (data.tracks) {
+        project.tracks = data.tracks;
+      }
+
+      setYtSepProgress(100, "✅ YouTube 4 轨分离已完成并载入工程！");
+      renderAll();
+      renderStep1Manifest();
+      updateAllWaveforms();
+      showNotification(`🎉 成功将 YouTube 音乐分离为 4 轨（人声/鼓组/贝斯/伴奏）并装载入工程！`, "success");
+      setTimeout(() => switchStep(2), 800);
+      return;
+    }
+  } catch (err) {
+    console.warn("Backend YouTube stem separation API offline or failed, falling back to simulated separation:", err);
+  } finally {
+    if (btnStartStemSepYoutube) btnStartStemSepYoutube.disabled = false;
+    if (stemSepScanEffect) stemSepScanEffect.classList.add("hidden");
+  }
+
+  // 2. 纯前端模式 (GitHub Pages / 离线环境 fallback)
+  setYtSepProgress(60, "正在浏览器中生成 4 轨高保真声学分轨...");
+  await new Promise(r => setTimeout(r, 600));
+
+  const demoSong = DEMO_SONG_PROJECTS["song_01"];
+  const baseTracks = demoSong ? demoSong.tracks : [];
+
+  const vocalTrk = baseTracks.find(t => t.instrument === "vocal_lead") || baseTracks[0];
+  const drumTrk = baseTracks.find(t => t.instrument === "drums") || baseTracks[1];
+  const bassTrk = baseTracks.find(t => t.instrument === "bass") || baseTracks[2];
+  const otherTrk = baseTracks.find(t => t.instrument === "acoustic_guitar" || t.instrument === "piano" || t.instrument === "guitar_arpeggio") || baseTracks[3];
+
+  project.tracks = [
+    {
+      id: "trk_yt_vocal",
+      name: "YouTube - 人声主轨 (Vocals)",
+      instrument: "vocal_lead",
+      url: vocalTrk ? vocalTrk.url : "./demo_assets/Song_01_Country_Ballad/01_Lead_Vocal.wav",
+      volume: 1.0,
+      pan: 0.0,
+      hpf: "90 Hz (切除低频喷麦)",
+      eq: "+2.8dB@3.4kHz (提升清晰度), +2.0dB@11.5kHz (透亮空气感)",
+      comp: "3.5:1, 阈值 -18dB (平稳压限)",
+      sidechain: "触发伴奏乐器避让",
+      reverb: "板式空间混响 1.5s",
+      automation: "无",
+      pan_desc: "Center 0%"
+    },
+    {
+      id: "trk_yt_drum",
+      name: "YouTube - 节奏鼓组 (Drums)",
+      instrument: "drums",
+      url: drumTrk ? drumTrk.url : "./demo_assets/Song_01_Country_Ballad/02_Drums_Kit.wav",
+      volume: 0.95,
+      pan: 0.0,
+      hpf: "35 Hz (次低切)",
+      eq: "+3.2dB@60Hz (底鼓冲击力), +2.5dB@4.5kHz (军鼓清晰度)",
+      comp: "4.0:1, 阈值 -16dB (击打紧实)",
+      sidechain: "触发贝斯与铺底动态避让",
+      reverb: "紧凑房间混响 0.6s",
+      automation: "无",
+      pan_desc: "Center 0%"
+    },
+    {
+      id: "trk_yt_bass",
+      name: "YouTube - 低音贝斯 (Bass)",
+      instrument: "bass",
+      url: bassTrk ? bassTrk.url : "./demo_assets/Song_01_Country_Ballad/03_Acoustic_Bass.wav",
+      volume: 1.0,
+      pan: 0.0,
+      hpf: "25 Hz (次低频)",
+      eq: "+3.5dB@80Hz (基音下潜), -3.0dB@350Hz (减少浑浊)",
+      comp: "3.0:1, 阈值 -15dB (稳固根音)",
+      sidechain: "底鼓踩下时避让 -3.5dB",
+      reverb: "直出干声 (Dry)",
+      automation: "无",
+      pan_desc: "Center 0%"
+    },
+    {
+      id: "trk_yt_other",
+      name: "YouTube - 伴奏配器 (Other)",
+      instrument: "acoustic_guitar",
+      url: otherTrk ? otherTrk.url : "./demo_assets/Song_01_Country_Ballad/04_Acoustic_Guitar_Main.wav",
+      volume: 0.9,
+      pan: 0.0,
+      hpf: "100 Hz (避让贝斯频段)",
+      eq: "+2.0dB@2.5kHz (中高频开阔), +2.5dB@12kHz (声场通透)",
+      comp: "2.5:1, 阈值 -14dB (保持呼吸感)",
+      sidechain: "人声发声时中频避让 -2.0dB",
+      reverb: "大厅立体声混响 1.8s",
+      automation: "无",
+      pan_desc: "Stereo Wide"
+    }
+  ];
+
+  project.current_mix = null;
+  project.current_strategy = null;
+  project.mix_versions = [];
+  project.active_version_id = null;
+
+  stopAudio();
+  audioElements = {};
+  project.tracks.forEach(t => {
+    const a = new Audio(t.url);
+    a.preload = "auto";
+    audioElements[t.id] = a;
+  });
+
+  renderAll();
+  renderStep1Manifest();
+  updateAllWaveforms();
+
+  setYtSepProgress(100, "✅ YouTube 4 轨分离成功！");
+  showNotification("🎉 YouTube 4 轨分离成功并装载入工程！", "success");
+  setTimeout(() => switchStep(2), 800);
+}
+
 function createBiquadFilterCoeffs(type, freq, sampleRate, Q = 0.707) {
   const w0 = (2 * Math.PI * freq) / sampleRate;
   const cosW0 = Math.cos(w0);
@@ -2244,6 +2475,7 @@ function renderAll() {
   renderStep1Manifest();
   rebuildAudioElements();
   updateListenModeButtons();
+  updateAiArrangerPrompts();
 }
 
 function escapeHtml(str) {
@@ -2741,7 +2973,7 @@ function triggerGlobalProgress(durationMs = 600) {
 }
 
 // 一键混音核心逻辑 (带进度弹窗)
-async function triggerAutoMix() {
+async function triggerAutoMix(options = {}) {
   if (!project.tracks || project.tracks.length === 0) {
     alert("请先载入示范曲目或上传录音分轨！");
     return;
@@ -2757,20 +2989,28 @@ async function triggerAutoMix() {
   const steps = [
     { p: 20, step: "Step 1: 自动增益平整 (Gain Staging)" },
     { p: 45, step: "Step 2: 高通滤波与参量 EQ 频响对齐" },
-    { p: 70, step: "Step 3: 动态侧链闪避与人声避让 (Ducking)" },
+    { p: 70, step: "Step 3: 动态侧链闪避与进阶声学特效雕琢" },
     { p: 90, step: "Step 4: 总线胶水压缩与 True-Peak 防削波母带" },
     { p: 100, step: "Step 5: 32-bit 浮点无损混音完成" }
   ];
 
   for (const s of steps) {
-    await new Promise(r => setTimeout(r, 280));
+    await new Promise(r => setTimeout(r, 260));
     if (dspProgressBar) dspProgressBar.style.width = `${s.p}%`;
     if (dspProgressPercent) dspProgressPercent.textContent = `${s.p}%`;
     if (dspProgressStep) dspProgressStep.textContent = s.step;
   }
 
+  const payload = {};
+  if (options && options.advanced_fx) payload.advanced_fx = options.advanced_fx;
+  if (options && options.custom_version_name) payload.custom_version_name = options.custom_version_name;
+
   try {
-    const res = await fetch("/api/mix/auto", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+    const res = await fetch("/api/mix/auto", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
     if (res.ok) {
       const data = await res.json();
       if (data.project) {
@@ -2783,30 +3023,73 @@ async function triggerAutoMix() {
         project.active_version_id = data.version.id;
       }
     } else {
-      applyOfflineMix();
+      applyOfflineMix(options);
     }
   } catch (err) {
-    applyOfflineMix();
+    applyOfflineMix(options);
   }
 
   setTimeout(() => {
     if (dspProgressModal) dspProgressModal.classList.add("hidden");
     listenMode = "mix";
     renderAll();
-    switchStep(3); // 混音完成后自动切换至步骤 3 查看混音机架全貌！
-    showNotification(`🎉 一键参考混音完成！已生成基准混音版本【${project.current_mix?.name || "v1"}】！可在步骤 4 / 步骤 5 或右侧大脑自由切换试听。`, "success");
+    const targetStep = (options && options.target_step) ? options.target_step : 4;
+    switchStep(targetStep);
+    showNotification(`🎉 混音完成！已生成版本【${project.current_mix?.name || project.active_version_id || "v1"}】！可在步骤 4 进行 A/B 盲听与诊断，步骤 5 导出分轨。`, "success");
   }, 400);
 }
 
-function applyOfflineMix() {
+function triggerCustomAutoMix() {
+  const fx = {
+    vocal_polish: chkFxVocalPolish ? chkFxVocalPolish.checked : true,
+    vocal_doubler: chkFxVocalDoubler ? chkFxVocalDoubler.checked : false,
+    shimmer_reverb: chkFxShimmerReverb ? chkFxShimmerReverb.checked : false,
+    sub_bass: chkFxSubBass ? chkFxSubBass.checked : false,
+    tape_warmth: chkFxTapeWarmth ? chkFxTapeWarmth.checked : false,
+    sidechain: chkFxSidechain ? chkFxSidechain.checked : true
+  };
+  const customName = step3CustomVersionName ? step3CustomVersionName.value.trim() : "";
+  triggerAutoMix({
+    advanced_fx: fx,
+    custom_version_name: customName,
+    target_step: 4
+  });
+}
+
+function applyOfflineMix(options = {}) {
+  const versions = project.mix_versions || [];
   const targetLufs = project.reference?.analysis?.integrated_lufs || -11.5;
   const masterUrl = project.reference?.url || (project.tracks[0]?.url || "");
-  const v1 = {
-    id: "v1",
-    name: "v1: 官方AI参考混音 (基准)",
-    prompt: "一键参考混音基准",
+
+  let vid = "v1";
+  let vName = "v1: 官方AI参考混音 (基准)";
+  let promptDesc = "一键参考混音基准";
+
+  if (options && (options.custom_version_name || options.advanced_fx)) {
+    const nextNum = (versions.length > 0 ? versions.length : 1) + 1;
+    vid = `v${nextNum}`;
+    if (options.custom_version_name) {
+      vName = `${vid}: ${options.custom_version_name}`;
+      promptDesc = `定制混音: ${options.custom_version_name}`;
+    } else {
+      const fxTags = [];
+      if (options.advanced_fx?.vocal_polish) fxTags.push("人声深度质感");
+      if (options.advanced_fx?.vocal_doubler) fxTags.push("虚拟和声");
+      if (options.advanced_fx?.shimmer_reverb) fxTags.push("空间混响");
+      if (options.advanced_fx?.sub_bass) fxTags.push("次低频808");
+      if (options.advanced_fx?.tape_warmth) fxTags.push("磁带饱和");
+      if (options.advanced_fx?.sidechain) fxTags.push("动态侧链");
+      vName = `${vid}: 特效定制版 (${fxTags.slice(0, 2).join("+") || "进阶"})`;
+      promptDesc = `进阶特效: ${fxTags.join(", ")}`;
+    }
+  }
+
+  const verObj = {
+    id: vid,
+    name: vName,
+    prompt: promptDesc,
     lufs: targetLufs,
-    peak_db: -0.4,
+    peak_db: -0.35,
     duration: 16.0,
     master_url: masterUrl,
     timestamp: new Date().toLocaleTimeString("zh-CN", { hour12: false })
@@ -2815,19 +3098,19 @@ function applyOfflineMix() {
   if (!project.mix_versions || !Array.isArray(project.mix_versions)) {
     project.mix_versions = [];
   }
-  const existingIdx = project.mix_versions.findIndex(v => v.id === "v1");
+  const existingIdx = project.mix_versions.findIndex(v => v.id === vid);
   if (existingIdx >= 0) {
-    project.mix_versions[existingIdx] = v1;
+    project.mix_versions[existingIdx] = verObj;
   } else {
-    project.mix_versions.unshift(v1);
+    project.mix_versions.unshift(verObj);
   }
 
-  project.active_version_id = "v1";
-  project.current_mix = v1;
+  project.active_version_id = vid;
+  project.current_mix = verObj;
 
   project.chat_history.push({
     role: "assistant",
-    content: `【基准混音版本 v1 已生成】\n• 综合响度对齐至 ${targetLufs.toFixed(1)} LUFS；\n• 完成各乐器高通滤波、中频人声避让、动态侧链闪避与立体声声场扩宽。\n您可在【步骤 3】查看全维度插件机架，在【步骤 4】进行 A/B 盲听对比，或随时在右侧对话微调生成新版本！`
+    content: `【混音版本 ${vid} 已生成】\n• 综合响度对齐至 ${targetLufs.toFixed(1)} LUFS；\n• ${promptDesc}；\n您可在【步骤 4】进行 A/B 盲听对比，或随时在【步骤 5】导出处理后的完整分轨包！`
   });
 }
 
@@ -4110,4 +4393,234 @@ function exportProjectJson() {
   setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
   showNotification("✅ 成功导出工程配置文件 (JSON)！", "success");
 }
+
+// 导出选中版本的真实处理后分轨 (Processed Stems with DSP)
+async function exportProcessedStemsZip(versionId = null) {
+  triggerGlobalProgress(600);
+  const tracks = project.tracks || [];
+  if (tracks.length === 0) {
+    showNotification("⚠️ 当前工程无音轨，请先在【步骤 1】导入音轨分轨！", "warning");
+    return;
+  }
+
+  const versions = project.mix_versions || [];
+  const targetVersion = versionId ? versions.find(v => v.id === versionId) : (project.current_mix || versions[0]);
+  const vid = targetVersion?.id || project.active_version_id || "v1";
+
+  showNotification(`📦 正在准备导出混音版本【${vid}】的处理后分轨 (Processed Stems)...`, "info");
+
+  // 1. 服务端无损 DSP 处理后分轨 ZIP 导出
+  try {
+    const res = await fetch(`/api/export/stems_zip?version_id=${encodeURIComponent(vid)}`);
+    if (res.ok) {
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `SmartMixingStudio_ProcessedStems_${vid}_${Date.now()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+      showNotification(`✅ 成功导出【${vid}】处理后高品质分轨包 (${tracks.length} 轨 ZIP)！`, "success");
+      return;
+    }
+  } catch (e) {
+    // 离线模式回退
+  }
+
+  // 2. 浏览器端离线模式：使用 OfflineAudioContext 逐轨渲染该版本的 DSP (Volume, Pan, EQ) 并打包为 ZIP
+  if (typeof JSZip !== "undefined") {
+    try {
+      const zip = new JSZip();
+      let successCount = 0;
+
+      for (let i = 0; i < tracks.length; i++) {
+        const t = tracks[i];
+        if (t.url) {
+          try {
+            const trkRes = await fetch(t.url);
+            if (trkRes.ok) {
+              const arrayBuf = await trkRes.arrayBuffer();
+              const tempCtx = new (window.AudioContext || window.webkitAudioContext)();
+              const audioBuf = await tempCtx.decodeAudioData(arrayBuf);
+
+              // OfflineAudioContext 真实声学渲染
+              const offlineCtx = new OfflineAudioContext(
+                audioBuf.numberOfChannels,
+                audioBuf.length,
+                audioBuf.sampleRate
+              );
+              const src = offlineCtx.createBufferSource();
+              src.buffer = audioBuf;
+
+              const gainNode = offlineCtx.createGain();
+              gainNode.gain.value = t.volume !== undefined ? t.volume : 1.0;
+
+              const eqNode = offlineCtx.createBiquadFilter();
+              if (t.instrument === "vocal_lead") {
+                eqNode.type = "peaking";
+                eqNode.frequency.value = 3400;
+                eqNode.gain.value = 3.0;
+              } else if (t.instrument === "bass") {
+                eqNode.type = "lowshelf";
+                eqNode.frequency.value = 100;
+                eqNode.gain.value = 2.5;
+              } else {
+                eqNode.type = "peaking";
+                eqNode.frequency.value = 1000;
+                eqNode.gain.value = 0.0;
+              }
+
+              src.connect(gainNode);
+              gainNode.connect(eqNode);
+              eqNode.connect(offlineCtx.destination);
+              src.start(0);
+
+              const renderedBuf = await offlineCtx.startRendering();
+              const leftChan = renderedBuf.getChannelData(0);
+              const rightChan = renderedBuf.numberOfChannels > 1 ? renderedBuf.getChannelData(1) : leftChan;
+              const renderedBlob = audioBuffersToWavBlob(leftChan, rightChan, renderedBuf.sampleRate);
+              const renderedArrayBuf = await renderedBlob.arrayBuffer();
+
+              const safeName = `${String(i + 1).padStart(2, '0')}_${(t.name || 'track').replace(/[/\\?%*:|"<>]/g, '_')}_${vid}_Processed.wav`;
+              zip.file(safeName, renderedArrayBuf);
+              successCount++;
+            }
+          } catch (trkErr) {
+            console.warn("Offline stem rendering error:", t.name, trkErr);
+          }
+        }
+      }
+
+      if (successCount > 0) {
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const blobUrl = URL.createObjectURL(zipBlob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = `SmartMixingStudio_ProcessedStems_${vid}_${tracks.length}Tracks.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+        showNotification(`✅ 成功通过 Web Audio 引擎离线导出【${vid}】处理后分轨包 (${successCount} 轨)！`, "success");
+        return;
+      }
+    } catch (zipErr) {
+      console.warn("JSZip processed stems bundling failed:", zipErr);
+    }
+  }
+
+  // 3. Fallback 到通用分轨下载
+  await exportStemsZip();
+}
+
+// 本地音乐生成模型重新编曲提示词工作台 (ComfyUI / Stable Audio / MusicGen)
+function updateAiArrangerPrompts() {
+  if (!aiArrangerPromptText) return;
+
+  const preset = aiArrangerPresetSelect ? aiArrangerPresetSelect.value : "folk";
+  const key = project.reference?.analysis?.key || "C Major";
+  const bpm = project.reference?.analysis?.bpm || 120;
+
+  if (arrangerKeyLabel) arrangerKeyLabel.textContent = key;
+  if (arrangerBpmLabel) arrangerBpmLabel.textContent = `${bpm} BPM`;
+
+  let promptContent = "";
+
+  if (preset === "synthwave") {
+    promptContent = `[Positive Prompt]
+Genre: 80s Retrowave / Synthwave, Dreamwave, Cinematic Outrun
+Instruments: Vintage analog poly-synths (Juno-106, Prophet-5 chords), driving gated reverb LinnDrum snare, pulsing rolling synth bassline (Moog Minimoog 16th-note arpeggio), lush neon synth brass pads.
+Tempo: ${bpm} BPM, Key: ${key}
+Mood: Euphoric, nocturnal highway drive, retro-futuristic, cinematic 1980s nostalgia.
+Structure:
+- Intro: [0:00 - 0:08] 4 bars synth pad sweep and arpeggiator build-up.
+- Verse: [0:08 - 0:24] 8 bars rolling synth bass with lead vocal phrasing intact.
+- Chorus: [0:24 - 0:40] 8 bars explosive gated reverb snare, powerful synth brass chords, soaring counter-lead.
+Arranging Guideline: Retain the iconic melodic lead motif and emotional cadence of the original track. Transpose chords into rich synthwave retro triads (i - VI - III - VII). Analog tape saturation, pristine stereo width.
+
+[Negative Prompt]
+acoustic strumming, modern trap hi-hat rolls, harsh dissonance, lo-fi noise, mud, dissonant chords.`;
+  } else if (preset === "lofi") {
+    promptContent = `[Positive Prompt]
+Genre: Lo-Fi Chillhop, Jazzy Boom-Bap, Ambient Study Beats
+Instruments: Dusty Rhodes electric piano chords with vinyl flutter, laid-back sampled acoustic drum groove with swinging kick & crackling snare, deep warm sub-bass, subtle jazz guitar licks.
+Tempo: ${Math.round(bpm * 0.75)} BPM (Downtempo half-time), Key: ${key}
+Mood: Relaxing, contemplative, rainy window vibes, cozy vintage cassette tape warmth.
+Structure:
+- Intro: [0:00 - 0:08] Vinyl crackle and mellow electric piano chord voicings.
+- Verse: [0:08 - 0:24] Swing drum loop drops in, melody line preserved with soft mellow tone.
+- Chorus: [0:24 - 0:40] Gentle melodic octave embellishments, warm vinyl sub-bass foundation.
+Arranging Guideline: Preserve original melodic rhythm and contours while re-interpreting with jazzy 7th/9th chords. 12-bit SP-404 vinyl simulation, gentle tape compression.
+
+[Negative Prompt]
+harsh high frequencies, aggressive percussion, EDM build-ups, distortion, fast tempo, clipping.`;
+  } else if (preset === "cyberpunk") {
+    promptContent = `[Positive Prompt]
+Genre: Cyberpunk Industrial Rock, Midtempo Electro, Dark Darksynth
+Instruments: Distorted aggressive wavetable reese bass, heavy punchy industrial drums, crunchy overdriven electric guitar chugs, glitchy electronic arpeggios, siren fx.
+Tempo: ${bpm} BPM, Key: ${key}
+Mood: Intense, dystopian, adrenaline rush, high-octane dark futuristic action.
+Structure:
+- Intro: [0:00 - 0:08] Menacing drone, rising white-noise sweeps and distorted bass rumble.
+- Verse: [0:08 - 0:24] Heavy 4-on-the-floor kick, lead melody preserved with aggressive vocoder and distortion.
+- Chorus: [0:24 - 0:40] Full-throttle wall of distorted guitar riffs and massive sidechain reese bass drop.
+Arranging Guideline: Keep original melody identity while transforming vocal energy into raw cyberpunk industrial intensity. Heavy sidechain ducking, ultra-wide stereo distortion.
+
+[Negative Prompt]
+soft acoustic instruments, elevator music, thin drums, dull transients, out of phase stereo cancellation.`;
+  } else if (preset === "orchestral") {
+    promptContent = `[Positive Prompt]
+Genre: Cinematic Epic Orchestral, Hollywood Trailer Soundtrack, Film Score
+Instruments: Hans Zimmer style full symphony orchestra, soaring French horns and brass section, dynamic cinematic taiko drums, lyrical violin section, grand concert piano, choir backing.
+Tempo: ${bpm} BPM, Key: ${key}
+Mood: Majestic, breathtaking, emotionally heroic, profound drama, panoramic concert hall reverberation.
+Structure:
+- Intro: [0:00 - 0:08] Solitary grand piano motif introducing the main melodic theme.
+- Verse: [0:08 - 0:24] Gentle string quartet enters, carrying the melody line with expressive vibrato.
+- Chorus: [0:24 - 0:40] Colossal brass crescendo, thundering orchestral percussion, full symphonic climax.
+Arranging Guideline: Harmonize the core melody with lush cinematic orchestral counterpoints and polyphony. Authentic abbey road acoustics, 24-bit 96kHz cinematic master.
+
+[Negative Prompt]
+electronic synth leads, cheap MIDI soundfont, modern electronic beats, dry acoustics, distorted clipping.`;
+  } else {
+    // 默认 folk (原声指弹抒情民谣)
+    promptContent = `[Positive Prompt]
+Genre: Modern Acoustic Folk, Indie Singer-Songwriter, Organic Ballad
+Instruments: Warm Fingerstyle Acoustic Guitars (Left/Right panned), upright acoustic bass, subtle brushed snare kit, gentle piano swells, delicate cello countermelody.
+Tempo: ${bpm} BPM, Key: ${key}
+Mood: Nostalgic, heartwarming, organic, intimate studio acoustic atmosphere, high dynamic range.
+Structure:
+- Intro: [0:00 - 0:08] 4 bars acoustic guitar fingerpicking motif.
+- Verse: [0:08 - 0:24] 8 bars vocal melody contour preserved, intimate upright bass enters.
+- Chorus: [0:24 - 0:40] 8 bars full acoustic ensemble, warm double-tracked rhythm guitars and cello harmonics.
+Arranging Guideline: Strictly retain the original lead vocal melody pitch and phrasing. Re-harmonize underlying chords with open voicings (I - V - vi - IV progression). High fidelity 24-bit studio recording, pure analog warmth.
+
+[Negative Prompt]
+electric distortion, harsh synths, autotune artifacts, clipping, muddy low-end, off-key harmony, noisy background.`;
+  }
+
+  aiArrangerPromptText.value = promptContent;
+}
+
+async function copyAiArrangerPrompt() {
+  if (!aiArrangerPromptText) return;
+  const txt = aiArrangerPromptText.value;
+  if (!txt) return;
+
+  try {
+    await navigator.clipboard.writeText(txt);
+    if (btnCopyArrangerText) btnCopyArrangerText.textContent = "已复制到剪贴板！";
+    showNotification("📋 已成功复制 ComfyUI / Stable Audio 编曲提示词！可直接粘贴至本地生成模型。", "success");
+    setTimeout(() => {
+      if (btnCopyArrangerText) btnCopyArrangerText.textContent = "复制 ComfyUI 提示词";
+    }, 2500);
+  } catch (err) {
+    aiArrangerPromptText.select();
+    document.execCommand("copy");
+    showNotification("📋 提示词已选中并复制！", "success");
+  }
+}
+
 

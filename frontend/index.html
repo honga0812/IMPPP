@@ -369,20 +369,50 @@
                     <i class="fa-solid fa-wand-magic-sparkles text-cyan-400"></i>
                     <span>整曲 AI 音源分离 (4-Stem Separation)</span>
                   </span>
-                  <span class="text-[10px] bg-cyan-950 text-cyan-400 border border-cyan-700/50 px-1.5 py-0.5 rounded font-mono">客户端直解</span>
+                  <span class="text-[10px] bg-cyan-950 text-cyan-400 border border-cyan-700/50 px-1.5 py-0.5 rounded font-mono">本地/YouTube 双模</span>
                 </div>
                 <p class="text-xs text-zinc-400 leading-relaxed">
-                  只需选取单首成品歌曲，系统在浏览器端执行中置人声分离、超低频滤波与瞬态鼓组提取，直接拆分为<b class="text-indigo-300">人声</b>、<b class="text-emerald-300">鼓组</b>、<b class="text-amber-300">贝斯</b>与<b class="text-purple-300">伴奏</b>载入多轨！
+                  只需选取单首成品歌曲或粘贴 YouTube 链接，系统自动执行中置人声分离、超低频滤波与瞬态打击提取，拆分为<b class="text-indigo-300">人声</b>、<b class="text-emerald-300">鼓组</b>、<b class="text-amber-300">贝斯</b>与<b class="text-purple-300">伴奏</b>载入多轨！
                 </p>
 
-                <!-- 上传/选取整曲 -->
-                <label id="drop-area-stem-sep" class="cursor-pointer border-2 border-dashed border-cyan-800/60 hover:border-cyan-400 rounded-lg p-3 text-center transition block bg-[#080d16] hover:bg-[#0c1424] relative overflow-hidden">
-                  <div id="stem-sep-scan-effect" class="stem-scan-effect hidden"></div>
-                  <i class="fa-solid fa-file-audio text-cyan-400 text-xl mb-1 block"></i>
-                  <span class="text-xs text-zinc-200 font-semibold block" id="stem-sep-selected-label">选取完整立体声歌曲文件</span>
-                  <span class="text-[10px] text-zinc-500 mt-0.5 block">点击选择 WAV / MP3 / FLAC / AAC</span>
-                  <input type="file" id="input-stem-sep" accept="audio/*" class="hidden">
-                </label>
+                <!-- 模式 A：粘贴 YouTube 链接直接分离 -->
+                <div class="bg-[#080d16] p-2.5 rounded-lg border border-cyan-900/60 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold text-cyan-200 flex items-center space-x-1">
+                      <i class="fa-brands fa-youtube text-red-500 text-xs"></i>
+                      <span>方式 1：粘贴 YouTube 链接直接分离</span>
+                    </span>
+                    <span class="text-[9px] text-zinc-500 font-mono">视频/MV/单曲</span>
+                  </div>
+                  <div class="flex items-center space-x-1.5">
+                    <input type="url" id="input-stem-sep-youtube" placeholder="https://www.youtube.com/watch?v=..." class="flex-1 bg-[#0f1523] border border-cyan-700/60 rounded px-2.5 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-cyan-400">
+                    <button id="btn-start-stem-sep-youtube" type="button" class="px-3 py-1.5 rounded bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 text-white text-xs font-bold transition flex items-center space-x-1 flex-shrink-0 shadow-md shadow-red-600/30">
+                      <i class="fa-solid fa-bolt text-[10px]"></i>
+                      <span>提取分离</span>
+                    </button>
+                  </div>
+                  <!-- 快捷示范链接 -->
+                  <div class="flex items-center space-x-1.5 pt-0.5 overflow-x-auto text-[10px]">
+                    <span class="text-zinc-500 flex-shrink-0">填入示范:</span>
+                    <button type="button" id="btn-sample-yt-sep-1" class="px-2 py-0.5 rounded bg-[#131b2c] hover:bg-[#1c273e] text-cyan-300 border border-cyan-800/40 truncate flex-shrink-0">
+                      Coldplay - Fix You
+                    </button>
+                    <button type="button" id="btn-sample-yt-sep-2" class="px-2 py-0.5 rounded bg-[#131b2c] hover:bg-[#1c273e] text-cyan-300 border border-cyan-800/40 truncate flex-shrink-0">
+                      Ed Sheeran - Shape of You
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 模式 B：上传/选取本地立体声整曲 -->
+                <div class="space-y-1">
+                  <span class="text-[10px] text-zinc-400 font-semibold">方式 2：上传本地完整歌曲文件</span>
+                  <label id="drop-area-stem-sep" class="cursor-pointer border-2 border-dashed border-cyan-800/60 hover:border-cyan-400 rounded-lg p-2.5 text-center transition block bg-[#080d16] hover:bg-[#0c1424] relative overflow-hidden">
+                    <div id="stem-sep-scan-effect" class="stem-scan-effect hidden"></div>
+                    <i class="fa-solid fa-file-audio text-cyan-400 text-lg mb-0.5 block"></i>
+                    <span class="text-xs text-zinc-200 font-semibold block" id="stem-sep-selected-label">选取本地立体声音乐 (WAV/MP3/FLAC)</span>
+                    <input type="file" id="input-stem-sep" accept="audio/*" class="hidden">
+                  </label>
+                </div>
 
                 <!-- 分离进度与状态 -->
                 <div id="stem-sep-status-box" class="hidden space-y-1.5 bg-[#0a101d] border border-cyan-600/40 rounded-lg p-2.5">
@@ -402,7 +432,7 @@
               <div class="pt-2">
                 <button id="btn-start-stem-sep" type="button" class="w-full py-2.5 px-4 rounded-lg bg-gradient-to-r from-cyan-600 via-teal-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white text-xs font-bold transition flex items-center justify-center space-x-2 shadow-lg shadow-cyan-600/30">
                   <i class="fa-solid fa-sliders text-sm"></i>
-                  <span>一键分离为 4 轨并载入工程</span>
+                  <span>执行本地文件分离为 4 轨</span>
                 </button>
               </div>
             </div>
@@ -608,23 +638,129 @@
         </section>
 
         <!-- ==================================================================
-             【步骤 3 面板】AI 智能多轨混音机架与侧链 (Step 3: AI Mixing FX Rack)
+             【步骤 3 面板】AI 智能混音定制与进阶声学特效工作区 (Step 3: Mix Setup & Sound FX)
              ================================================================== -->
         <section id="step-panel-3" class="space-y-4 hidden">
           <div class="flex items-center justify-between flex-wrap gap-2">
             <div>
               <h2 class="text-sm font-bold text-zinc-200 flex items-center space-x-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-pink-500"></span>
-                <span>步骤 3：AI 智能多轨混音与全维度参数机架 (Track FX Rack)</span>
+                <span>步骤 3：AI 智能混音定制与进阶声学特效工作区 (Mixing Setup & Sound FX)</span>
               </h2>
-              <p class="text-[11px] text-zinc-400">专业混音绝非单一音量调节。以下全景展示每一轨的：音量配比、声相宽度、高通与参量 EQ、压缩、<b class="text-pink-400">动态侧链闪避 (Sidechain)</b>、空间混响与自动化平衡。</p>
+              <p class="text-[11px] text-zinc-400">选择电脑智能推荐混音方式，或自由勾选人声深度质感、虚拟和声、空间闪烁混响等进阶特效，一键渲染为专属混音版本并加入快照历史！</p>
             </div>
             <div class="flex items-center space-x-2">
-              <span class="text-[11px] text-zinc-400">生效混音版本：</span>
+              <span class="text-[11px] text-zinc-400">当前混音版本：</span>
               <span id="step3-active-version" class="text-xs font-mono font-bold text-indigo-300 px-2.5 py-1 rounded-lg bg-indigo-950 border border-indigo-600">v1: 官方AI参考混音 (基准)</span>
               <button class="btn-step-next px-3 py-1.5 rounded-lg bg-pink-600/80 hover:bg-pink-600 text-white text-xs font-medium transition flex items-center space-x-1" data-target="4">
                 <span>下一步：A/B 盲听对照</span>
                 <i class="fa-solid fa-arrow-right text-[10px]"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- 混音定制控制台与进阶特效勾选卡片 -->
+          <div class="studio-rack-panel rounded-xl p-4 space-y-4 bg-gradient-to-b from-[#0e1322] to-[#080b12] border border-pink-500/30 shadow-xl">
+            <div class="flex items-center justify-between border-b border-[#1f2840] pb-2.5">
+              <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-wand-magic-sparkles text-pink-400"></i>
+                <span class="text-xs font-bold text-zinc-200">混音方式与进阶声学特效选择 (Mix Options)</span>
+              </div>
+              <span class="text-[10px] text-pink-300 bg-pink-950/80 border border-pink-700/50 px-2 py-0.5 rounded-full font-mono">
+                勾选即可衍生为全新版本并无缝 A/B 试听
+              </span>
+            </div>
+
+            <!-- 进阶特效 6 大勾选项网格 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              <!-- 特效 1: 人声深度质感处理 -->
+              <label class="bg-[#0b0f1a] hover:bg-[#111728] p-3 rounded-lg border border-[#1d273e] hover:border-pink-500/50 cursor-pointer transition flex items-start space-x-2.5">
+                <input type="checkbox" id="chk-fx-vocal-polish" class="mt-1 w-4 h-4 rounded accent-pink-500 cursor-pointer flex-shrink-0" checked>
+                <div class="min-w-0">
+                  <div class="text-xs font-bold text-zinc-200 flex items-center space-x-1">
+                    <span>🎤 人声深度质感处理</span>
+                  </div>
+                  <div class="text-[10px] text-zinc-400 mt-0.5 leading-relaxed">
+                    提升 3.4kHz 穿透力与 11.5kHz 空气感，电子管饱和温暖感并平滑齿音 (De-Esser)
+                  </div>
+                </div>
+              </label>
+
+              <!-- 特效 2: 虚拟立体声和声层 -->
+              <label class="bg-[#0b0f1a] hover:bg-[#111728] p-3 rounded-lg border border-[#1d273e] hover:border-pink-500/50 cursor-pointer transition flex items-start space-x-2.5">
+                <input type="checkbox" id="chk-fx-vocal-doubler" class="mt-1 w-4 h-4 rounded accent-pink-500 cursor-pointer flex-shrink-0">
+                <div class="min-w-0">
+                  <div class="text-xs font-bold text-zinc-200 flex items-center space-x-1">
+                    <span>🎶 人声虚拟立体声和声</span>
+                  </div>
+                  <div class="text-[10px] text-zinc-400 mt-0.5 leading-relaxed">
+                    为人声叠加微调和声铺底与立体声拓宽 (Vocal Doubler)，人声宽广厚实如唱诗班
+                  </div>
+                </div>
+              </label>
+
+              <!-- 特效 3: 空间与氛围闪烁混响 -->
+              <label class="bg-[#0b0f1a] hover:bg-[#111728] p-3 rounded-lg border border-[#1d273e] hover:border-pink-500/50 cursor-pointer transition flex items-start space-x-2.5">
+                <input type="checkbox" id="chk-fx-shimmer-reverb" class="mt-1 w-4 h-4 rounded accent-pink-500 cursor-pointer flex-shrink-0">
+                <div class="min-w-0">
+                  <div class="text-xs font-bold text-zinc-200 flex items-center space-x-1">
+                    <span>✨ 空间氛围与闪烁混响</span>
+                  </div>
+                  <div class="text-[10px] text-zinc-400 mt-0.5 leading-relaxed">
+                    高频 8.8kHz 闪烁大堂混响 (Shimmer Reverb) 与立体声乒乓延迟，极具电影感
+                  </div>
+                </div>
+              </label>
+
+              <!-- 特效 4: 次低频与 808 冲击强化 -->
+              <label class="bg-[#0b0f1a] hover:bg-[#111728] p-3 rounded-lg border border-[#1d273e] hover:border-pink-500/50 cursor-pointer transition flex items-start space-x-2.5">
+                <input type="checkbox" id="chk-fx-sub-bass" class="mt-1 w-4 h-4 rounded accent-pink-500 cursor-pointer flex-shrink-0">
+                <div class="min-w-0">
+                  <div class="text-xs font-bold text-zinc-200 flex items-center space-x-1">
+                    <span>💥 次低频与 808 冲击力</span>
+                  </div>
+                  <div class="text-[10px] text-zinc-400 mt-0.5 leading-relaxed">
+                    65Hz 拳拳到肉次低频增益与饱和，使底鼓与贝斯震撼浑厚不浑浊
+                  </div>
+                </div>
+              </label>
+
+              <!-- 特效 5: 复古模拟磁带磁饱和 -->
+              <label class="bg-[#0b0f1a] hover:bg-[#111728] p-3 rounded-lg border border-[#1d273e] hover:border-pink-500/50 cursor-pointer transition flex items-start space-x-2.5">
+                <input type="checkbox" id="chk-fx-tape-warmth" class="mt-1 w-4 h-4 rounded accent-pink-500 cursor-pointer flex-shrink-0">
+                <div class="min-w-0">
+                  <div class="text-xs font-bold text-zinc-200 flex items-center space-x-1">
+                    <span>📼 复古模拟磁带磁饱和</span>
+                  </div>
+                  <div class="text-[10px] text-zinc-400 mt-0.5 leading-relaxed">
+                    赋予总线经典模拟磁带偶次谐波暖化，微卷高频，胶水压缩紧致丰满
+                  </div>
+                </div>
+              </label>
+
+              <!-- 特效 6: 动态侧链重力抽吸 -->
+              <label class="bg-[#0b0f1a] hover:bg-[#111728] p-3 rounded-lg border border-[#1d273e] hover:border-pink-500/50 cursor-pointer transition flex items-start space-x-2.5">
+                <input type="checkbox" id="chk-fx-sidechain" class="mt-1 w-4 h-4 rounded accent-pink-500 cursor-pointer flex-shrink-0" checked>
+                <div class="min-w-0">
+                  <div class="text-xs font-bold text-zinc-200 flex items-center space-x-1">
+                    <span>🌊 动态侧链重力抽吸</span>
+                  </div>
+                  <div class="text-[10px] text-zinc-400 mt-0.5 leading-relaxed">
+                    底鼓触发时让贝斯与伴奏产生节奏型抽吸避让 (Pumping Ducking)，动感倍增
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            <!-- 自定义版本名称与执行混音按钮 -->
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2 border-t border-[#1a2336]">
+              <div class="flex items-center space-x-2 flex-1 min-w-0">
+                <span class="text-[11px] text-zinc-400 flex-shrink-0 font-medium">新版本命名:</span>
+                <input type="text" id="step3-custom-version-name" placeholder="例如: 空间和声特效加强版 (留空自动生成)..." class="flex-1 bg-[#090c14] border border-pink-700/50 rounded px-2.5 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-pink-400">
+              </div>
+              <button id="btn-step3-render-custom-mix" type="button" class="py-2 px-5 rounded-lg bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 hover:from-pink-500 hover:to-indigo-500 text-white text-xs font-bold transition flex items-center justify-center space-x-2 shadow-lg shadow-pink-600/30 flex-shrink-0">
+                <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
+                <span>⚡ 执行混音并生成新版本</span>
               </button>
             </div>
           </div>
@@ -849,6 +985,88 @@
           <!-- 各混音版本卡片容器 -->
           <div id="mix-versions-container" class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <!-- 动态生成版本卡片 -->
+          </div>
+
+          <!-- 当前激活版本导出专区 (Master & Processed Stems) -->
+          <div class="studio-rack-panel rounded-xl p-4 space-y-3 bg-[#0d121c] border border-cyan-500/40">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-cloud-arrow-down text-cyan-400"></i>
+                <span class="text-xs font-bold text-zinc-200">当前混音版本成果交付与处理后分轨导出</span>
+              </div>
+              <span class="text-[10px] text-zinc-400 font-mono">所有分轨均含独立 EQ、压缩与空间 DSP 处理</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <!-- 导出当前版本母带 WAV -->
+              <button id="btn-export-active-master-wav" type="button" class="p-3 rounded-lg bg-[#111728] hover:bg-[#18223c] border border-indigo-500/40 text-left transition flex items-center justify-between group">
+                <div class="space-y-0.5 min-w-0">
+                  <div class="text-xs font-bold text-indigo-300 flex items-center space-x-1.5">
+                    <i class="fa-solid fa-compact-disc"></i>
+                    <span>导出当前版本母带 WAV (24-bit PCM)</span>
+                  </div>
+                  <div class="text-[10px] text-zinc-400">符合流媒体与商业发行标准的最终合并母带</div>
+                </div>
+                <i class="fa-solid fa-arrow-down text-indigo-400 group-hover:translate-y-0.5 transition flex-shrink-0 ml-2"></i>
+              </button>
+
+              <!-- 导出当前版本处理后分轨 ZIP -->
+              <button id="btn-export-active-processed-stems" type="button" class="p-3 rounded-lg bg-[#111728] hover:bg-[#18223c] border border-purple-500/40 text-left transition flex items-center justify-between group">
+                <div class="space-y-0.5 min-w-0">
+                  <div class="text-xs font-bold text-purple-300 flex items-center space-x-1.5">
+                    <i class="fa-solid fa-file-zipper"></i>
+                    <span>导出处理后分轨 (Processed Stems ZIP)</span>
+                  </div>
+                  <div class="text-[10px] text-zinc-400">包含当前混音版本处理后的分轨音讯 (非原始音档)</div>
+                </div>
+                <i class="fa-solid fa-download text-purple-400 group-hover:translate-y-0.5 transition flex-shrink-0 ml-2"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- 本地音乐生成与重新编曲提示词工作台 (ComfyUI / Stable Audio / MusicGen) -->
+          <div class="studio-rack-panel rounded-xl p-4 space-y-3 bg-gradient-to-b from-[#0f172a] to-[#0a0f1d] border border-emerald-500/40 shadow-xl">
+            <div class="flex items-center justify-between flex-wrap gap-2 border-b border-[#1e293b] pb-2.5">
+              <div class="flex items-center space-x-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <h3 class="text-xs font-bold text-emerald-200 flex items-center space-x-1.5">
+                  <i class="fa-solid fa-music text-emerald-400"></i>
+                  <span>本地音乐生成模型重新编曲工作台 (ComfyUI Prompt Generator)</span>
+                </h3>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="text-[10px] text-zinc-400">编曲风格尝试:</span>
+                <select id="ai-arranger-preset-select" class="bg-[#1e293b] text-emerald-300 text-xs font-medium rounded px-2.5 py-1 border border-emerald-600/50 focus:outline-none cursor-pointer">
+                  <option value="folk">🌾 原声抒情指弹民谣 (Acoustic Folk)</option>
+                  <option value="synthwave">🌆 80s 霓虹复古合成器浪潮 (Retro Synthwave)</option>
+                  <option value="lofi">☕ 治愈 Lo-Fi 氛围嘻哈 (Lo-Fi Chillout)</option>
+                  <option value="cyberpunk">⚡ 赛博朋克工业电子摇滚 (Cyberpunk Rock)</option>
+                  <option value="orchestral">🎻 宏大交响乐诗意电影配乐 (Cinematic Epic)</option>
+                </select>
+              </div>
+            </div>
+
+            <p class="text-[11px] text-zinc-300 leading-relaxed">
+              保留当前歌曲主旋律骨架与调性节拍，提供小节进行模式、结构标记与旋律保留说明，可直接复制到 <b class="text-emerald-400">ComfyUI (Stable Audio / MusicGen / DiffRhythm)</b> 本地生成模型生成全新编曲！
+            </p>
+
+            <!-- 提示词展示区 -->
+            <div class="relative">
+              <textarea id="ai-arranger-prompt-text" rows="5" readonly class="w-full bg-[#070a12] border border-emerald-900/60 rounded-lg p-3 text-xs font-mono text-emerald-300/90 focus:outline-none select-all resize-none shadow-inner leading-relaxed"></textarea>
+              <button id="btn-copy-arranger-prompt" type="button" class="absolute top-2.5 right-2.5 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-md shadow-emerald-600/30">
+                <i class="fa-solid fa-copy text-xs"></i>
+                <span id="btn-copy-arranger-text">复制 ComfyUI 提示词</span>
+              </button>
+            </div>
+
+            <!-- 参数指示胶囊 -->
+            <div class="flex items-center justify-between flex-wrap gap-2 text-[10px] text-zinc-400 pt-1 font-mono">
+              <div class="flex items-center space-x-3">
+                <span>原曲调性: <b class="text-zinc-200" id="arranger-key-label">C Major</b></span>
+                <span>速度: <b class="text-zinc-200" id="arranger-bpm-label">120 BPM</b></span>
+                <span>结构: <b class="text-zinc-200">16-Bar Progression (Intro/Verse/Chorus)</b></span>
+              </div>
+              <span class="text-emerald-400/80">提示：已自动嵌入保留原曲主唱旋律轮廓的负向与正向控制参数</span>
+            </div>
           </div>
         </section>
       </div>

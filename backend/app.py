@@ -51,6 +51,8 @@ project_state = {
     "reference": None, # {"file_path": "...", "url": "...", "analysis": {...}}
     "current_strategy": None,
     "current_mix": None, # {"master_url": "...", "lufs": -14.0, "peak_db": -0.5}
+    "mix_versions": [], # [{"id": "v1", "name": "v1: 基准混音", "prompt": "...", "lufs": -11.5, "peak_db": -0.2, "master_url": "...", "timestamp": "..."}]
+    "active_version_id": None,
     "chat_history": [
         {
             "role": "assistant",
@@ -72,6 +74,9 @@ class TrackFaderUpdate(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str
+
+class VersionSelectRequest(BaseModel):
+    version_id: str
 
 class AutoMixRequest(BaseModel):
     user_preference: Optional[str] = ""
@@ -122,12 +127,16 @@ def delete_track(track_id: str):
         return {"status": "deleted", "track_id": track_id}
     raise HTTPException(status_code=404, detail="Track not found")
 
+from datetime import datetime
+
 @app.post("/api/project/clear")
 def clear_project():
     project_state["tracks"] = []
     project_state["reference"] = None
     project_state["current_strategy"] = None
     project_state["current_mix"] = None
+    project_state["mix_versions"] = []
+    project_state["active_version_id"] = None
     project_state["chat_history"] = [
         {
             "role": "assistant",
@@ -196,7 +205,7 @@ def load_demo_project(song_id: str = "song_01"):
 
     project_state["chat_history"].append({
         "role": "assistant",
-        "content": f"已为您载入【{title}】！共 {len(project_state['tracks'])} 轨真实实录乐器分轨，专属商业参考母带已就绪。\n现在可单独试听各分轨真实乐器音色，或点击顶部【一键参考混音】体验 AI 真实声学空间雕塑！"
+        "content": f"已为您载入【{title}】！共 {len(project_state['tracks'])} 轨来自同一完整乐段的实录分轨，完美和声配器，专属商业参考母带已就绪。\n现在可单独试听各分轨，或点击顶部【一键参考混音】体验 AI 声学空间雕塑！"
     })
     return {"status": "loaded", "song_id": song_id, "project": project_state}
 
@@ -244,37 +253,52 @@ def run_auto_mix(req: AutoMixRequest):
     )
     project_state["current_strategy"] = strategy
 
-    # 2. 执行 DSP 混音渲染
+    # 2. 执行 DSP 混音渲染 (保存为 v1 与通用 master)
+    master_v1_path = os.path.join(EXPORTS_DIR, "master_output_v1.wav")
     master_path = os.path.join(EXPORTS_DIR, "master_output.wav")
     mix_res = mixer_engine.mix_and_master(
         tracks_data=project_state["tracks"],
         strategy=strategy,
-        output_master_path=master_path,
+        output_master_path=master_v1_path,
         export_stems_dir=PROCESSED_STEMS_DIR
     )
+    # 同时复制一份到通用 master_path
+    shutil.copyfile(master_v1_path, master_path)
 
-    project_state["current_mix"] = {
-        "master_url": "/media/exports/master_output.wav",
+    v1_version = {
+        "id": "v1",
+        "name": "v1: 官方AI参考混音 (基准)",
+        "prompt": req.user_preference or "一键参考混音基准",
         "lufs": mix_res["final_lufs"],
         "peak_db": mix_res["final_peak_db"],
-        "duration": mix_res["duration"]
+        "duration": mix_res["duration"],
+        "master_url": f"/media/exports/master_output_v1.wav?t={uuid.uuid4().hex[:6]}",
+        "strategy": strategy,
+        "timestamp": datetime.now().strftime("%H:%M:%S")
     }
+
+    project_state["mix_versions"] = [v1_version]
+    project_state["active_version_id"] = "v1"
+    project_state["current_mix"] = v1_version
 
     # 添加 Copilot 消息
     explanation = strategy.get("explanation_for_user", "混音与母带化处理完成。")
     project_state["chat_history"].append({
         "role": "assistant",
-        "content": f"【智能参考混音完成】\n{explanation}\n• 成品响度：{mix_res['final_lufs']} LUFS\n• 真实峰值：{mix_res['final_peak_db']} dBFS"
+        "content": f"【基准混音版本 v1 已生成】\n{explanation}\n• 成品响度：{mix_res['final_lufs']} LUFS\n• 真实峰值：{mix_res['final_peak_db']} dBFS\n您可以继续在下方对话框提出您的微调需求（如'人声更贴耳更有空气感'、'低音更温暖'等），AI 将为您生成专属比对版本！"
     })
 
     return {
         "status": "ok",
         "mix": project_state["current_mix"],
+        "version": v1_version,
         "strategy": strategy,
+        "project": project_state,
         "chat_history": project_state["chat_history"]
     }
 
 @app.post("/api/mix/chat")
+@app.post("/api/chat")
 def chat_adjust(req: ChatRequest):
     if not project_state["tracks"]:
         raise HTTPException(status_code=400, detail="请先添加音轨")
@@ -300,34 +324,75 @@ def chat_adjust(req: ChatRequest):
     )
     project_state["current_strategy"] = updated_strategy
 
-    # 重新渲染 DSP
+    # 识别版本标签与版本号
+    next_idx = len(project_state.get("mix_versions", [])) + 1
+    msg_lower = user_msg.lower()
+    if any(w in msg_lower for w in ["贴耳", "空气", "人声", "明亮", "太暗", "透亮"]):
+        short_tag = "人声贴耳空气感微调版"
+    elif any(w in msg_lower for w in ["低频", "浑浊", "低音", "808", "下潜", "轰头", "结实"]):
+        short_tag = "温暖低频与808下潜增强版"
+    elif any(w in msg_lower for w in ["立体声", "宽广", "声场", "空间", "混响", "两边", "推开"]):
+        short_tag = "宽广立体声沉浸混响版"
+    elif any(w in msg_lower for w in ["大声", "响度", "冲击力", "炸", "动态", "有力"]):
+        short_tag = "高冲击力商业母带版"
+    else:
+        short_tag = f"精细调音定制版 #{next_idx}"
+
+    version_id = f"v{next_idx}"
+    master_v_path = os.path.join(EXPORTS_DIR, f"master_output_{version_id}.wav")
     master_path = os.path.join(EXPORTS_DIR, "master_output.wav")
+
+    # 重新渲染 DSP
     mix_res = mixer_engine.mix_and_master(
         tracks_data=project_state["tracks"],
         strategy=updated_strategy,
-        output_master_path=master_path,
+        output_master_path=master_v_path,
         export_stems_dir=PROCESSED_STEMS_DIR
     )
+    shutil.copyfile(master_v_path, master_path)
 
-    project_state["current_mix"] = {
-        "master_url": f"/media/exports/master_output.wav?t={uuid.uuid4().hex[:6]}",
+    new_version = {
+        "id": version_id,
+        "name": f"{version_id}: {short_tag}",
+        "prompt": user_msg,
         "lufs": mix_res["final_lufs"],
         "peak_db": mix_res["final_peak_db"],
-        "duration": mix_res["duration"]
+        "duration": mix_res["duration"],
+        "master_url": f"/media/exports/master_output_{version_id}.wav?t={uuid.uuid4().hex[:6]}",
+        "strategy": updated_strategy,
+        "timestamp": datetime.now().strftime("%H:%M:%S")
     }
+
+    if "mix_versions" not in project_state or not isinstance(project_state["mix_versions"], list):
+        project_state["mix_versions"] = []
+    project_state["mix_versions"].append(new_version)
+    project_state["active_version_id"] = version_id
+    project_state["current_mix"] = new_version
 
     reply_content = updated_strategy.get("explanation_for_user", "已完成参数调整与重渲染。")
     project_state["chat_history"].append({
         "role": "assistant",
-        "content": f"{reply_content}\n• 当前响度：{mix_res['final_lufs']} LUFS"
+        "content": f"【新混音版本 {version_id} 已生成】\n{reply_content}\n• 成品响度：{mix_res['final_lufs']} LUFS | 真实峰值：{mix_res['final_peak_db']} dBFS\n您可以在【混音版本历史】或 A/B 对比面板中一键切换 {version_id} 与之前的版本进行盲听对比！"
     })
 
     return {
         "status": "ok",
-        "mix": project_state["current_mix"],
+        "mix": new_version,
+        "version": new_version,
         "strategy": updated_strategy,
+        "project": project_state,
         "chat_history": project_state["chat_history"]
     }
+
+@app.post("/api/mix/version/select")
+def select_version(req: VersionSelectRequest):
+    versions = project_state.get("mix_versions", [])
+    target = next((v for v in versions if v["id"] == req.version_id), None)
+    if not target:
+        raise HTTPException(status_code=404, detail="混音版本未找到")
+    project_state["active_version_id"] = req.version_id
+    project_state["current_mix"] = target
+    return {"status": "ok", "active_version": target, "project": project_state}
 
 @app.get("/api/export/master")
 def export_master():

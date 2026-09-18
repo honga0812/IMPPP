@@ -8,45 +8,42 @@
 
 ---
 
-## 🌟 核心特色与更新
+## 🌟 核心特色与架构重构
 
-1. **干净纯粹的初始工程状态 (Clean Project State)**：
-   - 网页打开时不强制预载任何音频，保持初始清爽空白工程；
-   - 随时通过下拉菜单选择并载入示范曲目，或拖拽导入自身的录音分轨；
-   - 提供随时一键「清除工程」功能，秒级重置全部工作台状态。
+1. **核心多轨工作台永久常驻可见 (Permanent Multitrack Studio Console)**：
+   - 彻底解决切步骤导致分轨消失的痛点，DAW 录音室多轨通道条、波形、推子、声相、Solo/Mute 永久置于中心可见；
+   - 顶部提供可随时折叠/展开的五步引导式工具箱（工程导入、风格画像、参数机架、A/B诊断、多版本历史）；
+   - 在任何步骤与工具面板下，均可随时走带监听、调节通道参数与查看波形。
 
-2. **两大全新真实实录乐器示范曲库 (按目录独立封装，音色与名称 100% 吻合)**：
+2. **AI 混音大脑多版本快照与历史比对 (Mix Versions & Snapshot History)**：
+   - 系统自动记录每一次【一键参考混音】及向 AI 混音大脑提出的自然语言调音指令（如“*人声更贴耳更有空气感*”、“*低频更温暖更饱满*”、“*拓宽立体声场*”）；
+   - 自动生成并归档独立版本（`v1: 官方AI基准`、`v2: 人声贴耳空气感版`、`v3: 温暖低频增强版`...）；
+   - 顶部配备版本快速切换胶囊栏与专属版本历史管理面板，支持一键热切、试听与多版本 A/B 盲听对比！
+
+3. **100% 同一乐段和谐实录示范分轨 (100% Cohesive & Harmonious Stems)**：
    - **🌾 曲目一：抒情乡村风《Country Ballad》** (`Song_01_Country_Ballad`)
-     - `01_Country_Lead_Vocal.wav`：温润真实的乡村男声实录主唱
-     - `02_Acoustic_Guitar_Fingerpicking.wav`：纯正指弹木吉他分解和弦 (透亮颗粒感)
-     - `03_Acoustic_Guitar_Strum.wav`：温暖开阔原声扫弦木吉他 (声场开扬)
-     - `04_Country_Brushes_Drums.wav`：乡村轻柔原声刷鼓组 (律动轻盈)
-     - `05_Country_Bass.wav`：木质温暖低音电贝斯 (低频地基)
-     - `06_Country_Fiddle_Acoustic.wav`：乡村悠扬原声小提琴旋律 (高频亮彩)
-     - `Reference_Country_Ballad_Master.wav`：纳什维尔商业母带标杆 (-12.8 LUFS)
+     - 全部 6 轨来自同一完整乐段实录（同调性、同节拍、同和弦进程），完美融合：
+     - `01_Country_Lead_Vocal.wav`：真实乡村男声实录主唱
+     - `02_Acoustic_Guitar_Fingerpicking.wav`：纯正指弹木吉他颗粒分解
+     - `03_Acoustic_Guitar_Strum.wav`：温暖开阔原声扫弦木吉他
+     - `04_Country_Brushes_Drums.wav`：经典乡村刷鼓打击组
+     - `05_Country_Bass.wav`：温暖扎实原声低音贝斯
+     - `06_Country_Fiddle_Acoustic.wav`：悠扬原声小提琴弦乐高频
+     - `Reference_Country_Ballad_Master.wav`：商业母带参考标杆
    - **⚡ 曲目二：K-pop流行音乐风格《K-Pop Modern Pop》** (`Song_02_Kpop_Modern`)
      - `01_Kpop_Lead_Vocal.wav`：高穿透力与现代贴耳感 K-Pop 女声主唱
-     - `02_Kpop_Electronic_Drums.wav`：拳拳到肉的现代电子舞曲打击鼓组
+     - `02_Kpop_Electronic_Drums.wav`：现代电子舞曲打击鼓组
      - `03_Kpop_808_Bass.wav`：下潜深邃、动态紧凑平直的 808 超重低音
      - `04_Kpop_Synth_Lead_Hook.wav`：立体声扩散洗脑电音合成器 Lead Hook
-     - `Reference_Kpop_Master.wav`：顶级商业 K-Pop 母带标杆 (-8.5 LUFS 高能动态)
+     - `Reference_Kpop_Master.wav`：顶级商业 K-Pop 母带标杆
 
-3. **真实专业 DAW 音乐波形可视化 (Canvas Real Waveform Engine)**：
-   - 舍弃粗糙伪随机波形，采用 280 像素高密度采样真实解码音频 ArrayBuffer；
-   - 精准绘制乐器音轨的正负包络峰值（Peak Envelope）与核心 RMS 能量阴影；
-   - 包含走带指针毫秒级同步联动与悬浮高亮反馈。
+4. **真实专业 DAW 音乐波形可视化 (Canvas Real Waveform Engine)**：
+   - 采用 280 像素高密度采样真实解码音频 ArrayBuffer，呈现正负包络峰值与 RMS 能量阴影；
+   - 走带指针毫秒级联动，单轨与全轨同步。
 
-4. **单轨独立试听与全局走带控制**：
-   - 轨道列表中每轨均配备独立的绿色单轨试听按键，无需顶部全混音即可单独鉴赏各乐器真实演奏细节；
-   - 包含专业独奏 (Solo)、静音 (Mute)、音量推子 (Volume)、声相定位 (Pan) 与动态电平表联动。
-
-5. **全流程可视化进度与 A/B 深度声学诊断**：
-   - 包含全流程进度条与百分比跳动提示，彻底告别无反馈等待；
-   - 内置 A/B Test 声学画像诊断台，横向对比【原分轨合流】、【AI 混音母带】与【商业参考曲】在综合响度 (LUFS)、真实峰值 (True Peak)、动态波峰因数 (Crest Factor)、立体声相关度与 8 大频段能量上的具体数值与听感差异。
-
-6. **全自动质量自测套件 (`tests/self_test.py`)**：
+5. **全自动质量自测套件 (`tests/self_test.py`)**：
    - 自动化音频资产零静音/高能量校验；
-   - 前端 JavaScript 语法与 62+ 处 DOM 挂载完整性校验；
+   - 前端 JavaScript 语法与 60+ 处 DOM 挂载完整性校验；
    - 后端 32-bit DSP 完整混音流水线端到端验证。
 
 ---

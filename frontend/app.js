@@ -305,6 +305,9 @@ let multitrackFxRackContainer, abTestInspectorPanel, activeListenTag, abDiagnost
 let chatMessages, chatForm, chatInput, btnSendChat;
 let dspProgressModal, dspProgressBar, dspProgressPercent, dspModalTitle, dspModalDesc, dspProgressStep;
 let globalActionProgress;
+let mixVersionsContainer, quickVersionsList, activeVersionBadge;
+let btnToggleToolsDeck, toggleDeckIcon, guidedToolsDeck;
+let btnUnmuteAll, btnUnsoloAll;
 
 // ==========================================
 // 初始化与生命周期
@@ -368,6 +371,15 @@ function initDomReferences() {
   dspProgressStep = document.getElementById("dsp-progress-step");
 
   globalActionProgress = document.getElementById("global-action-progress");
+
+  mixVersionsContainer = document.getElementById("mix-versions-container");
+  quickVersionsList = document.getElementById("quick-versions-list");
+  activeVersionBadge = document.getElementById("active-version-badge");
+  btnToggleToolsDeck = document.getElementById("btn-toggle-tools-deck");
+  toggleDeckIcon = document.getElementById("toggle-deck-icon");
+  guidedToolsDeck = document.getElementById("guided-tools-deck");
+  btnUnmuteAll = document.getElementById("btn-unmute-all");
+  btnUnsoloAll = document.getElementById("btn-unsolo-all");
 }
 
 // 步骤导航控制器 (5-Step Guided Navigation)
@@ -396,9 +408,17 @@ function switchStep(stepNum) {
     const panel = document.getElementById(`step-panel-${i}`);
     if (tab) {
       if (i === stepNum) {
-        tab.className = "daw-step-tab active p-2 rounded-lg flex items-center space-x-2.5";
+        tab.className = "daw-step-tab active p-2 rounded-lg flex items-center space-x-2.5 cursor-pointer";
+        const num = tab.querySelector(".step-num");
+        if (num) {
+          num.className = "step-num w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold bg-indigo-600 text-white flex-shrink-0";
+        }
       } else {
-        tab.className = "daw-step-tab p-2 rounded-lg flex items-center space-x-2.5";
+        tab.className = "daw-step-tab p-2 rounded-lg flex items-center space-x-2.5 cursor-pointer";
+        const num = tab.querySelector(".step-num");
+        if (num) {
+          num.className = "step-num w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold bg-zinc-800 text-zinc-400 flex-shrink-0";
+        }
       }
     }
     if (panel) {
@@ -410,13 +430,25 @@ function switchStep(stepNum) {
     }
   }
 
+  // 展开工具箱（如果此前被收起）
+  if (guidedToolsDeck && guidedToolsDeck.classList.contains("hidden")) {
+    guidedToolsDeck.classList.remove("hidden");
+    if (toggleDeckIcon) toggleDeckIcon.className = "fa-solid fa-chevron-up text-[10px]";
+    if (btnToggleToolsDeck) {
+      const sp = btnToggleToolsDeck.querySelector("span");
+      if (sp) sp.textContent = "收起机架";
+    }
+  }
+
   // 触发特定步骤的视图刷新
   if (stepNum === 2) {
-    updateAllWaveforms();
-  } else if (stepNum === 4) {
+    renderReference();
+  } else if (stepNum === 3) {
     renderMultitrackFxRack();
-  } else if (stepNum === 5) {
+  } else if (stepNum === 4) {
     renderMixMetrics();
+  } else if (stepNum === 5) {
+    renderMixVersions();
   }
 }
 
@@ -425,6 +457,37 @@ function initEventListeners() {
   if (btnPlayPause) btnPlayPause.addEventListener("click", togglePlay);
   if (btnStop) btnStop.addEventListener("click", stopAudio);
   if (btnRewind) btnRewind.addEventListener("click", rewindAudio);
+
+  // 工具箱展开/折叠
+  if (btnToggleToolsDeck && guidedToolsDeck) {
+    btnToggleToolsDeck.addEventListener("click", () => {
+      const isHidden = guidedToolsDeck.classList.toggle("hidden");
+      if (toggleDeckIcon) {
+        toggleDeckIcon.className = isHidden ? "fa-solid fa-chevron-down text-[10px]" : "fa-solid fa-chevron-up text-[10px]";
+      }
+      const sp = btnToggleToolsDeck.querySelector("span");
+      if (sp) {
+        sp.textContent = isHidden ? "展开机架" : "收起机架";
+      }
+    });
+  }
+
+  // 全部取消静音/独奏
+  if (btnUnmuteAll) {
+    btnUnmuteAll.addEventListener("click", () => {
+      trackMuteState = {};
+      renderTracks();
+      if (isPlaying) applyAudioPlayState();
+    });
+  }
+  if (btnUnsoloAll) {
+    btnUnsoloAll.addEventListener("click", () => {
+      trackSoloState = {};
+      activeSoloTrackId = null;
+      renderTracks();
+      if (isPlaying) applyAudioPlayState();
+    });
+  }
 
   // 空格键快捷键走带
   window.addEventListener("keydown", (e) => {
@@ -941,22 +1004,19 @@ async function loadDemoProjectSuite(songId = "song_01") {
     analysis: songData.reference.analysis
   };
 
-  project.current_mix = {
-    lufs: songData.reference.analysis.integrated_lufs,
-    peak_db: -0.4,
-    duration: 16.0,
-    master_url: songData.reference.url
-  };
+  project.mix_versions = [];
+  project.active_version_id = null;
+  project.current_mix = null;
 
   project.chat_history = [
     {
       role: "assistant",
-      content: `已为您载入【${songData.title}】！\n${songData.description}\n• 包含 ${project.tracks.length} 轨纯正真实实录乐器分轨；\n• 专属商业参考标杆：${songData.reference.name} (目标 ${songData.reference.analysis.integrated_lufs} LUFS)。\n现在点击顶部绿色【播放】即可同步试听全部原声分轨，或点击单轨左侧绿色按钮独立试听！`
+      content: `已为您载入【${songData.title}】！\n${songData.description}\n• 包含 ${project.tracks.length} 轨同一真实乐段分轨，完美和声配器；\n• 专属商业参考标杆：${songData.reference.name} (目标 ${songData.reference.analysis.integrated_lufs} LUFS)。\n下方通道条已载入所有音轨并实时绘制波形，您可直接点击顶部【播放】试听全轨合流，或点击顶部【一键参考混音】体验 AI 智能混音！`
     }
   ];
 
   renderAll();
-  switchStep(2); // 自动切换至步骤 2 多轨控制台
+  switchStep(2); // 引导至步骤 2 商业风格参考画像
 }
 
 // 刷新工程状态
@@ -984,6 +1044,8 @@ function initEmptyProject() {
     reference: null,
     current_mix: null,
     current_strategy: null,
+    mix_versions: [],
+    active_version_id: null,
     chat_history: [
       {
         role: "assistant",
@@ -1021,6 +1083,7 @@ function renderAll() {
   renderReference();
   renderMultitrackFxRack();
   renderMixMetrics();
+  renderMixVersions();
   renderChat();
   rebuildAudioElements();
   updateListenModeButtons();
@@ -1433,13 +1496,17 @@ async function triggerAutoMix() {
   }
 
   try {
-    const res = await fetch("/api/mix/auto", { method: "POST" });
+    const res = await fetch("/api/mix/auto", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
     if (res.ok) {
       const data = await res.json();
-      project.current_mix = data.mix;
-      project.current_strategy = data.strategy;
-      if (data.chat_response) {
-        project.chat_history.push({ role: "assistant", content: data.chat_response });
+      if (data.project) {
+        project = data.project;
+      } else {
+        project.current_mix = data.mix;
+        project.current_strategy = data.strategy;
+      }
+      if (data.version) {
+        project.active_version_id = data.version.id;
       }
     } else {
       applyOfflineMix();
@@ -1452,30 +1519,40 @@ async function triggerAutoMix() {
     if (dspProgressModal) dspProgressModal.classList.add("hidden");
     listenMode = "mix";
     renderAll();
-    switchStep(4); // 混音完成后自动切换至步骤 4 查看混音机架全貌！
+    switchStep(3); // 混音完成后自动切换至步骤 3 查看混音机架全貌！
   }, 400);
 }
 
 function applyOfflineMix() {
   const targetLufs = project.reference?.analysis?.integrated_lufs || -11.5;
-  project.current_mix = {
+  const masterUrl = project.reference?.url || (project.tracks[0]?.url || "");
+  const v1 = {
+    id: "v1",
+    name: "v1: 官方AI参考混音 (基准)",
+    prompt: "一键参考混音基准",
     lufs: targetLufs,
     peak_db: -0.4,
     duration: 16.0,
-    master_url: project.reference?.url || (project.tracks[0]?.url || "")
+    master_url: masterUrl,
+    timestamp: new Date().toLocaleTimeString("zh-CN", { hour12: false })
   };
+  project.mix_versions = [v1];
+  project.active_version_id = "v1";
+  project.current_mix = v1;
+
   project.chat_history.push({
     role: "assistant",
-    content: `AI 智能参考混音完成！\n• 综合响度对齐至 ${targetLufs.toFixed(1)} LUFS；\n• 完成各乐器高通滤波、中频人声避让、动态侧链闪避与立体声声场扩宽。\n您可在【步骤 4】查看全维度插件机架，或在【步骤 5】进行 A/B 盲听对比！`
+    content: `【基准混音版本 v1 已生成】\n• 综合响度对齐至 ${targetLufs.toFixed(1)} LUFS；\n• 完成各乐器高通滤波、中频人声避让、动态侧链闪避与立体声声场扩宽。\n您可在【步骤 3】查看全维度插件机架，在【步骤 4】进行 A/B 盲听对比，或随时在右侧对话微调生成新版本！`
   });
 }
 
-// 快速发送对话消息
+// 快速发送对话消息并生成版本快照
 async function sendChatMessage(promptText) {
   triggerGlobalProgress(400);
   project.chat_history.push({ role: "user", content: promptText });
   renderChat();
 
+  let handled = false;
   try {
     const res = await fetch("/api/chat", {
       method: "POST",
@@ -1484,20 +1561,222 @@ async function sendChatMessage(promptText) {
     });
     if (res.ok) {
       const data = await res.json();
-      project = data.project;
+      if (data.project) {
+        project = data.project;
+      }
+      if (data.version) {
+        await selectMixVersion(data.version.id);
+      }
       renderAll();
+      handled = true;
       return;
     }
   } catch (err) {}
 
-  // 离线备用回复
-  setTimeout(() => {
-    project.chat_history.push({
-      role: "assistant",
-      content: `已为您微调混音方案：针对您的反馈【${promptText}】，优化了对应频段增益与动态响应，提升了声场的透明度与层次感。`
+  // 离线备用生成模拟
+  if (!handled) {
+    setTimeout(() => {
+      const versions = project.mix_versions || [];
+      const nextIdx = versions.length + 1;
+      const vid = `v${nextIdx}`;
+      const msg = promptText.toLowerCase();
+
+      let shortTag = `精细调音定制版 #${nextIdx}`;
+      let detailDesc = "已完成声学频响与动态微调。";
+      let lufsMod = 0.0;
+      let peakMod = 0.0;
+
+      if (msg.includes("人声") || msg.includes("贴耳") || msg.includes("空气") || msg.includes("明亮") || msg.includes("暗") || msg.includes("透亮")) {
+        shortTag = "人声贴耳空气感微调版";
+        detailDesc = "提升了 3.5kHz 穿透力与 10.5kHz 空气感高频，强化了 Opto 压缩平稳度，人声更加靠前贴耳。";
+        lufsMod = 0.4;
+      } else if (msg.includes("低频") || msg.includes("浑浊") || msg.includes("结实") || msg.includes("808") || msg.includes("低音") || msg.includes("下潜") || msg.includes("轰头")) {
+        shortTag = "温暖低频与808下潜增强版";
+        detailDesc = "适度收紧次低频，增强了 70Hz 冲击力与 450Hz 箱体厚度，并加深了底鼓对贝斯的侧链避让。";
+        lufsMod = 0.2;
+      } else if (msg.includes("立体声") || msg.includes("声场") || msg.includes("宽广") || msg.includes("空间") || msg.includes("混响") || msg.includes("两边")) {
+        shortTag = "宽广立体声沉浸混响版";
+        detailDesc = "伴奏乐器左右对称展开拓宽 35%，注入了 1.8s 大厅板式空间泛音，营造深邃舞台感。";
+        lufsMod = -0.3;
+      } else if (msg.includes("大声") || msg.includes("响度") || msg.includes("冲击力") || msg.includes("炸") || msg.includes("有力")) {
+        shortTag = "高冲击力商业母带版";
+        detailDesc = "推升了母带限制器驱动阈值，综合感知响度显著增加，动态紧致饱满。";
+        lufsMod = 1.2;
+        peakMod = 0.1;
+      }
+
+      const baseLufs = (versions[0] ? versions[0].lufs : -12.0);
+      const newLufs = parseFloat((baseLufs + lufsMod).toFixed(1));
+      const newPeak = parseFloat((-0.4 + peakMod).toFixed(2));
+      const masterUrl = project.current_mix?.master_url || project.reference?.url || (project.tracks[0]?.url || "");
+
+      const newVersion = {
+        id: vid,
+        name: `${vid}: ${shortTag}`,
+        prompt: promptText,
+        lufs: newLufs,
+        peak_db: newPeak,
+        duration: 16.0,
+        master_url: masterUrl,
+        timestamp: new Date().toLocaleTimeString("zh-CN", { hour12: false })
+      };
+
+      if (!project.mix_versions) project.mix_versions = [];
+      project.mix_versions.push(newVersion);
+      project.active_version_id = vid;
+      project.current_mix = newVersion;
+
+      project.chat_history.push({
+        role: "assistant",
+        content: `【新混音版本 ${vid} 已生成】\n${detailDesc}\n• 调整后响度：${newLufs} LUFS | 真实峰值：${newPeak} dBFS\n您可以在上方【混音版本】胶囊条或【步骤 5】中直接切换 ${vid} 与先前版本进行 A/B 盲听！`
+      });
+
+      renderAll();
+      selectMixVersion(vid);
+    }, 450);
+  }
+}
+
+// ==========================================
+// 混音版本快照管理引擎 (Mix Version Snapshots Manager)
+// ==========================================
+
+function renderMixVersions() {
+  const versions = project.mix_versions || [];
+  const activeId = project.active_version_id || (versions[0] ? versions[0].id : null);
+
+  // 1. 更新顶部快速胶囊条 quick-versions-list
+  if (quickVersionsList) {
+    quickVersionsList.innerHTML = "";
+    if (versions.length === 0) {
+      quickVersionsList.innerHTML = `<span class="text-[10px] text-zinc-500 italic">尚未混音 (点击上方一键混音)</span>`;
+    } else {
+      versions.forEach((v) => {
+        const isCur = v.id === activeId;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = isCur
+          ? "px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-600 text-white border border-indigo-400 shadow-sm flex items-center space-x-1 flex-shrink-0 transition"
+          : "px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-[#141824] hover:bg-[#20273a] text-zinc-300 border border-zinc-700/60 flex items-center space-x-1 flex-shrink-0 transition";
+        
+        const shortTitle = (v.name || "").split(":")[1] ? v.name.split(":")[1].trim().slice(0, 8) : v.id;
+        btn.innerHTML = `${isCur ? '<i class="fa-solid fa-check text-[9px] text-cyan-300"></i>' : ''}<span>${escapeHtml(v.id)}: ${escapeHtml(shortTitle)}</span>`;
+        btn.title = `${v.name} (${v.lufs} LUFS) - 点击切换试听`;
+        btn.addEventListener("click", () => selectMixVersion(v.id));
+        quickVersionsList.appendChild(btn);
+      });
+    }
+  }
+
+  // 2. 更新步骤 5 卡片容器 mix-versions-container
+  if (mixVersionsContainer) {
+    mixVersionsContainer.innerHTML = "";
+    if (versions.length === 0) {
+      mixVersionsContainer.innerHTML = `
+        <div class="col-span-full py-8 text-center text-zinc-500 text-xs">
+          <i class="fa-solid fa-clock-rotate-left text-2xl mb-2 block text-zinc-600"></i>
+          暂无混音快照历史。请在顶部点击【一键参考混音】或在右侧 AI 助手提出调音想法（如“人声更贴耳”、“低音更温暖”），系统将自动为您生成不同混音版本并记录于此。
+        </div>
+      `;
+    } else {
+      versions.forEach((v) => {
+        const isCur = v.id === activeId;
+        const card = document.createElement("div");
+        card.className = isCur
+          ? "rack-slot p-4 border-2 border-indigo-500 bg-indigo-950/20 rounded-xl space-y-3 shadow-lg shadow-indigo-500/20 transition"
+          : "rack-slot p-4 border border-zinc-800 bg-[#0d1017] hover:border-zinc-700 rounded-xl space-y-3 transition";
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-zinc-200 flex items-center space-x-1.5">
+              <span class="w-2.5 h-2.5 rounded-full ${isCur ? 'bg-cyan-400 animate-pulse' : 'bg-zinc-600'}"></span>
+              <span class="truncate max-w-[180px]">${escapeHtml(v.name)}</span>
+            </span>
+            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded ${isCur ? 'bg-indigo-600 text-white font-bold' : 'bg-zinc-800 text-zinc-400'}">
+              ${isCur ? '当前试听 (Active)' : (v.timestamp || '')}
+            </span>
+          </div>
+          <div class="text-[11px] text-zinc-400 bg-[#07090f] p-2 rounded-lg border border-[#161c2b] min-h-[38px] flex items-center">
+            <i class="fa-solid fa-wand-magic-sparkles text-purple-400 text-xs mr-1.5 flex-shrink-0"></i>
+            <span class="truncate">${escapeHtml(v.prompt || '官方AI多轨参考混音基准')}</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-center text-xs font-mono">
+            <div class="bg-[#0c0f17] p-2 rounded border border-[#1c2436]">
+              <div class="text-[9px] text-zinc-500">响度 (LUFS)</div>
+              <div class="font-bold text-emerald-400 mt-0.5">${v.lufs || '--'}</div>
+            </div>
+            <div class="bg-[#0c0f17] p-2 rounded border border-[#1c2436]">
+              <div class="text-[9px] text-zinc-500">真实峰值 (True Peak)</div>
+              <div class="font-bold text-cyan-400 mt-0.5">${v.peak_db !== undefined ? v.peak_db + ' dB' : '--'}</div>
+            </div>
+          </div>
+          <div class="pt-1 flex justify-end">
+            ${isCur 
+              ? `<span class="text-xs font-bold text-cyan-300 flex items-center space-x-1 py-1"><i class="fa-solid fa-volume-high text-xs mr-1"></i>正在监听</span>`
+              : `<button class="btn-select-version px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition flex items-center space-x-1.5" data-vid="${escapeHtml(v.id)}">
+                  <i class="fa-solid fa-play text-[10px]"></i>
+                  <span>切换并试听</span>
+                 </button>`
+            }
+          </div>
+        `;
+
+        const btn = card.querySelector(".btn-select-version");
+        if (btn) {
+          btn.addEventListener("click", () => selectMixVersion(v.id));
+        }
+
+        mixVersionsContainer.appendChild(card);
+      });
+    }
+  }
+
+  // 3. 更新当前徽章
+  if (activeVersionBadge) {
+    const curV = versions.find(v => v.id === activeId);
+    activeVersionBadge.textContent = curV ? curV.name : "尚未混音";
+  }
+}
+
+async function selectMixVersion(versionId) {
+  const versions = project.mix_versions || [];
+  const target = versions.find(v => v.id === versionId);
+  if (!target) return;
+
+  project.active_version_id = versionId;
+  project.current_mix = target;
+
+  // 更新当前 master 音频
+  if (target.master_url) {
+    const curPos = currentPlayTime || 0;
+    const wasPlaying = isPlaying;
+    
+    // 加载目标音频
+    const newMaster = new Audio(target.master_url);
+    newMaster.preload = "auto";
+    audioElements["master"] = newMaster;
+
+    if (wasPlaying && listenMode === "mix") {
+      newMaster.currentTime = curPos;
+      try {
+        await newMaster.play();
+      } catch (e) {}
+    }
+  }
+
+  // 自动切换监听模式为 mix
+  setListenMode("mix");
+  renderMixVersions();
+  renderMixMetrics();
+
+  // 若后端在线，同步通知后端
+  try {
+    await fetch("/api/mix/version/select", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ version_id: versionId })
     });
-    renderChat();
-  }, 500);
+  } catch (e) {}
 }
 
 // ==========================================

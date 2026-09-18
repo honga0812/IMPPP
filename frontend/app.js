@@ -344,8 +344,8 @@ let btnExportActiveMasterWav, btnExportActiveProcessedStems;
 let aiArrangerPresetSelect, aiArrangerPromptText, btnCopyArrangerPrompt, btnCopyArrangerText;
 let arrangerKeyLabel, arrangerBpmLabel;
 
-// 移动端专用组件与抽屉控制变量
-let copilotDrawer, btnOpenMobileCopilot, btnCloseMobileCopilot, mobileBottomDock;
+// 移动端与平板专用组件与抽屉控制变量
+let copilotDrawer, btnOpenMobileCopilot, btnCloseMobileCopilot, copilotBackdrop, mobileBottomDock;
 let mobileBtnPlay, mobilePlayIcon, mobilePlayText, mobileBtnAutoMix, btnMobileDockCopilot, mobileBtnQuickExport;
 
 // 混音快照全局映射状态
@@ -535,10 +535,11 @@ function initDomReferences() {
   arrangerKeyLabel = document.getElementById("arranger-key-label");
   arrangerBpmLabel = document.getElementById("arranger-bpm-label");
 
-  // 移动端专用组件与抽屉控制 DOM 绑定
+  // 移动端与平板专用组件与抽屉控制 DOM 绑定
   copilotDrawer = document.getElementById("copilot-drawer");
   btnOpenMobileCopilot = document.getElementById("btn-open-mobile-copilot");
   btnCloseMobileCopilot = document.getElementById("btn-close-mobile-copilot");
+  copilotBackdrop = document.getElementById("copilot-backdrop");
   mobileBottomDock = document.getElementById("mobile-bottom-dock");
   mobileBtnPlay = document.getElementById("mobile-btn-play");
   mobilePlayIcon = document.getElementById("mobile-play-icon");
@@ -574,7 +575,7 @@ function switchStep(stepNum) {
     const panel = document.getElementById(`step-panel-${i}`);
     if (tab) {
       if (i === stepNum) {
-        tab.className = "daw-step-tab active p-2 rounded-lg flex items-center space-x-2 cursor-pointer min-w-[130px] md:min-w-0 flex-shrink-0 md:flex-shrink";
+        tab.className = "daw-step-tab active p-2 rounded-lg flex items-center space-x-2 cursor-pointer min-w-[135px] sm:min-w-[160px] xl:min-w-0 flex-shrink-0 xl:flex-shrink";
         const num = tab.querySelector(".step-num");
         if (num) {
           num.className = "step-num w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold bg-indigo-600 text-white flex-shrink-0";
@@ -583,7 +584,7 @@ function switchStep(stepNum) {
           tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         } catch(e) {}
       } else {
-        tab.className = "daw-step-tab p-2 rounded-lg flex items-center space-x-2 cursor-pointer min-w-[130px] md:min-w-0 flex-shrink-0 md:flex-shrink";
+        tab.className = "daw-step-tab p-2 rounded-lg flex items-center space-x-2 cursor-pointer min-w-[135px] sm:min-w-[160px] xl:min-w-0 flex-shrink-0 xl:flex-shrink";
         const num = tab.querySelector(".step-num");
         if (num) {
           num.className = "step-num w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold bg-zinc-800 text-zinc-400 flex-shrink-0";
@@ -898,12 +899,18 @@ function openMobileCopilot() {
     copilotDrawer.classList.remove("hidden");
     copilotDrawer.classList.add("mobile-open");
   }
+  if (copilotBackdrop) {
+    copilotBackdrop.classList.remove("hidden");
+  }
 }
 
 function closeMobileCopilot() {
   if (copilotDrawer) {
     copilotDrawer.classList.remove("mobile-open");
     copilotDrawer.classList.add("hidden");
+  }
+  if (copilotBackdrop) {
+    copilotBackdrop.classList.add("hidden");
   }
 }
 
@@ -916,6 +923,9 @@ function initMobileResponsiveControls() {
   }
   if (btnCloseMobileCopilot) {
     btnCloseMobileCopilot.addEventListener("click", closeMobileCopilot);
+  }
+  if (copilotBackdrop) {
+    copilotBackdrop.addEventListener("click", closeMobileCopilot);
   }
 
   if (mobileBtnPlay) {
@@ -2519,7 +2529,7 @@ function renderTracks() {
     const chIndex = String(index + 1).padStart(2, "0");
 
     const card = document.createElement("div");
-    card.className = `p-2 sm:p-2.5 rounded-xl border transition flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-2.5 ${
+    card.className = `p-2 sm:p-2.5 rounded-xl border transition flex flex-col xl:flex-row items-stretch xl:items-center gap-2 xl:gap-3 ${
       isMute 
         ? "bg-[#0a0c12]/60 border-[#181e2b] opacity-60" 
         : isSolo 
@@ -2528,87 +2538,90 @@ function renderTracks() {
     }`;
 
     card.innerHTML = `
-      <!-- 行 1 (移动端) / 左侧 (桌面端): 通道标识、单独试听、乐器标签、音轨名称、S/M 与删除 -->
-      <div class="flex items-center justify-between space-x-2 w-full md:w-56 flex-shrink-0">
-        <div class="flex items-center space-x-1.5 flex-1 min-w-0">
-          <span class="w-1.5 h-6 rounded-full flex-shrink-0" style="background-color: ${meta.hex}; box-shadow: 0 0 8px ${meta.hex}80;"></span>
-          <span class="text-[9px] font-mono text-zinc-500 font-bold flex-shrink-0">CH${chIndex}</span>
+      <!-- 通道信息与增益/声学控制组 (平板端横向顶置，手机端折行，桌面端平铺) -->
+      <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2 xl:gap-3 flex-shrink-0">
+        <!-- 通道标识、单独试听、乐器标签、音轨名称、S/M 与删除 -->
+        <div class="flex items-center justify-between space-x-2 w-full md:w-56 flex-shrink-0">
+          <div class="flex items-center space-x-1.5 flex-1 min-w-0">
+            <span class="w-1.5 h-6 rounded-full flex-shrink-0" style="background-color: ${meta.hex}; box-shadow: 0 0 8px ${meta.hex}80;"></span>
+            <span class="text-[9px] font-mono text-zinc-500 font-bold flex-shrink-0">CH${chIndex}</span>
 
-          <!-- 独立试听按键 -->
-          <button class="btn-track-play ${isCurrentlySoloPlaying ? "active" : ""} w-7 h-7 rounded-lg ${
-            isCurrentlySoloPlaying ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/60" : "bg-[#141824] hover:bg-emerald-600 text-zinc-300 hover:text-white border border-[#242d40]"
-          } flex items-center justify-center transition flex-shrink-0" data-tid="${track.id}" title="单独试听该音轨 (点击单独播放/暂停)">
-            <i class="fa-solid ${isCurrentlySoloPlaying ? "fa-pause" : "fa-play"} text-[10px] ${isCurrentlySoloPlaying ? "" : "ml-0.5"}"></i>
-          </button>
+            <!-- 独立试听按键 -->
+            <button class="btn-track-play ${isCurrentlySoloPlaying ? "active" : ""} w-7 h-7 rounded-lg ${
+              isCurrentlySoloPlaying ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/60" : "bg-[#141824] hover:bg-emerald-600 text-zinc-300 hover:text-white border border-[#242d40]"
+            } flex items-center justify-center transition flex-shrink-0" data-tid="${track.id}" title="单独试听该音轨 (点击单独播放/暂停)">
+              <i class="fa-solid ${isCurrentlySoloPlaying ? "fa-pause" : "fa-play"} text-[10px] ${isCurrentlySoloPlaying ? "" : "ml-0.5"}"></i>
+            </button>
 
-          <div class="truncate flex-1 min-w-0">
-            <span class="text-[9px] px-1.5 py-0.5 rounded border font-medium ${meta.color} inline-flex items-center space-x-1">
-              <i class="fa-solid ${meta.icon} text-[8px]"></i>
-              <span>${meta.name}</span>
-            </span>
-            <div class="text-xs font-semibold text-zinc-200 truncate mt-0.5" title="${track.name}">${track.name}</div>
-          </div>
-        </div>
-
-        <!-- 独奏 S、静音 M 与删除按键组 -->
-        <div class="flex items-center space-x-1 flex-shrink-0">
-          <button class="btn-solo w-7 h-7 sm:w-6 sm:h-6 rounded text-[10px] font-bold border border-[#273045] ${
-            isSolo ? "active" : "bg-[#141824] text-zinc-400 hover:text-zinc-200"
-          }" data-tid="${track.id}" title="独奏 (Solo)">S</button>
-          <button class="btn-mute w-7 h-7 sm:w-6 sm:h-6 rounded text-[10px] font-bold border border-[#273045] ${
-            isMute ? "active" : "bg-[#141824] text-zinc-400 hover:text-zinc-200"
-          }" data-tid="${track.id}" title="静音 (Mute)">M</button>
-          <button class="btn-del-track text-zinc-600 hover:text-red-400 p-1.5 transition flex-shrink-0" data-tid="${track.id}" title="移除轨道">
-            <i class="fa-regular fa-trash-can text-xs"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- 行 2 (移动端) / 中间栏 (桌面端): 声学与增益控制条 (VOL 增益 / PAN 声相 / 频响分布 EQ / 增益衰减 GR) -->
-      <div class="track-channel-controls flex flex-row items-center gap-2 w-full md:w-auto flex-shrink-0">
-        <!-- 增益与声相控制模块 (VOL / PAN) -->
-        <div class="track-gain-strip flex-1 min-w-0 md:w-56 bg-[#07090e] px-2.5 py-1.5 rounded-lg border border-[#161c2b] flex flex-col justify-center gap-1.5">
-          <!-- VOL 增益推子 -->
-          <div class="flex items-center space-x-1.5">
-            <span class="text-[9px] text-zinc-400 font-mono font-bold w-6 flex-shrink-0" title="通道音量增益 (Volume Gain)">VOL</span>
-            <input type="range" min="0" max="1.5" step="0.05" value="${track.volume || 1.0}" class="fader-vol flex-1 min-w-0" data-tid="${track.id}" title="音量增益: ${Math.round((track.volume || 1.0) * 100)}%">
-            <span class="fader-vol-val text-[9px] font-mono text-cyan-400 font-bold w-8 text-right flex-shrink-0">${Math.round((track.volume || 1.0) * 100)}%</span>
-          </div>
-          <!-- PAN 声相推子 -->
-          <div class="flex items-center space-x-1.5">
-            <span class="text-[9px] text-zinc-400 font-mono font-bold w-6 flex-shrink-0" title="立体声声相平衡 (Stereo Pan)">PAN</span>
-            <input type="range" min="-1" max="1" step="0.05" value="${track.pan || 0.0}" class="fader-pan flex-1 min-w-0" data-tid="${track.id}" title="声相: ${formatPan(track.pan || 0.0)}">
-            <span class="fader-pan-val text-[9px] font-mono text-purple-400 font-bold w-8 text-right flex-shrink-0">${formatPan(track.pan || 0.0)}</span>
-          </div>
-        </div>
-
-        <!-- 频响分布 (Mini EQ) 与动态增益衰减表 (GR) 模块 -->
-        <div class="track-acoustic-strip flex-shrink-0 bg-[#07090e] px-2 py-1.5 rounded-lg border border-[#161c2b] flex items-center space-x-2">
-          <!-- 频率分布可视化微型 EQ 曲线 -->
-          <div class="flex flex-col min-w-0">
-            <div class="flex items-center justify-between text-[8px] font-mono text-zinc-400 mb-0.5 px-0.5 w-[80px] sm:w-[88px]">
-              <span class="text-sky-400 font-medium">频响分布</span>
-              <span class="text-zinc-500 scale-90">20-20k</span>
-            </div>
-            <div class="mini-eq-box flex-shrink-0" title="通道参量 EQ 频响分布 (${meta.name})">
-              <canvas class="mini-eq-canvas" width="88" height="28" data-tid="${track.id}"></canvas>
+            <div class="truncate flex-1 min-w-0">
+              <span class="text-[9px] px-1.5 py-0.5 rounded border font-medium ${meta.color} inline-flex items-center space-x-1">
+                <i class="fa-solid ${meta.icon} text-[8px]"></i>
+                <span>${meta.name}</span>
+              </span>
+              <div class="text-xs font-semibold text-zinc-200 truncate mt-0.5" title="${track.name}">${track.name}</div>
             </div>
           </div>
 
-          <!-- 动态压限增益衰减表 (GR) -->
-          <div class="flex flex-col items-center flex-shrink-0">
-            <span class="text-[8px] font-mono text-red-400 font-bold mb-0.5">GR</span>
-            <div class="gr-meter-container flex-shrink-0" title="动态压限增益衰减表 (Gain Reduction)">
-              <div class="gr-meter-scale">GR</div>
-              <div class="gr-meter-bar">
-                <div class="gr-meter-fill" id="gr-fill-${track.id}"></div>
+          <!-- 独奏 S、静音 M 与删除按键组 -->
+          <div class="flex items-center space-x-1 flex-shrink-0">
+            <button class="btn-solo w-7 h-7 sm:w-6 sm:h-6 rounded text-[10px] font-bold border border-[#273045] ${
+              isSolo ? "active" : "bg-[#141824] text-zinc-400 hover:text-zinc-200"
+            }" data-tid="${track.id}" title="独奏 (Solo)">S</button>
+            <button class="btn-mute w-7 h-7 sm:w-6 sm:h-6 rounded text-[10px] font-bold border border-[#273045] ${
+              isMute ? "active" : "bg-[#141824] text-zinc-400 hover:text-zinc-200"
+            }" data-tid="${track.id}" title="静音 (Mute)">M</button>
+            <button class="btn-del-track text-zinc-600 hover:text-red-400 p-1.5 transition flex-shrink-0" data-tid="${track.id}" title="移除轨道">
+              <i class="fa-regular fa-trash-can text-xs"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 声学与增益控制条 (VOL 增益 / PAN 声相 / 频响分布 EQ / 增益衰减 GR) -->
+        <div class="track-channel-controls flex flex-row items-center gap-2 w-full md:w-auto flex-shrink-0">
+          <!-- 增益与声相控制模块 (VOL / PAN) -->
+          <div class="track-gain-strip flex-1 min-w-0 md:w-56 bg-[#07090e] px-2.5 py-1.5 rounded-lg border border-[#161c2b] flex flex-col justify-center gap-1.5">
+            <!-- VOL 增益推子 -->
+            <div class="flex items-center space-x-1.5">
+              <span class="text-[9px] text-zinc-400 font-mono font-bold w-6 flex-shrink-0" title="通道音量增益 (Volume Gain)">VOL</span>
+              <input type="range" min="0" max="1.5" step="0.05" value="${track.volume || 1.0}" class="fader-vol flex-1 min-w-0" data-tid="${track.id}" title="音量增益: ${Math.round((track.volume || 1.0) * 100)}%">
+              <span class="fader-vol-val text-[9px] font-mono text-cyan-400 font-bold w-8 text-right flex-shrink-0">${Math.round((track.volume || 1.0) * 100)}%</span>
+            </div>
+            <!-- PAN 声相推子 -->
+            <div class="flex items-center space-x-1.5">
+              <span class="text-[9px] text-zinc-400 font-mono font-bold w-6 flex-shrink-0" title="立体声声相平衡 (Stereo Pan)">PAN</span>
+              <input type="range" min="-1" max="1" step="0.05" value="${track.pan || 0.0}" class="fader-pan flex-1 min-w-0" data-tid="${track.id}" title="声相: ${formatPan(track.pan || 0.0)}">
+              <span class="fader-pan-val text-[9px] font-mono text-purple-400 font-bold w-8 text-right flex-shrink-0">${formatPan(track.pan || 0.0)}</span>
+            </div>
+          </div>
+
+          <!-- 频响分布 (Mini EQ) 与动态增益衰减表 (GR) 模块 -->
+          <div class="track-acoustic-strip flex-shrink-0 bg-[#07090e] px-2 py-1.5 rounded-lg border border-[#161c2b] flex items-center space-x-2">
+            <!-- 频率分布可视化微型 EQ 曲线 -->
+            <div class="flex flex-col min-w-0">
+              <div class="flex items-center justify-between text-[8px] font-mono text-zinc-400 mb-0.5 px-0.5 w-[80px] sm:w-[88px]">
+                <span class="text-sky-400 font-medium">频响分布</span>
+                <span class="text-zinc-500 scale-90">20-20k</span>
+              </div>
+              <div class="mini-eq-box flex-shrink-0" title="通道参量 EQ 频响分布 (${meta.name})">
+                <canvas class="mini-eq-canvas" width="88" height="28" data-tid="${track.id}"></canvas>
+              </div>
+            </div>
+
+            <!-- 动态压限增益衰减表 (GR) -->
+            <div class="flex flex-col items-center flex-shrink-0">
+              <span class="text-[8px] font-mono text-red-400 font-bold mb-0.5">GR</span>
+              <div class="gr-meter-container flex-shrink-0" title="动态压限增益衰减表 (Gain Reduction)">
+                <div class="gr-meter-scale">GR</div>
+                <div class="gr-meter-bar">
+                  <div class="gr-meter-fill" id="gr-fill-${track.id}"></div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 行 3 (移动端) / 右侧全宽: 真实专业 DAW 波形视窗 -->
+      <!-- 真实专业 DAW 波形视窗 (平板与手机端独占整行，桌面端弹性自适应充满剩余空间) -->
       <div class="flex flex-1 min-w-0 h-11 track-waveform-box items-center px-1 relative w-full" data-tid="${track.id}">
         <canvas class="track-waveform-canvas w-full h-full" data-url="${track.url}" data-tid="${track.id}" data-color="${meta.hex}"></canvas>
       </div>

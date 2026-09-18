@@ -15,9 +15,9 @@
        顶部专业 DAW 走带控制台 (Master Transport Deck & Global Toolbar)
        ======================================================================== -->
   <header class="bg-[#0f131d]/95 border-b border-[#1e2538] px-2.5 sm:px-4 py-2 sm:py-2.5 sticky top-0 z-50 backdrop-blur shadow-xl">
-    <div class="max-w-[1920px] mx-auto flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2 md:gap-3">
+    <div class="max-w-[1920px] mx-auto flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2 lg:gap-3">
       
-      <!-- 顶栏第一行 (移动端) / 左侧 (桌面端): 品牌、主走带按键组、LCD 时间码、移动端 Copilot 按钮 -->
+      <!-- 顶栏第一行 (手机与平板) / 左侧 (桌面端): 品牌、主走带按键组、LCD 时间码、移动与平板 Copilot 按钮 -->
       <div class="flex items-center justify-between gap-1.5 sm:gap-2 min-w-0">
         <!-- 品牌标识 -->
         <div class="flex items-center space-x-2 min-w-0 flex-shrink-0">
@@ -70,17 +70,17 @@
           </div>
         </div>
 
-        <!-- 移动端专属 AI 混音大脑打开按键 -->
-        <div class="flex items-center space-x-1 md:hidden">
-          <button id="btn-open-mobile-copilot" type="button" class="px-2 py-1 rounded-lg bg-gradient-to-r from-indigo-900/90 to-purple-900/90 border border-indigo-500/60 text-indigo-200 text-[11px] font-bold flex items-center space-x-1 shadow-md shadow-indigo-950 flex-shrink-0">
+        <!-- 移动端与平板专属 AI 混音大脑打开按键 -->
+        <div class="flex items-center space-x-1 xl:hidden">
+          <button id="btn-open-mobile-copilot" type="button" class="px-2.5 py-1 rounded-lg bg-gradient-to-r from-indigo-900/90 to-purple-900/90 border border-indigo-500/60 text-indigo-200 text-[11px] font-bold flex items-center space-x-1 shadow-md shadow-indigo-950 flex-shrink-0">
             <i class="fa-solid fa-robot text-indigo-400 text-[10px]"></i>
             <span>AI大脑</span>
           </button>
         </div>
       </div>
 
-      <!-- 顶栏第二行 (移动端) / 右侧 (桌面端): A/B监听源、一键混音、清空、导出菜单与设置 -->
-      <div class="flex items-center justify-between md:justify-end flex-wrap gap-1.5 sm:gap-2">
+      <!-- 顶栏第二行 (手机与平板) / 右侧 (桌面端): A/B监听源、一键混音、清空、导出菜单与设置 -->
+      <div class="flex items-center justify-between lg:justify-end flex-wrap gap-1.5 sm:gap-2">
         <!-- A/B 监听源三态热切开关 -->
         <div class="flex items-center space-x-0.5 sm:space-x-1 bg-[#121622] rounded-lg p-0.5 border border-[#222b40] text-[11px] sm:text-xs">
           <button id="listen-raw" class="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded font-medium transition text-zinc-400 hover:text-white" title="监听原始多轨合流 (未做混音干声)">
@@ -104,7 +104,7 @@
         <div class="flex items-center space-x-1.5">
           <button id="btn-clear-project" class="p-1 sm:px-2.5 sm:py-1.5 rounded-lg bg-[#141824] hover:bg-red-950/70 hover:border-red-600/60 border border-[#263045] text-zinc-400 hover:text-red-300 text-xs font-medium flex items-center space-x-1 transition" title="清空所有分轨并重置工程">
             <i class="fa-regular fa-trash-can text-xs"></i>
-            <span class="hidden md:inline">清空</span>
+            <span class="hidden sm:inline">清空</span>
           </button>
 
           <button id="btn-auto-mix" class="px-2.5 sm:px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-600 hover:from-indigo-400 hover:to-pink-500 text-white font-bold text-xs flex items-center space-x-1 shadow-lg shadow-purple-600/30 transition flex-shrink-0">
@@ -162,11 +162,11 @@
        ======================================================================== -->
   <nav class="bg-[#0b0e16] border-b border-[#181f30] px-2.5 sm:px-4 py-1.5 sm:py-2">
     <div class="max-w-[1920px] mx-auto flex items-center justify-between gap-2">
-      <!-- 移动端横向滑动，桌面端 5 列平铺网格 -->
-      <div class="flex overflow-x-auto no-scrollbar space-x-2 py-0.5 md:grid md:grid-cols-5 md:space-x-0 md:gap-2 flex-1 scroll-smooth">
+      <!-- 移动端与平板横向滑动，桌面端 5 列平铺网格 -->
+      <div class="flex overflow-x-auto no-scrollbar space-x-2 py-0.5 xl:grid xl:grid-cols-5 xl:space-x-0 xl:gap-2 flex-1 scroll-smooth">
         
         <!-- 步骤 1 -->
-        <div id="step-tab-1" class="daw-step-tab active p-2 rounded-lg flex items-center space-x-2 cursor-pointer min-w-[130px] md:min-w-0 flex-shrink-0 md:flex-shrink">
+        <div id="step-tab-1" class="daw-step-tab active p-2 rounded-lg flex items-center space-x-2 cursor-pointer min-w-[135px] sm:min-w-[160px] xl:min-w-0 flex-shrink-0 xl:flex-shrink">
           <span class="step-num w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold bg-indigo-600 text-white flex-shrink-0">1</span>
           <div class="min-w-0">
             <div class="text-[11px] font-bold text-zinc-200 truncate">工程建立与导入</div>
@@ -175,7 +175,7 @@
         </div>
 
         <!-- 步骤 2 -->
-        <div id="step-tab-2" class="daw-step-tab p-2 rounded-lg flex items-center space-x-2 cursor-pointer min-w-[130px] md:min-w-0 flex-shrink-0 md:flex-shrink">
+        <div id="step-tab-2" class="daw-step-tab p-2 rounded-lg flex items-center space-x-2 cursor-pointer min-w-[135px] sm:min-w-[160px] xl:min-w-0 flex-shrink-0 xl:flex-shrink">
           <span class="step-num w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold bg-zinc-800 text-zinc-400 flex-shrink-0">2</span>
           <div class="min-w-0">
             <div class="text-[11px] font-bold text-zinc-200 truncate">商业风格参考画像</div>
@@ -184,7 +184,7 @@
         </div>
 
         <!-- 步骤 3 -->
-        <div id="step-tab-3" class="daw-step-tab p-2 rounded-lg flex items-center space-x-2 cursor-pointer min-w-[130px] md:min-w-0 flex-shrink-0 md:flex-shrink">
+        <div id="step-tab-3" class="daw-step-tab p-2 rounded-lg flex items-center space-x-2 cursor-pointer min-w-[135px] sm:min-w-[160px] xl:min-w-0 flex-shrink-0 xl:flex-shrink">
           <span class="step-num w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold bg-zinc-800 text-zinc-400 flex-shrink-0">3</span>
           <div class="min-w-0">
             <div class="text-[11px] font-bold text-zinc-200 truncate">AI 混音机架与侧链</div>
@@ -193,7 +193,7 @@
         </div>
 
         <!-- 步骤 4 -->
-        <div id="step-tab-4" class="daw-step-tab p-2 rounded-lg flex items-center space-x-2 cursor-pointer min-w-[130px] md:min-w-0 flex-shrink-0 md:flex-shrink">
+        <div id="step-tab-4" class="daw-step-tab p-2 rounded-lg flex items-center space-x-2 cursor-pointer min-w-[135px] sm:min-w-[160px] xl:min-w-0 flex-shrink-0 xl:flex-shrink">
           <span class="step-num w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold bg-zinc-800 text-zinc-400 flex-shrink-0">4</span>
           <div class="min-w-0">
             <div class="text-[11px] font-bold text-zinc-200 truncate">A/B 盲听与声学诊断</div>
@@ -202,7 +202,7 @@
         </div>
 
         <!-- 步骤 5 -->
-        <div id="step-tab-5" class="daw-step-tab p-2 rounded-lg flex items-center space-x-2 cursor-pointer min-w-[130px] md:min-w-0 flex-shrink-0 md:flex-shrink">
+        <div id="step-tab-5" class="daw-step-tab p-2 rounded-lg flex items-center space-x-2 cursor-pointer min-w-[135px] sm:min-w-[160px] xl:min-w-0 flex-shrink-0 xl:flex-shrink">
           <span class="step-num w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold bg-zinc-800 text-zinc-400 flex-shrink-0">5</span>
           <div class="min-w-0">
             <div class="text-[11px] font-bold text-zinc-200 truncate">混音多版本快照历史</div>
@@ -214,7 +214,7 @@
       <!-- 机架折叠切换按键 -->
       <button id="btn-toggle-tools-deck" class="px-2 sm:px-2.5 py-1.5 rounded-lg bg-[#141824] hover:bg-[#1f2638] border border-zinc-700/60 text-zinc-300 text-xs font-medium flex items-center space-x-1.5 flex-shrink-0 transition" title="收起或展开上方工具机架">
         <i class="fa-solid fa-chevron-up text-[10px]" id="toggle-deck-icon"></i>
-        <span class="hidden md:inline text-[11px]">收起机架</span>
+        <span class="hidden sm:inline text-[11px]">收起机架</span>
       </button>
     </div>
   </nav>
@@ -222,10 +222,10 @@
   <!-- ========================================================================
        工作台主体核心区 (Main Workstation Layout)
        ======================================================================== -->
-  <main class="flex-1 flex flex-col md:flex-row overflow-hidden max-w-[1920px] w-full mx-auto relative">
+  <main class="flex-1 flex flex-col xl:flex-row overflow-hidden max-w-[1920px] w-full mx-auto relative">
     
     <!-- 左侧主操作区 -->
-    <div class="flex-1 flex flex-col overflow-y-auto p-2.5 sm:p-4 md:p-5 pb-20 md:pb-5 space-y-4">
+    <div class="flex-1 flex flex-col overflow-y-auto p-2.5 sm:p-4 md:p-5 pb-20 xl:pb-5 space-y-4">
 
       <!-- ==================================================================
            顶部折叠式机架工具箱 (Guided Tools & Inspector Deck)
@@ -247,7 +247,7 @@
             </button>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             <!-- 示范曲目工程选择器卡片 -->
             <div class="rack-slot p-4 space-y-3 flex flex-col justify-between">
               <div class="space-y-2">
@@ -362,7 +362,7 @@
             </div>
 
             <!-- 客户端整曲 AI 音源分离卡片 (4-Stem Spleeter) -->
-            <div id="stem-separation-card" class="rack-slot p-4 space-y-3 flex flex-col justify-between border border-cyan-500/30 relative overflow-hidden">
+            <div id="stem-separation-card" class="rack-slot p-4 space-y-3 flex flex-col justify-between border border-cyan-500/30 relative overflow-hidden md:col-span-2 xl:col-span-1">
               <div class="space-y-3">
                 <div class="flex items-center justify-between">
                   <span class="text-xs font-bold text-cyan-300 flex items-center space-x-1.5">
@@ -483,9 +483,9 @@
             </button>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             <!-- 预置商业母带风格 & YouTube 音乐参考解析卡片 -->
-            <div class="rack-slot p-4 space-y-3">
+            <div class="rack-slot p-4 space-y-3 md:col-span-2 xl:col-span-1">
               <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-zinc-300 flex items-center space-x-1.5">
                   <i class="fa-solid fa-compact-disc text-purple-400"></i>
@@ -983,7 +983,7 @@
           </div>
 
           <!-- 各混音版本卡片容器 -->
-          <div id="mix-versions-container" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div id="mix-versions-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             <!-- 动态生成版本卡片 -->
           </div>
 
@@ -1109,7 +1109,7 @@
         <!-- 轨道列表容器 -->
         <div class="studio-rack-panel rounded-xl p-3 space-y-2.5">
           <!-- 轨道列表表头标尺 -->
-          <div class="hidden md:flex items-center px-3 py-1.5 text-[10px] text-zinc-500 uppercase font-mono tracking-wider border-b border-[#1f2638]">
+          <div class="hidden xl:flex items-center px-3 py-1.5 text-[10px] text-zinc-500 uppercase font-mono tracking-wider border-b border-[#1f2638]">
             <div class="w-48">音轨名称与声部角色</div>
             <div class="w-24 text-center">监听 / 独奏 / 静音</div>
             <div class="w-48 px-2">通道电平推子 & 声相</div>
@@ -1138,10 +1138,13 @@
       </section>
     </div>
 
+    <!-- 移动端与平板专属抽屉背景遮罩 (Backdrop) -->
+    <div id="copilot-backdrop" class="fixed inset-0 bg-black/60 z-35 hidden backdrop-blur-sm transition-opacity xl:hidden"></div>
+
     <!-- ======================================================================
          右侧：AI 混音决策助理 (Mixing Copilot Drawer)
          ====================================================================== -->
-    <aside id="copilot-drawer" class="hidden md:flex w-full md:w-80 lg:w-96 bg-[#0c0f17] border-l border-[#1b2234] flex-col flex-shrink-0 z-40">
+    <aside id="copilot-drawer" class="hidden xl:flex w-full xl:w-80 2xl:w-96 bg-[#0c0f17] border-l border-[#1b2234] flex-col flex-shrink-0 z-40">
       <!-- 助理面板表头 -->
       <div class="p-3.5 border-b border-[#1b2234] flex items-center justify-between bg-[#10141f]">
         <div class="flex items-center space-x-2">
@@ -1150,8 +1153,8 @@
         </div>
         <div class="flex items-center space-x-2">
           <span class="text-[10px] text-zinc-400 font-mono hidden sm:inline">GPT-4o / 专家系统</span>
-          <!-- 移动端专属关闭返回按钮 -->
-          <button id="btn-close-mobile-copilot" type="button" class="md:hidden w-7 h-7 rounded-lg bg-[#181f30] hover:bg-[#232c42] text-zinc-300 hover:text-white flex items-center justify-center transition" title="返回工作台">
+          <!-- 移动端与平板专属关闭返回按钮 -->
+          <button id="btn-close-mobile-copilot" type="button" class="xl:hidden w-7 h-7 rounded-lg bg-[#181f30] hover:bg-[#232c42] text-zinc-300 hover:text-white flex items-center justify-center transition" title="返回工作台">
             <i class="fa-solid fa-xmark text-xs"></i>
           </button>
         </div>

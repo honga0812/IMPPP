@@ -442,7 +442,7 @@ input[type=range]::-webkit-slider-thumb:hover {
 }
 
 /* ==========================================================================
-   移动端响应式与抽屉布局增强 (Mobile Responsive & Drawer Enhancements)
+   移动端与平板响应式增强 (Mobile & Tablet Responsive Enhancements)
    ========================================================================== */
 
 /* 隐藏横向滚动条，保留滑动 */
@@ -459,20 +459,28 @@ input[type=range]::-webkit-slider-thumb:hover {
   padding-bottom: max(0.6rem, env(safe-area-inset-bottom, 0.6rem));
 }
 
-/* 移动端 AI 混音大脑全屏/抽屉弹层 */
-@media (max-width: 767px) {
+/* 移动端与平板 (< 1200px) AI 混音大脑全屏/侧滑抽屉弹层 */
+@media (max-width: 1199px) {
   #copilot-drawer.mobile-open {
     display: flex !important;
     position: fixed !important;
     top: 0 !important;
-    left: 0 !important;
     right: 0 !important;
     bottom: 0 !important;
     width: 100vw !important;
+    max-width: 440px !important;
     height: 100vh !important;
     z-index: 100 !important;
     background: #090c14 !important;
-    box-shadow: 0 0 40px rgba(0,0,0,0.9);
+    box-shadow: -10px 0 40px rgba(0,0,0,0.85);
+    border-left: 1px solid #232d44;
+  }
+}
+
+/* 平板端 (640px - 1199px) 触控与排版微调 */
+@media (min-width: 640px) and (max-width: 1199px) {
+  .track-gain-strip {
+    min-width: 200px;
   }
 }
 

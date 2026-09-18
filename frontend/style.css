@@ -365,3 +365,38 @@ input[type=range]::-webkit-slider-thumb:hover {
   animation: stemScanLine 1.8s infinite linear;
 }
 
+/* ==========================================================================
+   移动端响应式与抽屉布局增强 (Mobile Responsive & Drawer Enhancements)
+   ========================================================================== */
+
+/* 隐藏横向滚动条，保留滑动 */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* 移动端安全区域下边距 (iOS Home Bar) */
+.safe-bottom {
+  padding-bottom: max(0.6rem, env(safe-area-inset-bottom, 0.6rem));
+}
+
+/* 移动端 AI 混音大脑全屏/抽屉弹层 */
+@media (max-width: 767px) {
+  #copilot-drawer.mobile-open {
+    display: flex !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 100 !important;
+    background: #090c14 !important;
+    box-shadow: 0 0 40px rgba(0,0,0,0.9);
+  }
+}
+

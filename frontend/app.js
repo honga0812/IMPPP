@@ -51,13 +51,16 @@ const instrumentMeta = {
   "guitar_strum": { name: "扫弦木吉他", color: "bg-amber-900/70 text-amber-200 border-amber-600/50", icon: "fa-guitar", hex: "#fbbf24" },
   "guitar_nylon": { name: "尼龙古典吉他", color: "bg-yellow-950/70 text-yellow-300 border-yellow-700/50", icon: "fa-guitar", hex: "#eab308" },
   "guitar_solo": { name: "电吉他 Solo", color: "bg-red-900/70 text-red-200 border-red-600/50", icon: "fa-bolt", hex: "#f87171" },
+  "guitar_lead": { name: "电吉他 Solo", color: "bg-red-900/70 text-red-200 border-red-600/50", icon: "fa-bolt", hex: "#f87171" },
   "guitar_acoustic": { name: "原声木吉他", color: "bg-amber-950/70 text-amber-300 border-amber-700/50", icon: "fa-guitar", hex: "#f59e0b" },
   "piano_grand": { name: "原声大钢琴", color: "bg-sky-950/70 text-sky-300 border-sky-700/50", icon: "fa-music", hex: "#0ea5e9" },
+  "piano_acoustic": { name: "原声钢琴", color: "bg-sky-950/70 text-sky-300 border-sky-700/50", icon: "fa-music", hex: "#0ea5e9" },
   "piano_rhodes": { name: "复古电钢琴", color: "bg-cyan-950/70 text-cyan-300 border-cyan-700/50", icon: "fa-keyboard", hex: "#06b6d4" },
   "synth_hybrid": { name: "混合铺底钢琴", color: "bg-indigo-950/70 text-indigo-300 border-indigo-700/50", icon: "fa-wave-square", hex: "#6366f1" },
   "synth": { name: "合成器铺底", color: "bg-indigo-950/70 text-indigo-300 border-indigo-700/50", icon: "fa-wave-square", hex: "#6366f1" },
   "synth_lead": { name: "K-pop主音合成器", color: "bg-pink-950/70 text-pink-300 border-pink-700/50", icon: "fa-bolt", hex: "#ec4899" },
   "fiddle": { name: "原声乡村小提琴", color: "bg-amber-950/70 text-amber-200 border-amber-700/50", icon: "fa-music", hex: "#f59e0b" },
+  "strings_acoustic": { name: "原声小提琴/弦乐", color: "bg-amber-950/70 text-amber-200 border-amber-700/50", icon: "fa-music", hex: "#f59e0b" },
   "cello": { name: "原声大提琴", color: "bg-teal-950/70 text-teal-300 border-teal-700/50", icon: "fa-music", hex: "#14b8a6" },
   "other": { name: "乐器分轨", color: "bg-zinc-800 text-zinc-300 border-zinc-700", icon: "fa-sliders", hex: "#94a3b8" }
 };
@@ -529,6 +532,11 @@ function initEventListeners() {
     }
   });
 
+  // 窗口尺寸自适应重绘波形
+  window.addEventListener("resize", () => {
+    updateAllWaveforms();
+  });
+
   // 监听模式三态切换按键
   if (listenRawBtn) listenRawBtn.addEventListener("click", () => setListenMode("raw"));
   if (listenMixBtn) listenMixBtn.addEventListener("click", () => setListenMode("mix"));
@@ -614,7 +622,7 @@ function initEventListeners() {
 
   // 步骤 1 已导入清单中的【试听全轨】
   if (btnStep1PreviewAll) {
-    btnStep1PreviewAll.addEventListener("click", togglePlayPause);
+    btnStep1PreviewAll.addEventListener("click", togglePlay);
   }
 
   if (inputReference) {
@@ -1191,7 +1199,14 @@ function renderAll() {
   updateListenModeButtons();
 }
 
-// 渲染步骤 2 的 DAW 轨道列表
+function formatPan(panVal) {
+  const p = parseFloat(panVal) || 0;
+  if (Math.abs(p) < 0.03) return "C";
+  if (p < 0) return `L${Math.round(Math.abs(p) * 100)}`;
+  return `R${Math.round(p * 100)}`;
+}
+
+// 渲染 DAW 轨道列表
 function renderTracks() {
   if (!tracksContainer) return;
   tracksContainer.innerHTML = "";
@@ -1274,7 +1289,7 @@ function renderTracks() {
       </div>
 
       <!-- 真实专业 DAW 波形视窗 -->
-      <div class="flex flex-1 h-11 track-waveform-box items-center px-1 relative w-full" data-tid="${track.id}">
+      <div class="flex flex-1 min-w-0 h-11 track-waveform-box items-center px-1 relative w-full md:w-auto" data-tid="${track.id}">
         <canvas class="track-waveform-canvas w-full h-full" data-url="${track.url}" data-tid="${track.id}" data-color="${meta.hex}"></canvas>
       </div>
 
@@ -1317,7 +1332,9 @@ function renderTracks() {
     // 绘制真实包络波形
     const canvas = card.querySelector(".track-waveform-canvas");
     getWaveformData(track.url, track.name).then(wData => {
-      drawDawWaveform(canvas, wData, meta.hex, 0);
+      requestAnimationFrame(() => {
+        drawDawWaveform(canvas, wData, meta.hex, 0);
+      });
     });
   });
 }
@@ -1897,7 +1914,24 @@ async function getWaveformData(audioUrl, trackName) {
     const ctx = getAudioContext();
     if (!ctx) throw new Error("Web Audio API not supported");
 
-    const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+    let audioBuffer;
+    try {
+      const copy = arrayBuffer.slice(0);
+      audioBuffer = await new Promise((resolve, reject) => {
+        try {
+          const ret = ctx.decodeAudioData(copy, buf => resolve(buf), err => reject(err));
+          if (ret && typeof ret.then === "function") {
+            ret.then(resolve).catch(reject);
+          }
+        } catch (e) {
+          reject(e);
+        }
+      });
+    } catch (decodeErr) {
+      console.warn("decodeAudioData failed, falling back to envelope generator:", decodeErr);
+      throw decodeErr;
+    }
+
     const channelData = audioBuffer.getChannelData(0);
     const totalSamples = channelData.length;
     const columns = 280;
@@ -1946,8 +1980,9 @@ async function getWaveformData(audioUrl, trackName) {
 function drawDawWaveform(canvas, waveformData, hexColor, progressRatio = 0) {
   if (!canvas || !waveformData) return;
   const ctx = canvas.getContext("2d");
-  const width = canvas.offsetWidth || 300;
-  const height = canvas.offsetHeight || 44;
+  const width = canvas.offsetWidth || (canvas.parentElement ? canvas.parentElement.clientWidth : 0) || 300;
+  const height = canvas.offsetHeight || (canvas.parentElement ? canvas.parentElement.clientHeight : 0) || 44;
+  if (width <= 0) return;
   canvas.width = width;
   canvas.height = height;
 

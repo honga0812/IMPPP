@@ -276,7 +276,16 @@ def run_auto_mix(req: AutoMixRequest):
         "timestamp": datetime.now().strftime("%H:%M:%S")
     }
 
-    project_state["mix_versions"] = [v1_version]
+    if "mix_versions" not in project_state or not isinstance(project_state["mix_versions"], list):
+        project_state["mix_versions"] = []
+    
+    existing_v1 = next((v for v in project_state["mix_versions"] if v.get("id") == "v1"), None)
+    if existing_v1:
+        idx = project_state["mix_versions"].index(existing_v1)
+        project_state["mix_versions"][idx] = v1_version
+    else:
+        project_state["mix_versions"].insert(0, v1_version)
+
     project_state["active_version_id"] = "v1"
     project_state["current_mix"] = v1_version
 

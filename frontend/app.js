@@ -315,6 +315,8 @@ let chatMessages, chatForm, chatInput, btnSendChat;
 let dspProgressModal, dspProgressBar, dspProgressPercent, dspModalTitle, dspModalDesc, dspProgressStep;
 let globalActionProgress;
 let mixVersionsContainer, quickVersionsList, activeVersionBadge;
+let topActiveVersionTag, topActiveVersionName, step3ActiveVersion, abVersionSelect;
+let copilotVersionCount, copilotActiveVersionTag, copilotVersionsList;
 let btnToggleToolsDeck, toggleDeckIcon, guidedToolsDeck;
 let btnUnmuteAll, btnUnsoloAll;
 
@@ -410,6 +412,13 @@ function initDomReferences() {
   mixVersionsContainer = document.getElementById("mix-versions-container");
   quickVersionsList = document.getElementById("quick-versions-list");
   activeVersionBadge = document.getElementById("active-version-badge");
+  topActiveVersionTag = document.getElementById("top-active-version-tag");
+  topActiveVersionName = document.getElementById("top-active-version-name");
+  step3ActiveVersion = document.getElementById("step3-active-version");
+  abVersionSelect = document.getElementById("ab-version-select");
+  copilotVersionCount = document.getElementById("copilot-version-count");
+  copilotActiveVersionTag = document.getElementById("copilot-active-version-tag");
+  copilotVersionsList = document.getElementById("copilot-versions-list");
   btnToggleToolsDeck = document.getElementById("btn-toggle-tools-deck");
   toggleDeckIcon = document.getElementById("toggle-deck-icon");
   guidedToolsDeck = document.getElementById("guided-tools-deck");
@@ -637,6 +646,15 @@ function initEventListeners() {
   // 一键混音
   if (btnAutoMix) {
     btnAutoMix.addEventListener("click", triggerAutoMix);
+  }
+
+  // A/B 测试面板混音版本选择
+  if (abVersionSelect) {
+    abVersionSelect.addEventListener("change", () => {
+      if (abVersionSelect.value) {
+        selectMixVersion(abVersionSelect.value);
+      }
+    });
   }
 
   // Copilot 对话
@@ -1199,6 +1217,16 @@ function renderAll() {
   updateListenModeButtons();
 }
 
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function formatPan(panVal) {
   const p = parseFloat(panVal) || 0;
   if (Math.abs(p) < 0.03) return "C";
@@ -1497,6 +1525,19 @@ function renderMixMetrics() {
     }
   }
 
+  // A/B 卡片状态 B (Mix) 的指标动态更新
+  const abMixLufs = document.getElementById("ab-mix-lufs");
+  const abMixPeak = document.getElementById("ab-mix-peak");
+  const abMixCf = document.getElementById("ab-mix-cf");
+  if (project.current_mix) {
+    if (abMixLufs) abMixLufs.textContent = `${project.current_mix.lufs.toFixed(1)} LUFS`;
+    if (abMixPeak) abMixPeak.textContent = `${project.current_mix.peak_db.toFixed(2)} dBTP (防削波限幅)`;
+    if (abMixCf) abMixCf.textContent = "9.1 dB (紧致凝聚)";
+  } else {
+    if (abMixLufs) abMixLufs.textContent = "--";
+    if (abMixPeak) abMixPeak.textContent = "--";
+  }
+
   // 填充 A/B 诊断表格
   if (abDiagnosticTbody && project.tracks) {
     abDiagnosticTbody.innerHTML = "";
@@ -1529,15 +1570,45 @@ function renderChat() {
     const isUser = (msg.role === "user");
     const div = document.createElement("div");
     div.className = `flex ${isUser ? "justify-end" : "justify-start"}`;
+
+    // 检查消息中是否提及了新混音版本，如 【新混音版本 v2 已生成】 或 【基准混音版本 v1 已生成】
+    let switchBtnHtml = "";
+    const versionMatch = (!isUser && msg.content) ? msg.content.match(/【(?:新|基准)混音版本\s*(v\d+)\s*已生成】/) : null;
+    if (versionMatch && versionMatch[1]) {
+      const targetVid = versionMatch[1];
+      const isCur = project.active_version_id === targetVid;
+      switchBtnHtml = `
+        <div class="mt-2.5 pt-2 border-t border-[#232d42] flex items-center justify-between">
+          <span class="text-[10px] font-mono text-zinc-400">混音快照: <b class="text-cyan-300 font-bold">${targetVid}</b></span>
+          <button type="button" class="btn-chat-switch-version px-2.5 py-1 rounded-md text-[11px] font-mono font-bold flex items-center space-x-1.5 transition ${
+            isCur ? "bg-emerald-600/80 text-white cursor-default" : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30"
+          }" data-vid="${targetVid}">
+            <i class="fa-solid ${isCur ? "fa-volume-high text-emerald-200" : "fa-play text-[9px]"}"></i>
+            <span>${isCur ? "正在监听此版本" : `试听 ${targetVid}`}</span>
+          </button>
+        </div>
+      `;
+    }
+
     div.innerHTML = `
       <div class="max-w-[88%] p-3 rounded-xl ${
         isUser 
           ? "bg-indigo-600 text-white rounded-br-none shadow-md shadow-indigo-600/20" 
           : "bg-[#141824] text-zinc-200 border border-[#232a3d] rounded-bl-none shadow"
       }">
-        <p class="whitespace-pre-line text-xs">${msg.content}</p>
+        <p class="whitespace-pre-line text-xs">${escapeHtml(msg.content)}</p>
+        ${switchBtnHtml}
       </div>
     `;
+
+    const chatBtn = div.querySelector(".btn-chat-switch-version");
+    if (chatBtn) {
+      chatBtn.addEventListener("click", () => {
+        const vid = chatBtn.getAttribute("data-vid");
+        if (vid) selectMixVersion(vid);
+      });
+    }
+
     chatMessages.appendChild(div);
   });
   chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -1639,6 +1710,7 @@ async function triggerAutoMix() {
     listenMode = "mix";
     renderAll();
     switchStep(3); // 混音完成后自动切换至步骤 3 查看混音机架全貌！
+    showNotification(`🎉 一键参考混音完成！已生成基准混音版本【${project.current_mix?.name || "v1"}】！可在步骤 4 / 步骤 5 或右侧大脑自由切换试听。`, "success");
   }, 400);
 }
 
@@ -1655,7 +1727,17 @@ function applyOfflineMix() {
     master_url: masterUrl,
     timestamp: new Date().toLocaleTimeString("zh-CN", { hour12: false })
   };
-  project.mix_versions = [v1];
+
+  if (!project.mix_versions || !Array.isArray(project.mix_versions)) {
+    project.mix_versions = [];
+  }
+  const existingIdx = project.mix_versions.findIndex(v => v.id === "v1");
+  if (existingIdx >= 0) {
+    project.mix_versions[existingIdx] = v1;
+  } else {
+    project.mix_versions.unshift(v1);
+  }
+
   project.active_version_id = "v1";
   project.current_mix = v1;
 
@@ -1687,6 +1769,7 @@ async function sendChatMessage(promptText) {
         await selectMixVersion(data.version.id);
       }
       renderAll();
+      showNotification(`✨ 已成功生成新混音版本【${data.version?.name || data.version?.id}】！`, "success");
       handled = true;
       return;
     }
@@ -1752,6 +1835,7 @@ async function sendChatMessage(promptText) {
 
       renderAll();
       selectMixVersion(vid);
+      showNotification(`✨ 已成功生成新混音版本【${newVersion.name}】！可在右侧版本栏或步骤 4/5 自由切换对比。`, "success");
     }, 450);
   }
 }
@@ -1850,7 +1934,73 @@ function renderMixVersions() {
     }
   }
 
-  // 3. 更新当前徽章
+  // 3. 更新 Copilot 侧栏版本历史快照栏
+  if (copilotVersionCount) {
+    copilotVersionCount.textContent = versions.length;
+  }
+  if (copilotActiveVersionTag) {
+    const curV = versions.find(v => v.id === activeId);
+    if (curV) {
+      copilotActiveVersionTag.textContent = curV.id;
+      copilotActiveVersionTag.className = "text-[9px] font-mono px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-700/50 font-bold";
+    } else {
+      copilotActiveVersionTag.textContent = "尚未混音";
+      copilotActiveVersionTag.className = "text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400";
+    }
+  }
+  if (copilotVersionsList) {
+    copilotVersionsList.innerHTML = "";
+    if (versions.length === 0) {
+      copilotVersionsList.innerHTML = `<span class="text-[10px] text-zinc-500 italic">暂无快照</span>`;
+    } else {
+      versions.forEach(v => {
+        const isCur = v.id === activeId;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = isCur
+          ? "px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-600 text-white border border-indigo-400 shadow-sm flex items-center space-x-1 flex-shrink-0 transition"
+          : "px-2 py-0.5 rounded text-[10px] font-mono bg-[#141824] hover:bg-[#20273a] text-zinc-300 border border-zinc-700/60 flex items-center space-x-1 flex-shrink-0 transition";
+        const shortName = (v.name || "").split(":")[1] ? v.name.split(":")[1].trim().slice(0, 7) : v.id;
+        btn.innerHTML = `${isCur ? '<i class="fa-solid fa-check text-[8px] text-cyan-300"></i>' : ''}<span>${escapeHtml(v.id)}: ${escapeHtml(shortName)}</span>`;
+        btn.title = `${v.name} (${v.lufs} LUFS) - 点击即刻试听`;
+        btn.addEventListener("click", () => selectMixVersion(v.id));
+        copilotVersionsList.appendChild(btn);
+      });
+    }
+  }
+
+  // 4. 更新 A/B 测试界面的比对版本下拉框 ab-version-select
+  if (abVersionSelect) {
+    abVersionSelect.innerHTML = "";
+    if (versions.length === 0) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "尚未生成混音版本";
+      abVersionSelect.appendChild(opt);
+    } else {
+      versions.forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v.id;
+        opt.textContent = `${v.id}: ${(v.name || "").split(":")[1] ? v.name.split(":")[1].trim() : v.id} (${v.lufs} LUFS)`;
+        if (v.id === activeId) opt.selected = true;
+        abVersionSelect.appendChild(opt);
+      });
+    }
+  }
+
+  // 5. 更新顶部导航版本标签
+  if (topActiveVersionName) {
+    const curV = versions.find(v => v.id === activeId);
+    topActiveVersionName.textContent = curV ? curV.name : "尚未混音";
+  }
+
+  // 6. 更新步骤 3 当前生效机架版本标识
+  if (step3ActiveVersion) {
+    const curV = versions.find(v => v.id === activeId);
+    step3ActiveVersion.textContent = curV ? curV.name : "尚未混音";
+  }
+
+  // 7. 更新步骤 5 当前徽章
   if (activeVersionBadge) {
     const curV = versions.find(v => v.id === activeId);
     activeVersionBadge.textContent = curV ? curV.name : "尚未混音";
@@ -1867,7 +2017,7 @@ async function selectMixVersion(versionId) {
 
   // 更新当前 master 音频
   if (target.master_url) {
-    const curPos = currentPlayTime || 0;
+    const curPos = (typeof playbackTime !== "undefined" ? playbackTime : 0) || 0;
     const wasPlaying = isPlaying;
     
     // 加载目标音频

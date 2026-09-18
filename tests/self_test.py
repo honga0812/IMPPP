@@ -5,6 +5,10 @@ import subprocess
 import soundfile as sf
 import numpy as np
 
+_ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _ROOT_DIR not in sys.path:
+    sys.path.insert(0, _ROOT_DIR)
+
 def test_audio_assets():
     print('=' * 60)
     print('[Self-Test 1/3] 正在验证全新抒情乡村风与 K-pop 风格实录分轨及商业母带资产...')
@@ -71,7 +75,7 @@ def test_frontend_integrity():
 
 def test_backend_mixing_pipeline():
     print('=' * 60)
-    print('[Self-Test 3/3] 正在执行 Python 后端 32-bit DSP 混音引擎流水线测试...')
+    print('[Self-Test 3/4] 正在执行 Python 后端 32-bit DSP 混音引擎流水线测试...')
     print('=' * 60)
     
     res = subprocess.run([sys.executable, 'tests/test_mixing_pipeline.py'], capture_output=True, text=True)
@@ -79,11 +83,41 @@ def test_backend_mixing_pipeline():
     print(res.stdout)
     print("\n✅ 后端端到端测试通过：声学画像分析、EQ/压缩DSP、母带渲染全部成功！\n")
 
+def test_stem_separation_pipeline():
+    print('=' * 60)
+    print('[Self-Test 4/4] 正在验证整曲 AI 音源分离 (4-Stem Separation) 接口与算法...')
+    print('=' * 60)
+    from fastapi.testclient import TestClient
+    import backend.app as backend_app
+    import io
+
+    client = TestClient(backend_app.app)
+    sr = 44100
+    t = np.linspace(0, 1.0, sr)
+    stereo_data = np.stack([
+        0.5 * np.sin(2 * np.pi * 65 * t) + 0.4 * np.sin(2 * np.pi * 440 * t) + 0.3 * np.sin(2 * np.pi * 3500 * t),
+        0.5 * np.sin(2 * np.pi * 65 * t) + 0.4 * np.sin(2 * np.pi * 440 * t) - 0.3 * np.sin(2 * np.pi * 3500 * t)
+    ], axis=-1).astype(np.float32)
+
+    buf = io.BytesIO()
+    sf.write(buf, stereo_data, sr, format='WAV')
+    buf.seek(0)
+
+    res = client.post('/api/separate', files={'file': ('unit_test_song.wav', buf, 'audio/wav')})
+    assert res.status_code == 200, f'Status {res.status_code}: {res.text}'
+    data = res.json()
+    assert data['status'] == 'ok', 'Status is not ok'
+    assert len(data['tracks']) == 4, f"Expected 4 tracks, got {len(data['tracks'])}"
+    for trk in data['tracks']:
+        print(f"  ✓ 分离通道就绪: {trk['name']:25} | 乐器: {trk['instrument']:10} | 地址: {trk['url']}")
+    print("\n✅ 4-Stem 音源分离管道测试全部通过！\n")
+
 if __name__ == '__main__':
     try:
         test_audio_assets()
         test_frontend_integrity()
         test_backend_mixing_pipeline()
+        test_stem_separation_pipeline()
         print('*' * 60)
         print('🎉 恭喜！所有自我测试项目全部 100% 通过，系统处于生产发布就绪状态！')
         print('*' * 60)

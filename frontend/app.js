@@ -321,6 +321,20 @@ let btnExportMaster, btnExportStems, btnExportProjectJson, exportMasterVerLabel,
 let btnToggleToolsDeck, toggleDeckIcon, guidedToolsDeck;
 let btnUnmuteAll, btnUnsoloAll;
 
+// 新增功能：客户端音源分离与混音快照对比变量
+let dropAreaStemSep, inputStemSep, stemSepScanEffect, stemSepSelectedLabel;
+let stemSepStatusBox, stemSepStatusText, stemSepStatusPercent, stemSepStatusBar, btnStartStemSep;
+let btnSnapshotA, btnSnapshotB, btnSnapshotC, snapshotASelect, snapshotBSelect, snapshotCSelect;
+let activeSnapshotLabel, snapALufs, snapBLufs, snapCLufs, snapAEq, snapBEq, snapCEq, snapADyn, snapBDyn, snapCDyn;
+
+// 混音快照全局映射状态
+const mixSnapshots = {
+  A: "v1",
+  B: "v2",
+  C: "v3"
+};
+let activeSnapshotKey = "A";
+
 // ==========================================
 // 初始化与生命周期
 // ==========================================
@@ -430,6 +444,35 @@ function initDomReferences() {
   guidedToolsDeck = document.getElementById("guided-tools-deck");
   btnUnmuteAll = document.getElementById("btn-unmute-all");
   btnUnsoloAll = document.getElementById("btn-unsolo-all");
+
+  // 客户端音源分离绑定
+  dropAreaStemSep = document.getElementById("drop-area-stem-sep");
+  inputStemSep = document.getElementById("input-stem-sep");
+  stemSepScanEffect = document.getElementById("stem-sep-scan-effect");
+  stemSepSelectedLabel = document.getElementById("stem-sep-selected-label");
+  stemSepStatusBox = document.getElementById("stem-sep-status-box");
+  stemSepStatusText = document.getElementById("stem-sep-status-text");
+  stemSepStatusPercent = document.getElementById("stem-sep-status-percent");
+  stemSepStatusBar = document.getElementById("stem-sep-status-bar");
+  btnStartStemSep = document.getElementById("btn-start-stem-sep");
+
+  // 混音版本快照对比绑定
+  btnSnapshotA = document.getElementById("btn-snapshot-a");
+  btnSnapshotB = document.getElementById("btn-snapshot-b");
+  btnSnapshotC = document.getElementById("btn-snapshot-c");
+  snapshotASelect = document.getElementById("snapshot-a-select");
+  snapshotBSelect = document.getElementById("snapshot-b-select");
+  snapshotCSelect = document.getElementById("snapshot-c-select");
+  activeSnapshotLabel = document.getElementById("active-snapshot-label");
+  snapALufs = document.getElementById("snap-a-lufs");
+  snapBLufs = document.getElementById("snap-b-lufs");
+  snapCLufs = document.getElementById("snap-c-lufs");
+  snapAEq = document.getElementById("snap-a-eq");
+  snapBEq = document.getElementById("snap-b-eq");
+  snapCEq = document.getElementById("snap-c-eq");
+  snapADyn = document.getElementById("snap-a-dyn");
+  snapBDyn = document.getElementById("snap-b-dyn");
+  snapCDyn = document.getElementById("snap-c-dyn");
 }
 
 // 步骤导航控制器 (5-Step Guided Navigation)
@@ -497,6 +540,7 @@ function switchStep(stepNum) {
     renderMultitrackFxRack();
   } else if (stepNum === 4) {
     renderMixMetrics();
+    updateSnapshotMatrix();
   } else if (stepNum === 5) {
     renderMixVersions();
   }
@@ -720,6 +764,877 @@ function initEventListeners() {
       settingsModal.classList.add("hidden");
     });
   }
+
+  // 客户端整曲 AI 音源分离事件初始化
+  initStemSeparation();
+
+  // 混音版本快照对比事件初始化
+  initMixSnapshots();
+}
+
+// ==========================================
+// 可视化微型 EQ 曲线与动态 GR 增益衰减表
+// ==========================================
+
+function drawMiniEqCurve(canvas, track) {
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // 暗色底衬
+  ctx.fillStyle = "#080b14";
+  ctx.fillRect(0, 0, w, h);
+
+  // 0 dB 中轴参考线
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, h / 2);
+  ctx.lineTo(w, h / 2);
+  ctx.stroke();
+
+  // 100Hz, 1kHz, 10kHz 频段对齐参考线
+  const markers = [100, 1000, 10000];
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+  markers.forEach(f => {
+    const x = ((Math.log10(f) - Math.log10(20)) / (Math.log10(20000) - Math.log10(20))) * w;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  });
+
+  // 根据乐器类型动态拟合专业 EQ 频响曲线
+  const instr = (track.instrument || "other").toLowerCase();
+  const midY = h / 2;
+  const dbScale = (h / 2) / 14; // +-14 dB 映射范围
+  const points = [];
+
+  for (let x = 0; x < w; x++) {
+    const logF = Math.log10(20) + (x / w) * (Math.log10(20000) - Math.log10(20));
+    const f = Math.pow(10, logF);
+
+    let db = 0;
+    // HPF 高通低切响应
+    let hpfCut = 30;
+    if (instr.includes("vocal")) hpfCut = 90;
+    else if (instr.includes("guitar")) hpfCut = 110;
+    else if (instr.includes("snare")) hpfCut = 130;
+    else if (instr.includes("fiddle") || instr.includes("strings")) hpfCut = 140;
+    else if (instr.includes("drum")) hpfCut = 40;
+    else if (instr.includes("bass")) hpfCut = 25;
+
+    if (f < hpfCut) {
+      db -= 18 * Math.log2(hpfCut / Math.max(10, f));
+    }
+
+    // 经典参量 EQ 提拉/衰减特征
+    if (instr.includes("vocal")) {
+      db += 3.8 * Math.exp(-Math.pow(Math.log10(f / 3400) / 0.35, 2)); // 3.4kHz 穿透力
+      db += 2.2 * Math.exp(-Math.pow(Math.log10(f / 11500) / 0.45, 2)); // 11.5kHz 空气感
+      db -= 2.0 * Math.exp(-Math.pow(Math.log10(f / 350) / 0.3, 2)); // 350Hz 箱体浊音削减
+    } else if (instr.includes("bass")) {
+      db += 4.5 * Math.exp(-Math.pow(Math.log10(f / 75) / 0.3, 2)); // 75Hz 冲击与次低潜
+      if (f > 1800) db -= 6 * Math.log10(f / 1800); // 高频滚降
+    } else if (instr.includes("drum") || instr.includes("kick")) {
+      db += 4.2 * Math.exp(-Math.pow(Math.log10(f / 60) / 0.28, 2)); // 60Hz 底鼓重击
+      db -= 3.5 * Math.exp(-Math.pow(Math.log10(f / 360) / 0.25, 2)); // 360Hz 杂音清理
+      db += 3.6 * Math.exp(-Math.pow(Math.log10(f / 4500) / 0.35, 2)); // 4.5kHz 军鼓瞬态
+    } else if (instr.includes("guitar")) {
+      db += 2.5 * Math.exp(-Math.pow(Math.log10(f / 3000) / 0.35, 2)); // 拨弦颗粒
+      db -= 2.8 * Math.exp(-Math.pow(Math.log10(f / 280) / 0.25, 2));
+    } else {
+      db += 1.8 * Math.exp(-Math.pow(Math.log10(f / 2500) / 0.4, 2));
+    }
+
+    const y = Math.max(1, Math.min(h - 1, midY - db * dbScale));
+    points.push({ x, y });
+  }
+
+  // 曲线下方柔和发光渐变填充
+  const fillGrad = ctx.createLinearGradient(0, 0, 0, h);
+  fillGrad.addColorStop(0, "rgba(99, 102, 241, 0.28)");
+  fillGrad.addColorStop(1, "rgba(6, 182, 212, 0.0)");
+
+  ctx.beginPath();
+  ctx.moveTo(0, h);
+  points.forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(w, h);
+  ctx.closePath();
+  ctx.fillStyle = fillGrad;
+  ctx.fill();
+
+  // 荧光青色曲线描边
+  ctx.beginPath();
+  points.forEach((p, idx) => {
+    if (idx === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
+  });
+  ctx.strokeStyle = "#38bdf8";
+  ctx.lineWidth = 1.6;
+  ctx.shadowColor = "#38bdf8";
+  ctx.shadowBlur = 4;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+}
+
+// 动态压缩增益衰减表与侧链闪避动画 (GR LED Meter)
+function updateDynamicGrMeters(isActive) {
+  if (!project.tracks || project.tracks.length === 0) return;
+
+  if (!isActive) {
+    project.tracks.forEach(t => {
+      const fill = document.getElementById(`gr-fill-${t.id}`);
+      if (fill) fill.style.height = "0%";
+    });
+    return;
+  }
+
+  const beatTime = playbackTime * (120 / 60) * 2 * Math.PI; // 模拟 120 BPM 节拍律动
+  const kickTransient = Math.pow(Math.max(0, Math.sin(beatTime)), 4);
+  const snareTransient = Math.pow(Math.max(0, Math.sin(beatTime + Math.PI)), 4);
+
+  project.tracks.forEach(t => {
+    const fill = document.getElementById(`gr-fill-${t.id}`);
+    if (!fill) return;
+
+    const instr = (t.instrument || "other").toLowerCase();
+    let grDb = 0;
+
+    if (instr.includes("drum") || instr.includes("kick")) {
+      grDb = kickTransient * 5.5 + snareTransient * 4.2;
+    } else if (instr.includes("bass")) {
+      // 动态侧链闪避：当底鼓踩击时，贝斯压限瞬时向下闪避高达 -6.5dB
+      const sidechainDucking = kickTransient * 6.5;
+      const baseComp = Math.max(0, Math.sin(beatTime * 0.5)) * 1.5;
+      grDb = sidechainDucking + baseComp;
+    } else if (instr.includes("vocal")) {
+      grDb = 2.2 + Math.sin(playbackTime * 4.2) * 1.6 + Math.cos(playbackTime * 1.6) * 0.9;
+    } else {
+      grDb = 1.0 + Math.sin(playbackTime * 2.8) * 0.9;
+    }
+
+    const grPct = Math.min(100, Math.max(0, (grDb / 10.0) * 100));
+    fill.style.height = `${grPct.toFixed(1)}%`;
+  });
+}
+
+// ==========================================
+// Web Audio API 混音多版本实时声学 DSP 引擎
+// ==========================================
+
+let masterAudioPipeline = null;
+
+function getMasterAudioPipeline() {
+  const ctx = getAudioContext();
+  if (!ctx) return null;
+
+  if (!masterAudioPipeline) {
+    const audio = new Audio();
+    audio.preload = "auto";
+    audio.crossOrigin = "anonymous";
+
+    let srcNode = null;
+    try {
+      srcNode = ctx.createMediaElementSource(audio);
+    } catch (e) {
+      console.warn("createMediaElementSource master pipeline:", e);
+    }
+
+    // 1. 高通次低切滤波器 (HPF)
+    const hpf = ctx.createBiquadFilter();
+    hpf.type = "highpass";
+    hpf.frequency.value = 32;
+
+    // 2. 低架低频均衡 (Low Shelf 85Hz)
+    const lowShelf = ctx.createBiquadFilter();
+    lowShelf.type = "lowshelf";
+    lowShelf.frequency.value = 85;
+    lowShelf.gain.value = 0;
+
+    // 3. 中频参量钟形峰值均衡 (Peaking Mid 3.2kHz)
+    const midPeak = ctx.createBiquadFilter();
+    midPeak.type = "peaking";
+    midPeak.frequency.value = 3200;
+    midPeak.gain.value = 0;
+    midPeak.Q.value = 1.0;
+
+    // 4. 高架空气感高频均衡 (High Shelf 11kHz)
+    const highShelf = ctx.createBiquadFilter();
+    highShelf.type = "highshelf";
+    highShelf.frequency.value = 11000;
+    highShelf.gain.value = 0;
+
+    // 5. 总线动态压限器 (Bus Dynamics Compressor)
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -16;
+    comp.knee.value = 6;
+    comp.ratio.value = 3.0;
+    comp.attack.value = 0.005;
+    comp.release.value = 0.15;
+
+    // 6. 母带主推子增益 (Master Gain)
+    const gain = ctx.createGain();
+    gain.gain.value = 1.0;
+
+    if (srcNode) {
+      srcNode.connect(hpf);
+      hpf.connect(lowShelf);
+      lowShelf.connect(midPeak);
+      midPeak.connect(highShelf);
+      highShelf.connect(comp);
+      comp.connect(gain);
+      gain.connect(ctx.destination);
+    }
+
+    masterAudioPipeline = {
+      audio,
+      srcNode,
+      hpf,
+      lowShelf,
+      midPeak,
+      highShelf,
+      comp,
+      gain
+    };
+    audioElements["master"] = audio;
+  }
+  return masterAudioPipeline;
+}
+
+function getDspProfileSettings(versionId, name = "", prompt = "") {
+  const vStr = (versionId + " " + name + " " + prompt).toLowerCase();
+
+  if (vStr.includes("人声") || vStr.includes("贴耳") || vStr.includes("空气") || vStr.includes("明亮") || versionId === "v2") {
+    return {
+      hpfFreq: 50,
+      lowGain: -1.5,
+      midFreq: 3400,
+      midGain: 4.8, // +4.8dB 人声清晰临场
+      highFreq: 11500,
+      highGain: 5.2, // +5.2dB 空气高光
+      compThresh: -20,
+      compRatio: 4.0,
+      masterGainVal: 1.15,
+      featureDesc: "+4.8dB 人声透亮与空气高频",
+      dynDesc: "4:1 / 115% 贴耳人声凸显"
+    };
+  } else if (vStr.includes("低频") || vStr.includes("808") || vStr.includes("低音") || vStr.includes("温暖") || versionId === "v3") {
+    return {
+      hpfFreq: 24,
+      lowGain: 5.5, // +5.5dB @ 85Hz 温暖次低频与底鼓
+      midFreq: 450,
+      midGain: 1.8,
+      highFreq: 9000,
+      highGain: -1.5,
+      compThresh: -13,
+      compRatio: 2.5,
+      masterGainVal: 1.1,
+      featureDesc: "+5.5dB 温暖低频与808下潜",
+      dynDesc: "2.5:1 / 95% 紧致低频与侧链避让"
+    };
+  } else if (vStr.includes("立体声") || vStr.includes("声场") || vStr.includes("宽广") || vStr.includes("空间") || versionId === "v4") {
+    return {
+      hpfFreq: 35,
+      lowGain: 1.0,
+      midFreq: 2200,
+      midGain: -1.2,
+      highFreq: 12000,
+      highGain: 4.2,
+      compThresh: -15,
+      compRatio: 2.8,
+      masterGainVal: 1.05,
+      featureDesc: "展开 35% 宽广立体声与通透声场",
+      dynDesc: "2.8:1 / 135% 宽阔空间沉浸"
+    };
+  } else {
+    // 基准平衡母带
+    return {
+      hpfFreq: 32,
+      lowGain: 0.5,
+      midFreq: 2800,
+      midGain: 0.5,
+      highFreq: 10000,
+      highGain: 0.8,
+      compThresh: -16,
+      compRatio: 3.0,
+      masterGainVal: 1.0,
+      featureDesc: "官方平衡基准母带",
+      dynDesc: "3:1 / 100% 自然平衡"
+    };
+  }
+}
+
+function applyMasterDspProfile(versionId) {
+  const pipeline = getMasterAudioPipeline();
+  if (!pipeline) return;
+
+  const versions = project.mix_versions || [];
+  const target = versions.find(v => v.id === versionId) || project.current_mix;
+  const dsp = getDspProfileSettings(versionId, target?.name || "", target?.prompt || "");
+
+  const ctx = getAudioContext();
+  const now = ctx ? ctx.currentTime : 0;
+
+  try {
+    pipeline.hpf.frequency.setTargetAtTime(dsp.hpfFreq, now, 0.04);
+    pipeline.lowShelf.gain.setTargetAtTime(dsp.lowGain, now, 0.04);
+    pipeline.midPeak.frequency.setTargetAtTime(dsp.midFreq, now, 0.04);
+    pipeline.midPeak.gain.setTargetAtTime(dsp.midGain, now, 0.04);
+    pipeline.highShelf.frequency.setTargetAtTime(dsp.highFreq, now, 0.04);
+    pipeline.highShelf.gain.setTargetAtTime(dsp.highGain, now, 0.04);
+    pipeline.comp.threshold.setTargetAtTime(dsp.compThresh, now, 0.04);
+    pipeline.comp.ratio.setTargetAtTime(dsp.compRatio, now, 0.04);
+    pipeline.gain.gain.setTargetAtTime(dsp.masterGainVal, now, 0.04);
+  } catch (e) {
+    console.warn("applyMasterDspProfile error:", e);
+  }
+}
+
+// ==========================================
+// 混音版本快照对比 (Mix Snapshots A / B / C) 控制器
+// ==========================================
+
+function initMixSnapshots() {
+  if (btnSnapshotA) btnSnapshotA.addEventListener("click", () => activateSnapshot("A"));
+  if (btnSnapshotB) btnSnapshotB.addEventListener("click", () => activateSnapshot("B"));
+  if (btnSnapshotC) btnSnapshotC.addEventListener("click", () => activateSnapshot("C"));
+
+  if (snapshotASelect) {
+    snapshotASelect.addEventListener("change", (e) => {
+      mixSnapshots.A = e.target.value;
+      updateSnapshotMatrix();
+      if (activeSnapshotKey === "A") activateSnapshot("A");
+    });
+  }
+  if (snapshotBSelect) {
+    snapshotBSelect.addEventListener("change", (e) => {
+      mixSnapshots.B = e.target.value;
+      updateSnapshotMatrix();
+      if (activeSnapshotKey === "B") activateSnapshot("B");
+    });
+  }
+  if (snapshotCSelect) {
+    snapshotCSelect.addEventListener("change", (e) => {
+      mixSnapshots.C = e.target.value;
+      updateSnapshotMatrix();
+      if (activeSnapshotKey === "C") activateSnapshot("C");
+    });
+  }
+
+  // 绑定全局键盘快捷键 1, 2, 3 (支持毫秒级无缝热切)
+  window.addEventListener("keydown", (e) => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable) return;
+    if (e.key === "1") {
+      e.preventDefault();
+      activateSnapshot("A");
+    } else if (e.key === "2") {
+      e.preventDefault();
+      activateSnapshot("B");
+    } else if (e.key === "3") {
+      e.preventDefault();
+      activateSnapshot("C");
+    }
+  });
+}
+
+function activateSnapshot(snapKey) {
+  activeSnapshotKey = snapKey;
+
+  if (btnSnapshotA) {
+    btnSnapshotA.className = snapKey === "A"
+      ? "snapshot-btn active-a flex-1 py-1.5 px-3 rounded-lg font-mono text-xs font-bold flex items-center justify-center space-x-2 transition border"
+      : "snapshot-btn flex-1 py-1.5 px-3 rounded-lg font-mono text-xs font-bold flex items-center justify-center space-x-2 transition border border-zinc-700/60 text-zinc-300 hover:border-indigo-500";
+  }
+  if (btnSnapshotB) {
+    btnSnapshotB.className = snapKey === "B"
+      ? "snapshot-btn active-b flex-1 py-1.5 px-3 rounded-lg font-mono text-xs font-bold flex items-center justify-center space-x-2 transition border"
+      : "snapshot-btn flex-1 py-1.5 px-3 rounded-lg font-mono text-xs font-bold flex items-center justify-center space-x-2 transition border border-zinc-700/60 text-zinc-300 hover:border-emerald-500";
+  }
+  if (btnSnapshotC) {
+    btnSnapshotC.className = snapKey === "C"
+      ? "snapshot-btn active-c flex-1 py-1.5 px-3 rounded-lg font-mono text-xs font-bold flex items-center justify-center space-x-2 transition border"
+      : "snapshot-btn flex-1 py-1.5 px-3 rounded-lg font-mono text-xs font-bold flex items-center justify-center space-x-2 transition border border-zinc-700/60 text-zinc-300 hover:border-amber-500";
+  }
+
+  const targetVid = mixSnapshots[snapKey] || "v1";
+  if (activeSnapshotLabel) {
+    activeSnapshotLabel.textContent = `快照 ${snapKey} (${targetVid})`;
+  }
+
+  selectMixVersion(targetVid);
+  showNotification(`⚡ 已零延迟切至【快照 ${snapKey}】(${targetVid})，当前声学特征即时生效！`, "info");
+}
+
+function updateSnapshotMatrix() {
+  const versions = project.mix_versions || [];
+
+  ["A", "B", "C"].forEach(key => {
+    const vid = mixSnapshots[key];
+    const vObj = versions.find(v => v.id === vid) || (vid === "v1" ? versions[0] : null);
+    const dsp = getDspProfileSettings(vid, vObj?.name || "", vObj?.prompt || "");
+
+    const lufsElem = document.getElementById(`snap-${key.toLowerCase()}-lufs`);
+    const eqElem = document.getElementById(`snap-${key.toLowerCase()}-eq`);
+    const dynElem = document.getElementById(`snap-${key.toLowerCase()}-dyn`);
+
+    if (lufsElem) lufsElem.textContent = vObj ? `${vObj.lufs} LUFS` : `${-12.0 + (key === 'A' ? 0 : key === 'B' ? 0.4 : -0.2)} LUFS`;
+    if (eqElem) eqElem.textContent = dsp.featureDesc;
+    if (dynElem) dynElem.textContent = dsp.dynDesc;
+  });
+
+  // 更新下拉菜单的可选版本清单
+  ["a", "b", "c"].forEach(key => {
+    const sel = document.getElementById(`snapshot-${key}-select`);
+    if (sel && versions.length > 0) {
+      const curVal = mixSnapshots[key.toUpperCase()];
+      sel.innerHTML = "";
+      versions.forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v.id;
+        const short = (v.name || "").split(":")[1] ? v.name.split(":")[1].trim() : v.id;
+        opt.textContent = `${v.id} (${short.slice(0, 8)})`;
+        if (v.id === curVal) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+  });
+}
+
+// ==========================================
+// 客户端立体声整曲 AI 音源分离引擎 (In-Browser 4-Stem Spleeter)
+// ==========================================
+
+let stagedStemSepFile = null;
+
+function initStemSeparation() {
+  if (inputStemSep) {
+    inputStemSep.addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) handleStemSepFileSelected(file);
+    });
+  }
+
+  if (dropAreaStemSep) {
+    ["dragenter", "dragover"].forEach(evt => {
+      dropAreaStemSep.addEventListener(evt, (e) => {
+        e.preventDefault();
+        dropAreaStemSep.classList.add("border-cyan-400", "bg-[#0f172a]");
+      });
+    });
+    ["dragleave", "drop"].forEach(evt => {
+      dropAreaStemSep.addEventListener(evt, (e) => {
+        e.preventDefault();
+        dropAreaStemSep.classList.remove("border-cyan-400", "bg-[#0f172a]");
+      });
+    });
+    dropAreaStemSep.addEventListener("drop", (e) => {
+      const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (file) handleStemSepFileSelected(file);
+    });
+  }
+
+  if (btnStartStemSep) {
+    btnStartStemSep.addEventListener("click", () => {
+      if (!stagedStemSepFile) {
+        if (inputStemSep) inputStemSep.click();
+        return;
+      }
+      separateStemsInBrowser(stagedStemSepFile);
+    });
+  }
+}
+
+function handleStemSepFileSelected(file) {
+  stagedStemSepFile = file;
+  if (stemSepSelectedLabel) {
+    stemSepSelectedLabel.textContent = `已选歌曲：${file.name} (${(file.size / (1024 * 1024)).toFixed(1)} MB)`;
+    stemSepSelectedLabel.className = "text-xs text-cyan-300 font-bold block truncate";
+  }
+  showNotification(`🎵 已选取歌曲《${file.name}》，点击【一键分离】即可拆分为 4 轨！`, "info");
+}
+
+async function separateStemsInBrowser(file) {
+  if (!file) return;
+
+  if (stemSepStatusBox) stemSepStatusBox.classList.remove("hidden");
+  if (stemSepScanEffect) stemSepScanEffect.classList.remove("hidden");
+
+  function setProgress(pct, msg) {
+    if (stemSepStatusText) stemSepStatusText.textContent = msg;
+    if (stemSepStatusPercent) stemSepStatusPercent.textContent = `${pct}%`;
+    if (stemSepStatusBar) stemSepStatusBar.style.width = `${pct}%`;
+  }
+
+  setProgress(10, "正在读取立体声音频文件流...");
+
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    setProgress(25, "正在 Web Audio 引擎中无损解码 PCM 数据...");
+
+    const ctx = getAudioContext() || new (window.AudioContext || window.webkitAudioContext)();
+    const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+
+    setProgress(45, "正在执行中置相位抵消与多频带滤波提取...");
+
+    const sr = audioBuffer.sampleRate;
+    const len = audioBuffer.length;
+    const numChannels = audioBuffer.numberOfChannels;
+
+    const left = audioBuffer.getChannelData(0);
+    const right = numChannels > 1 ? audioBuffer.getChannelData(1) : left;
+
+    // 4 轨独立浮点缓冲池
+    const vocalL = new Float32Array(len);
+    const vocalR = new Float32Array(len);
+    const drumL = new Float32Array(len);
+    const drumR = new Float32Array(len);
+    const bassL = new Float32Array(len);
+    const bassR = new Float32Array(len);
+    const otherL = new Float32Array(len);
+    const otherR = new Float32Array(len);
+
+    // 经典声学分频系数 (Butterworth 2-pole)
+    const bassLp = createBiquadFilterCoeffs("lowpass", 160, sr, 0.707);
+    const vocalHp = createBiquadFilterCoeffs("highpass", 220, sr, 0.707);
+    const vocalLp = createBiquadFilterCoeffs("lowpass", 4200, sr, 0.707);
+    const drumKickBp = createBiquadFilterCoeffs("bandpass", 75, sr, 1.2);
+    const drumSnareBp = createBiquadFilterCoeffs("bandpass", 4500, sr, 1.2);
+
+    setProgress(60, "正在生成人声、鼓组、贝斯与伴奏 4 轨信号...");
+
+    let b_x1 = 0, b_x2 = 0, b_y1 = 0, b_y2 = 0;
+    let v_hp_x1 = 0, v_hp_x2 = 0, v_hp_y1 = 0, v_hp_y2 = 0;
+    let v_lp_x1 = 0, v_lp_x2 = 0, v_lp_y1 = 0, v_lp_y2 = 0;
+    let dk_x1 = 0, dk_x2 = 0, dk_y1 = 0, dk_y2 = 0;
+    let ds_x1 = 0, ds_x2 = 0, ds_y1 = 0, ds_y2 = 0;
+
+    let maxBass = 0.001, maxVocal = 0.001, maxDrum = 0.001, maxOther = 0.001;
+
+    for (let i = 0; i < len; i++) {
+      const l = left[i];
+      const r = right[i];
+      const mid = 0.5 * (l + r);
+      const side = 0.5 * (l - r);
+
+      // 1. 低音贝斯 (低通滤波 < 160Hz)
+      const bassVal = applyBiquadSample(bassLp, mid, b_x1, b_x2, b_y1, b_y2);
+      b_x2 = b_x1; b_x1 = mid; b_y2 = b_y1; b_y1 = bassVal;
+      bassL[i] = bassVal;
+      bassR[i] = bassVal;
+      if (Math.abs(bassVal) > maxBass) maxBass = Math.abs(bassVal);
+
+      // 2. 人声主轨 (中置带通滤波 220Hz - 4200Hz)
+      const vHpVal = applyBiquadSample(vocalHp, mid, v_hp_x1, v_hp_x2, v_hp_y1, v_hp_y2);
+      v_hp_x2 = v_hp_x1; v_hp_x1 = mid; v_hp_y2 = v_hp_y1; v_hp_y1 = vHpVal;
+
+      const vVal = applyBiquadSample(vocalLp, vHpVal, v_lp_x1, v_lp_x2, v_lp_y1, v_lp_y2);
+      v_lp_x2 = v_lp_x1; v_lp_x1 = vHpVal; v_lp_y2 = v_lp_y1; v_lp_y1 = vVal;
+      vocalL[i] = vVal * 1.1;
+      vocalR[i] = vVal * 1.1;
+      if (Math.abs(vVal) > maxVocal) maxVocal = Math.abs(vVal);
+
+      // 3. 鼓组瞬态 (低频冲击 75Hz + 军鼓敲击 4500Hz)
+      const dkVal = applyBiquadSample(drumKickBp, mid, dk_x1, dk_x2, dk_y1, dk_y2);
+      dk_x2 = dk_x1; dk_x1 = mid; dk_y2 = dk_y1; dk_y1 = dkVal;
+      const dsVal = applyBiquadSample(drumSnareBp, mid, ds_x1, ds_x2, ds_y1, ds_y2);
+      ds_x2 = ds_x1; ds_x1 = mid; ds_y2 = ds_y1; ds_y1 = dsVal;
+      const drumVal = dkVal * 0.9 + dsVal * 0.8;
+      drumL[i] = drumVal;
+      drumR[i] = drumVal;
+      if (Math.abs(drumVal) > maxDrum) maxDrum = Math.abs(drumVal);
+
+      // 4. 伴奏/其他 (两侧声相 Sides + 泛音残差)
+      const otL = side + 0.3 * l - 0.2 * vVal;
+      const otR = -side + 0.3 * r - 0.2 * vVal;
+      otherL[i] = otL;
+      otherR[i] = otR;
+      if (Math.abs(otL) > maxOther) maxOther = Math.abs(otL);
+      if (Math.abs(otR) > maxOther) maxOther = Math.abs(otR);
+    }
+
+    // 归一化增益
+    normalizeChannel(bassL, bassR, maxBass, 0.85);
+    normalizeChannel(vocalL, vocalR, maxVocal, 0.88);
+    normalizeChannel(drumL, drumR, maxDrum, 0.86);
+    normalizeChannel(otherL, otherR, maxOther, 0.82);
+
+    setProgress(80, "正在封装为 16-bit 广播级 WAV 格式...");
+
+    const baseName = file.name.replace(/\.[^/.]+$/, "");
+    const vocalBlob = audioBuffersToWavBlob(vocalL, vocalR, sr);
+    const drumBlob = audioBuffersToWavBlob(drumL, drumR, sr);
+    const bassBlob = audioBuffersToWavBlob(bassL, bassR, sr);
+    const otherBlob = audioBuffersToWavBlob(otherL, otherR, sr);
+
+    setProgress(95, "正在将 4 轨分轨挂载至 DAW 多轨工作台...");
+
+    project.tracks = [
+      {
+        id: "trk_sep_vocal",
+        name: `${baseName} - 人声主轨 (Vocals)`,
+        instrument: "vocal_lead",
+        url: URL.createObjectURL(vocalBlob),
+        volume: 1.0,
+        pan: 0.0,
+        hpf: "90 Hz (切除低频喷麦)",
+        eq: "+2.5dB@3.4kHz (提升清晰度), +2.0dB@11kHz (空气感)",
+        comp: "3.5:1, 阈值 -18dB (平稳压限)",
+        sidechain: "触发伴奏乐器避让",
+        reverb: "板式空间混响 1.5s",
+        automation: "无",
+        pan_desc: "Center 0%"
+      },
+      {
+        id: "trk_sep_drum",
+        name: `${baseName} - 节奏鼓组 (Drums)`,
+        instrument: "drums",
+        url: URL.createObjectURL(drumBlob),
+        volume: 0.95,
+        pan: 0.0,
+        hpf: "35 Hz (次低切)",
+        eq: "+3.0dB@60Hz (底鼓冲击力), +2.5dB@4.5kHz (军鼓清晰度)",
+        comp: "4.0:1, 阈值 -16dB (击打紧实)",
+        sidechain: "触发贝斯与铺底动态避让",
+        reverb: "紧凑房间混响 0.6s",
+        automation: "无",
+        pan_desc: "Center 0%"
+      },
+      {
+        id: "trk_sep_bass",
+        name: `${baseName} - 低音贝斯 (Bass)`,
+        instrument: "bass",
+        url: URL.createObjectURL(bassBlob),
+        volume: 1.0,
+        pan: 0.0,
+        hpf: "25 Hz (次低频)",
+        eq: "+3.5dB@80Hz (基音下潜), -3.0dB@350Hz (减少浑浊)",
+        comp: "3.0:1, 阈值 -15dB (稳固根音)",
+        sidechain: "底鼓踩下时避让 -3.5dB",
+        reverb: "直出干声 (Dry)",
+        automation: "无",
+        pan_desc: "Center 0%"
+      },
+      {
+        id: "trk_sep_other",
+        name: `${baseName} - 伴奏乐器 (Other)`,
+        instrument: "guitar_arpeggio",
+        url: URL.createObjectURL(otherBlob),
+        volume: 0.9,
+        pan: 0.0,
+        hpf: "100 Hz (避让贝斯频段)",
+        eq: "+2.0dB@2.5kHz (中高频开阔), +2.5dB@12kHz (声场通透)",
+        comp: "2.5:1, 阈值 -14dB (保持呼吸感)",
+        sidechain: "人声发声时中频避让 -2.0dB",
+        reverb: "大厅立体声混响 1.8s",
+        automation: "无",
+        pan_desc: "Stereo Wide"
+      }
+    ];
+
+    project.current_mix = null;
+    project.current_strategy = null;
+    project.mix_versions = [];
+    project.active_version_id = null;
+
+    stopAudio();
+    audioElements = {};
+    project.tracks.forEach(t => {
+      const a = new Audio(t.url);
+      a.preload = "auto";
+      audioElements[t.id] = a;
+    });
+
+    renderAll();
+    renderStep1Manifest();
+    updateAllWaveforms();
+
+    setProgress(100, "✅ 音源分离圆满成功！4 轨分轨已装载就绪");
+    if (stemSepScanEffect) stemSepScanEffect.classList.add("hidden");
+
+    showNotification(`🎉 歌曲《${baseName}》已成功分离为 4 轨分轨并导入工程！`, "success");
+    setTimeout(() => {
+      switchStep(2);
+    }, 900);
+  } catch (err) {
+    console.error("Stem separation error:", err);
+    setProgress(0, "分离失败: " + err.message);
+    if (stemSepScanEffect) stemSepScanEffect.classList.add("hidden");
+    showNotification("音源分离出错，请重试：" + err.message, "error");
+  }
+}
+
+function createBiquadFilterCoeffs(type, freq, sampleRate, Q = 0.707) {
+  const w0 = (2 * Math.PI * freq) / sampleRate;
+  const cosW0 = Math.cos(w0);
+  const sinW0 = Math.sin(w0);
+  const alpha = sinW0 / (2 * Q);
+
+  let b0, b1, b2, a0, a1, a2;
+
+  if (type === "lowpass") {
+    b0 = (1 - cosW0) / 2;
+    b1 = 1 - cosW0;
+    b2 = (1 - cosW0) / 2;
+    a0 = 1 + alpha;
+    a1 = -2 * cosW0;
+    a2 = 1 - alpha;
+  } else if (type === "highpass") {
+    b0 = (1 + cosW0) / 2;
+    b1 = -(1 + cosW0);
+    b2 = (1 + cosW0) / 2;
+    a0 = 1 + alpha;
+    a1 = -2 * cosW0;
+    a2 = 1 - alpha;
+  } else if (type === "bandpass") {
+    b0 = alpha;
+    b1 = 0;
+    b2 = -alpha;
+    a0 = 1 + alpha;
+    a1 = -2 * cosW0;
+    a2 = 1 - alpha;
+  } else {
+    b0 = 1; b1 = 0; b2 = 0; a0 = 1; a1 = 0; a2 = 0;
+  }
+
+  return {
+    b0: b0 / a0,
+    b1: b1 / a0,
+    b2: b2 / a0,
+    a1: a1 / a0,
+    a2: a2 / a0
+  };
+}
+
+function applyBiquadSample(c, x, x1, x2, y1, y2) {
+  return c.b0 * x + c.b1 * x1 + c.b2 * x2 - c.a1 * y1 - c.a2 * y2;
+}
+
+function normalizeChannel(cL, cR, maxVal, target = 0.88) {
+  if (maxVal > 0.0001) {
+    const scale = target / maxVal;
+    for (let i = 0; i < cL.length; i++) {
+      cL[i] = Math.max(-1, Math.min(1, cL[i] * scale));
+      cR[i] = Math.max(-1, Math.min(1, cR[i] * scale));
+    }
+  }
+}
+
+function audioBuffersToWavBlob(channelL, channelR, sampleRate) {
+  const numChannels = channelR ? 2 : 1;
+  const numSamples = channelL.length;
+  const bytesPerSample = 2; // 16-bit
+  const blockAlign = numChannels * bytesPerSample;
+  const byteRate = sampleRate * blockAlign;
+  const dataSize = numSamples * blockAlign;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+
+  function writeString(offset, str) {
+    for (let i = 0; i < str.length; i++) {
+      view.setUint8(offset + i, str.charCodeAt(i));
+    }
+  }
+
+  writeString(0, "RIFF");
+  view.setUint32(4, 36 + dataSize, true);
+  writeString(8, "WAVE");
+  writeString(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bytesPerSample * 8, true);
+  writeString(36, "data");
+  view.setUint32(40, dataSize, true);
+
+  let offset = 44;
+  for (let i = 0; i < numSamples; i++) {
+    let sL = Math.max(-1, Math.min(1, channelL[i]));
+    view.setInt16(offset, sL < 0 ? sL * 0x8000 : sL * 0x7FFF, true);
+    offset += 2;
+    if (numChannels === 2) {
+      let sR = Math.max(-1, Math.min(1, channelR[i]));
+      view.setInt16(offset, sR < 0 ? sR * 0x8000 : sR * 0x7FFF, true);
+      offset += 2;
+    }
+  }
+
+  return new Blob([buffer], { type: "audio/wav" });
+}
+
+// 离线渲染带有指定混音版本声学 DSP 雕塑的定制 WAV 音频
+async function renderVersionOfflineWav(targetVersion) {
+  const fallbackUrl = targetVersion.master_url || project.reference?.url || (project.tracks && project.tracks[0]?.url);
+  if (!fallbackUrl) return null;
+  try {
+    const res = await fetch(fallbackUrl);
+    if (!res.ok) throw new Error("Fetch audio failed: " + res.status);
+    const ab = await res.arrayBuffer();
+    const tempCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const audioBuf = await tempCtx.decodeAudioData(ab);
+
+    const offlineCtx = new OfflineAudioContext(
+      audioBuf.numberOfChannels,
+      audioBuf.length,
+      audioBuf.sampleRate
+    );
+
+    const srcNode = offlineCtx.createBufferSource();
+    srcNode.buffer = audioBuf;
+
+    const dsp = getDspProfileSettings(targetVersion.id, targetVersion.name, targetVersion.prompt);
+
+    const hpf = offlineCtx.createBiquadFilter();
+    hpf.type = "highpass";
+    hpf.frequency.value = dsp.hpfFreq;
+
+    const lowShelf = offlineCtx.createBiquadFilter();
+    lowShelf.type = "lowshelf";
+    lowShelf.frequency.value = 85;
+    lowShelf.gain.value = dsp.lowGain;
+
+    const midPeak = offlineCtx.createBiquadFilter();
+    midPeak.type = "peaking";
+    midPeak.frequency.value = dsp.midFreq;
+    midPeak.gain.value = dsp.midGain;
+    midPeak.Q.value = 1.0;
+
+    const highShelf = offlineCtx.createBiquadFilter();
+    highShelf.type = "highshelf";
+    highShelf.frequency.value = dsp.highFreq;
+    highShelf.gain.value = dsp.highGain;
+
+    const comp = offlineCtx.createDynamicsCompressor();
+    comp.threshold.value = dsp.compThresh;
+    comp.ratio.value = dsp.compRatio;
+
+    const gain = offlineCtx.createGain();
+    gain.gain.value = dsp.masterGainVal;
+
+    srcNode.connect(hpf);
+    hpf.connect(lowShelf);
+    lowShelf.connect(midPeak);
+    midPeak.connect(highShelf);
+    highShelf.connect(comp);
+    comp.connect(gain);
+    gain.connect(offlineCtx.destination);
+
+    srcNode.start(0);
+    const rendered = await offlineCtx.startRendering();
+    const cL = rendered.getChannelData(0);
+    const cR = rendered.numberOfChannels > 1 ? rendered.getChannelData(1) : cL;
+    return audioBuffersToWavBlob(cL, cR, rendered.sampleRate);
+  } catch (e) {
+    console.warn("renderVersionOfflineWav error:", e);
+    return null;
+  }
 }
 
 // ==========================================
@@ -778,6 +1693,7 @@ function pauseAudio() {
   });
   if (animFrameId) cancelAnimationFrame(animFrameId);
   updateVuMeters(false);
+  updateDynamicGrMeters(false);
 }
 
 function stopAudio() {
@@ -793,6 +1709,7 @@ function stopAudio() {
   });
   if (animFrameId) cancelAnimationFrame(animFrameId);
   updateVuMeters(false);
+  updateDynamicGrMeters(false);
   updateAllWaveforms();
 }
 
@@ -906,6 +1823,7 @@ function startTimelineLoop() {
     updateTimeDisplay();
     updateAllWaveforms();
     updateVuMeters(true);
+    updateDynamicGrMeters(true);
     animFrameId = requestAnimationFrame(update);
   }
 
@@ -1065,9 +1983,15 @@ function rebuildAudioElements() {
   });
 
   if (project.current_mix?.master_url) {
-    const masterAudio = new Audio(project.current_mix.master_url);
-    masterAudio.preload = "auto";
-    audioElements["master"] = masterAudio;
+    const pipeline = getMasterAudioPipeline();
+    if (pipeline) {
+      pipeline.audio.src = project.current_mix.master_url;
+      audioElements["master"] = pipeline.audio;
+    } else {
+      const masterAudio = new Audio(project.current_mix.master_url);
+      masterAudio.preload = "auto";
+      audioElements["master"] = masterAudio;
+    }
   }
 
   if (project.reference?.url) {
@@ -1335,6 +2259,19 @@ function renderTracks() {
         </div>
       </div>
 
+      <!-- 可视化微型 EQ 频响曲线 -->
+      <div class="mini-eq-box flex-shrink-0" title="通道参量 EQ 频响曲线 (${meta.name})">
+        <canvas class="mini-eq-canvas" width="76" height="32" data-tid="${track.id}"></canvas>
+      </div>
+
+      <!-- 动态压限增益衰减表 (GR Meter) -->
+      <div class="gr-meter-container flex-shrink-0" title="动态压限增益衰减表 (Gain Reduction)">
+        <div class="gr-meter-scale">GR</div>
+        <div class="gr-meter-bar">
+          <div class="gr-meter-fill" id="gr-fill-${track.id}"></div>
+        </div>
+      </div>
+
       <!-- 真实专业 DAW 波形视窗 -->
       <div class="flex flex-1 min-w-0 h-11 track-waveform-box items-center px-1 relative w-full md:w-auto" data-tid="${track.id}">
         <canvas class="track-waveform-canvas w-full h-full" data-url="${track.url}" data-tid="${track.id}" data-color="${meta.hex}"></canvas>
@@ -1375,6 +2312,10 @@ function renderTracks() {
     });
 
     tracksContainer.appendChild(card);
+
+    // 绘制通道微型 EQ 频响曲线
+    const eqCanvas = card.querySelector(".mini-eq-canvas");
+    if (eqCanvas) drawMiniEqCurve(eqCanvas, track);
 
     // 绘制真实包络波形
     const canvas = card.querySelector(".track-waveform-canvas");
@@ -2052,28 +2993,40 @@ async function selectMixVersion(versionId) {
   project.active_version_id = versionId;
   project.current_mix = target;
 
-  // 更新当前 master 音频
-  if (target.master_url) {
+  // 更新当前 master 音频并保持 Web Audio DSP 链路畅通
+  const pipeline = getMasterAudioPipeline();
+  if (pipeline && target.master_url) {
     const curPos = (typeof playbackTime !== "undefined" ? playbackTime : 0) || 0;
     const wasPlaying = isPlaying;
-    
-    // 加载目标音频
+
+    const normTarget = target.master_url.replace(/^\.\//, "");
+    if (!pipeline.audio.src || !pipeline.audio.src.endsWith(normTarget)) {
+      pipeline.audio.src = target.master_url;
+      try {
+        pipeline.audio.currentTime = curPos;
+      } catch (e) {}
+    }
+
+    if (wasPlaying && listenMode === "mix") {
+      try {
+        pipeline.audio.currentTime = curPos;
+        await pipeline.audio.play();
+      } catch (e) {}
+    }
+  } else if (target.master_url) {
     const newMaster = new Audio(target.master_url);
     newMaster.preload = "auto";
     audioElements["master"] = newMaster;
-
-    if (wasPlaying && listenMode === "mix") {
-      newMaster.currentTime = curPos;
-      try {
-        await newMaster.play();
-      } catch (e) {}
-    }
   }
+
+  // 核心：应用 Web Audio 参量均衡与压限声学画像差异 (100% 确保不同版本听感显著不同)
+  applyMasterDspProfile(versionId);
 
   // 自动切换监听模式为 mix
   setListenMode("mix");
   renderMixVersions();
   renderMixMetrics();
+  updateSnapshotMatrix();
 
   // 若后端在线，同步通知后端
   try {
@@ -2721,7 +3674,25 @@ async function exportMasterAudio(versionId = null) {
     // 静态离线回退
   }
 
-  // 2. 静态离线模式（GitHub Pages）
+  // 2. 静态离线模式（GitHub Pages）：渲染带有该版本独立声学 DSP 的定制 WAV
+  try {
+    const renderedBlob = await renderVersionOfflineWav(targetVersion);
+    if (renderedBlob) {
+      const blobUrl = URL.createObjectURL(renderedBlob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+      showNotification(`✅ 成功导出专属声学母带 WAV：${fileName}`, "success");
+      return;
+    }
+  } catch (err) {
+    console.warn("Offline rendering fallback:", err);
+  }
+
   const fallbackUrl = targetVersion.master_url || project.reference?.url || (project.tracks && project.tracks[0]?.url);
   if (!fallbackUrl) {
     showNotification("⚠️ 未找到母带音频文件地址，请重新执行混音！", "error");

@@ -60,7 +60,8 @@ def test_frontend_integrity():
         'dsp-progress-modal', 'dsp-progress-bar', 'dsp-progress-percent',
         'global-action-progress', 'vu-meter-l', 'vu-meter-r',
         'ab-test-inspector-panel', 'ab-diagnostic-tbody',
-        'btn-clear-project', 'btn-auto-mix', 'btn-load-demo-suite'
+        'btn-clear-project', 'btn-auto-mix', 'btn-load-demo-suite',
+        'btn-confirm-upload-tracks', 'staged-tracks-container', 'step1-imported-manifest'
     ]
     for kid in key_ids:
         assert kid in html_ids, f'❌ 关键 UI 组件缺失: {kid}'

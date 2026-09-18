@@ -299,6 +299,12 @@ let btnPlayPause, playIcon, btnStop, btnRewind, timeDisplay, btnClearProject, bt
 let listenRawBtn, listenMixBtn, listenRefBtn;
 let inputTracks, inputReference, btnLoadDemoSuite, selectDemoSong;
 let currentDemoSongLabel, currentRefStyleLabel;
+let demoStemsPreviewBox, demoStemsCountTag, demoStemsList, btnLoadDemoText, demoLoadStatus, demoLoadStatusText;
+let dropAreaTracks, stagedTracksContainer, stagedCountNum, stagedTracksList, btnClearStagedTracks, btnConfirmUploadTracks, btnConfirmUploadText;
+let uploadStatusIndicator, uploadStatusText, uploadStatusPercent, uploadStatusBar;
+let step1ImportedManifest, step1ManifestCount, step1ManifestTracksGrid, btnStep1PreviewAll;
+let stagedFiles = [];
+
 let tracksContainer, emptyTracksHint, trackCountBadge, refStatusBadge, mixStatusBadge, valLufs, valPeak;
 let refAnalysisPanel, refLufs, refPeak, refStereo, spectrumBarsContainer;
 let multitrackFxRackContainer, abTestInspectorPanel, activeListenTag, abDiagnosticTbody;
@@ -316,6 +322,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initDomReferences();
   initEventListeners();
   initStepNavigation();
+  renderDemoSongPreview("song_01");
   await refreshProject();
 });
 
@@ -338,6 +345,31 @@ function initDomReferences() {
   selectDemoSong = document.getElementById("select-demo-song");
   currentDemoSongLabel = document.getElementById("current-demo-song-label");
   currentRefStyleLabel = document.getElementById("current-ref-style-label");
+
+  demoStemsPreviewBox = document.getElementById("demo-stems-preview-box");
+  demoStemsCountTag = document.getElementById("demo-stems-count-tag");
+  demoStemsList = document.getElementById("demo-stems-list");
+  btnLoadDemoText = document.getElementById("btn-load-demo-text");
+  demoLoadStatus = document.getElementById("demo-load-status");
+  demoLoadStatusText = document.getElementById("demo-load-status-text");
+
+  dropAreaTracks = document.getElementById("drop-area-tracks");
+  stagedTracksContainer = document.getElementById("staged-tracks-container");
+  stagedCountNum = document.getElementById("staged-count-num");
+  stagedTracksList = document.getElementById("staged-tracks-list");
+  btnClearStagedTracks = document.getElementById("btn-clear-staged-tracks");
+  btnConfirmUploadTracks = document.getElementById("btn-confirm-upload-tracks");
+  btnConfirmUploadText = document.getElementById("btn-confirm-upload-text");
+
+  uploadStatusIndicator = document.getElementById("upload-status-indicator");
+  uploadStatusText = document.getElementById("upload-status-text");
+  uploadStatusPercent = document.getElementById("upload-status-percent");
+  uploadStatusBar = document.getElementById("upload-status-bar");
+
+  step1ImportedManifest = document.getElementById("step1-imported-manifest");
+  step1ManifestCount = document.getElementById("step1-manifest-count");
+  step1ManifestTracksGrid = document.getElementById("step1-manifest-tracks-grid");
+  btnStep1PreviewAll = document.getElementById("btn-step1-preview-all");
 
   tracksContainer = document.getElementById("tracks-container");
   emptyTracksHint = document.getElementById("empty-tracks-hint");
@@ -516,10 +548,12 @@ function initEventListeners() {
 
   if (selectDemoSong) {
     selectDemoSong.addEventListener("change", (e) => {
-      const opt = DEMO_SONG_PROJECTS[e.target.value];
+      const chosen = e.target.value;
+      const opt = DEMO_SONG_PROJECTS[chosen];
       if (opt && currentDemoSongLabel) {
         currentDemoSongLabel.textContent = opt.shortName;
       }
+      renderDemoSongPreview(chosen);
     });
   }
 
@@ -531,14 +565,56 @@ function initEventListeners() {
     });
   });
 
-  // 音频文件上传
+  // 音频文件选择 -> 添加入暂存清单
   if (inputTracks) {
-    inputTracks.addEventListener("change", async (e) => {
+    inputTracks.addEventListener("change", (e) => {
       const files = Array.from(e.target.files);
       if (files.length === 0) return;
-      await uploadTracks(files);
+      addFilesToStaging(files);
       inputTracks.value = "";
     });
+  }
+
+  // 支持拖拽音频文件到上传框
+  if (dropAreaTracks) {
+    ["dragenter", "dragover"].forEach(evt => {
+      dropAreaTracks.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropAreaTracks.classList.add("border-purple-400", "bg-[#141a29]");
+      }, false);
+    });
+    ["dragleave", "drop"].forEach(evt => {
+      dropAreaTracks.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropAreaTracks.classList.remove("border-purple-400", "bg-[#141a29]");
+      }, false);
+    });
+    dropAreaTracks.addEventListener("drop", (e) => {
+      const dt = e.dataTransfer;
+      if (dt && dt.files && dt.files.length > 0) {
+        const audioFiles = Array.from(dt.files).filter(f => f.type.startsWith("audio/") || /\.(wav|mp3|flac|aac|m4a|ogg)$/i.test(f.name));
+        if (audioFiles.length > 0) {
+          addFilesToStaging(audioFiles);
+        }
+      }
+    });
+  }
+
+  // 清空暂存清单
+  if (btnClearStagedTracks) {
+    btnClearStagedTracks.addEventListener("click", clearStagedFiles);
+  }
+
+  // 显式【确认上传】按键
+  if (btnConfirmUploadTracks) {
+    btnConfirmUploadTracks.addEventListener("click", executeUploadStagedFiles);
+  }
+
+  // 步骤 1 已导入清单中的【试听全轨】
+  if (btnStep1PreviewAll) {
+    btnStep1PreviewAll.addEventListener("click", togglePlayPause);
   }
 
   if (inputReference) {
@@ -973,6 +1049,9 @@ async function loadDemoProjectSuite(songId = "song_01") {
   if (currentDemoSongLabel) {
     currentDemoSongLabel.textContent = songData.shortName;
   }
+  if (btnLoadDemoText) {
+    btnLoadDemoText.textContent = "正在载入示范曲分轨...";
+  }
 
   // 1. 服务端在线优先
   try {
@@ -983,7 +1062,17 @@ async function loadDemoProjectSuite(songId = "song_01") {
       isDemoMode = false;
       listenMode = "raw"; // 载入后默认设为 raw 分轨模式，确保按播放即响！
       renderAll();
-      switchStep(2); // 自动切换至步骤 2 多轨控制台，让用户立刻看到各轨波形！
+      if (btnLoadDemoText) {
+        btnLoadDemoText.textContent = `确认导入所选示范曲分轨 (${project.tracks.length} 轨完整和声)`;
+      }
+      if (demoLoadStatus && demoLoadStatusText) {
+        demoLoadStatusText.textContent = `已成功导入【${songData.title}】共 ${project.tracks.length} 轨实录分轨与商业参考母带！`;
+        demoLoadStatus.classList.remove("hidden");
+      }
+      showNotification(`✅ 已成功导入【${songData.title}】共 ${project.tracks.length} 轨实录分轨与商业参考母带！`, "success");
+      if (step1ImportedManifest) {
+        step1ImportedManifest.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
       return;
     }
   } catch (err) {
@@ -1016,7 +1105,17 @@ async function loadDemoProjectSuite(songId = "song_01") {
   ];
 
   renderAll();
-  switchStep(2); // 引导至步骤 2 商业风格参考画像
+  if (btnLoadDemoText) {
+    btnLoadDemoText.textContent = `确认导入所选示范曲分轨 (${project.tracks.length} 轨完整和声)`;
+  }
+  if (demoLoadStatus && demoLoadStatusText) {
+    demoLoadStatusText.textContent = `已成功导入【${songData.title}】共 ${project.tracks.length} 轨实录分轨与商业参考母带！可在下方控制台或步骤 1 预览试听。`;
+    demoLoadStatus.classList.remove("hidden");
+  }
+  showNotification(`✅ 已成功导入【${songData.title}】共 ${project.tracks.length} 轨实录分轨与商业参考母带！`, "success");
+  if (step1ImportedManifest) {
+    step1ImportedManifest.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
 }
 
 // 刷新工程状态
@@ -1064,6 +1163,8 @@ async function clearProject() {
   activeSoloTrackId = null;
   trackSoloState = {};
   trackMuteState = {};
+  clearStagedFiles();
+  if (demoLoadStatus) demoLoadStatus.classList.add("hidden");
 
   try {
     await fetch("/api/project/clear", { method: "POST" });
@@ -1085,6 +1186,7 @@ function renderAll() {
   renderMixMetrics();
   renderMixVersions();
   renderChat();
+  renderStep1Manifest();
   rebuildAudioElements();
   updateListenModeButtons();
 }
@@ -1953,40 +2055,331 @@ function deleteTrack(trackId) {
   renderAll();
 }
 
-async function uploadTracks(files) {
-  triggerGlobalProgress(600);
-  const formData = new FormData();
-  files.forEach(f => formData.append("files", f));
+// ==========================================
+// 步骤 1：示范曲预览与自备分轨暂存上传引擎
+// ==========================================
 
+// 渲染示范曲目详情与分轨构成预览
+function renderDemoSongPreview(songId = "song_01") {
+  const songData = DEMO_SONG_PROJECTS[songId] || DEMO_SONG_PROJECTS["song_01"];
+  if (currentDemoSongLabel) {
+    currentDemoSongLabel.textContent = songData.shortName;
+  }
+  if (demoStemsCountTag) {
+    demoStemsCountTag.textContent = `${songData.tracks.length} 轨实录分轨 + 1 参考母带`;
+  }
+  if (btnLoadDemoText) {
+    btnLoadDemoText.textContent = `确认导入所选示范曲分轨 (${songData.tracks.length} 轨完整和声)`;
+  }
+  if (!demoStemsList) return;
+  demoStemsList.innerHTML = "";
+
+  songData.tracks.forEach(t => {
+    const meta = instrumentMeta[t.instrument] || instrumentMeta["other"];
+    const item = document.createElement("div");
+    item.className = "flex items-center space-x-1 px-2 py-1 rounded bg-[#101420] border border-[#1d273a] truncate";
+    item.innerHTML = `
+      <i class="fa-solid ${meta.icon} text-[10px] ${meta.color.split(" ")[0]} flex-shrink-0"></i>
+      <span class="truncate text-[10px] text-zinc-300" title="${t.name}">${t.name}</span>
+    `;
+    demoStemsList.appendChild(item);
+  });
+
+  // 追加商业参考母带徽章
+  const refItem = document.createElement("div");
+  refItem.className = "flex items-center space-x-1 px-2 py-1 rounded bg-[#171228] border border-purple-800/40 truncate col-span-2 sm:col-span-1";
+  refItem.innerHTML = `
+    <i class="fa-solid fa-compact-disc text-[10px] text-purple-400 flex-shrink-0"></i>
+    <span class="truncate text-[10px] text-purple-300 font-medium" title="${songData.reference.name}">标杆: ${songData.reference.name}</span>
+  `;
+  demoStemsList.appendChild(refItem);
+}
+
+// 智能根据文件名推测乐器声部
+function guessInstrumentFromFilename(filename) {
+  const f = filename.toLowerCase();
+  if (/vocal|vox|lead_vox|singer|人声|主唱|清唱/i.test(f)) return "vocal_lead";
+  if (/back_vox|bgv|choir|harmony|和声|伴唱/i.test(f)) return "vocal_backing";
+  if (/finger|arpeggio|分解/i.test(f)) return "guitar_arpeggio";
+  if (/strum|扫弦|木吉|acoustic.*guitar|ac_gtr/i.test(f)) return "guitar_strum";
+  if (/elec.*gtr|lead_gtr|dist.*gtr|solo_gtr|电吉他|失真/i.test(f)) return "guitar_lead";
+  if (/bass|808|sub|贝斯|低音/i.test(f)) return "bass";
+  if (/drum|kick|snare|hihat|cymbal|loop|percussion|鼓|打动|打击/i.test(f)) return "drums";
+  if (/synth|pad|lead_synth|pluck|合成器|电音/i.test(f)) return "synth_lead";
+  if (/piano|keys|rhodes|organ|钢琴|键盘/i.test(f)) return "piano_acoustic";
+  if (/violin|fiddle|cello|string|orchestra|弦乐|小提琴|提琴/i.test(f)) return "strings_acoustic";
+  return "other";
+}
+
+function formatBytes(bytes) {
+  if (!bytes || bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+}
+
+// 添加文件至待上传暂存清单
+function addFilesToStaging(fileList) {
+  if (!fileList || fileList.length === 0) return;
+  let addedCount = 0;
+  for (let i = 0; i < fileList.length; i++) {
+    const file = fileList[i];
+    if (!stagedFiles.some(f => f.file.name === file.name && f.file.size === file.size)) {
+      stagedFiles.push({
+        id: `stg_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        file: file,
+        instrument: guessInstrumentFromFilename(file.name)
+      });
+      addedCount++;
+    }
+  }
+  if (addedCount > 0) {
+    renderStagedFiles();
+    showNotification(`已添加 ${addedCount} 个文件至待上传列表，请核对声部后点击「确认上传并导入」！`, "info");
+  }
+}
+
+// 移除暂存队列中的单项
+function removeStagedFile(stageId) {
+  stagedFiles = stagedFiles.filter(f => f.id !== stageId);
+  renderStagedFiles();
+}
+
+// 清空所有暂存文件
+function clearStagedFiles() {
+  stagedFiles = [];
+  if (inputTracks) inputTracks.value = "";
+  renderStagedFiles();
+}
+
+// 渲染步骤 1 自备待上传文件列表
+function renderStagedFiles() {
+  if (!stagedTracksContainer) return;
+  if (stagedFiles.length === 0) {
+    stagedTracksContainer.classList.add("hidden");
+    return;
+  }
+  stagedTracksContainer.classList.remove("hidden");
+  if (stagedCountNum) stagedCountNum.textContent = stagedFiles.length;
+
+  let totalBytes = 0;
+  stagedFiles.forEach(f => { totalBytes += f.file.size; });
+  const totalSizeStr = formatBytes(totalBytes);
+
+  if (btnConfirmUploadText) {
+    btnConfirmUploadText.textContent = `确认上传 ${stagedFiles.length} 轨音频并导入工程 (${totalSizeStr})`;
+  }
+
+  if (!stagedTracksList) return;
+  stagedTracksList.innerHTML = "";
+
+  const instrumentOptions = [
+    { key: "vocal_lead", label: "🎤 人声主唱" },
+    { key: "vocal_backing", label: "👥 和声伴唱" },
+    { key: "guitar_arpeggio", label: "🎸 木吉他分解" },
+    { key: "guitar_strum", label: "🎸 木吉他扫弦" },
+    { key: "guitar_lead", label: "⚡ 电吉他Solo" },
+    { key: "bass", label: "🎸 贝斯 / 808" },
+    { key: "drums", label: "🥁 鼓组 / 打击" },
+    { key: "synth_lead", label: "🎹 合成器Lead" },
+    { key: "piano_acoustic", label: "🎹 原声钢琴" },
+    { key: "strings_acoustic", label: "🎻 真实提琴" },
+    { key: "other", label: "🎵 其他声部" }
+  ];
+
+  stagedFiles.forEach((item, index) => {
+    const row = document.createElement("div");
+    row.className = "flex items-center justify-between gap-2 p-2 rounded-lg bg-[#0e1320] border border-[#1b253b] text-xs";
+
+    const optionsHtml = instrumentOptions.map(opt => 
+      `<option value="${opt.key}" ${opt.key === item.instrument ? "selected" : ""}>${opt.label}</option>`
+    ).join("");
+
+    row.innerHTML = `
+      <div class="flex items-center space-x-2 min-w-0 flex-1">
+        <span class="text-[10px] font-mono text-zinc-500 font-bold">#${index + 1}</span>
+        <i class="fa-solid fa-file-audio text-purple-400 text-xs flex-shrink-0"></i>
+        <div class="min-w-0 flex-1">
+          <div class="text-zinc-200 font-medium truncate text-xs" title="${item.file.name}">${item.file.name}</div>
+          <div class="text-[10px] text-zinc-500 font-mono">${formatBytes(item.file.size)}</div>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2 flex-shrink-0">
+        <select class="sel-staged-inst bg-[#080b12] text-zinc-300 border border-[#232f48] rounded px-1.5 py-1 text-[11px] focus:outline-none focus:border-purple-400" data-sid="${item.id}">
+          ${optionsHtml}
+        </select>
+        <button type="button" class="btn-remove-staged text-zinc-500 hover:text-red-400 p-1 transition" data-sid="${item.id}" title="移除此项">
+          <i class="fa-solid fa-xmark text-xs"></i>
+        </button>
+      </div>
+    `;
+
+    row.querySelector(".sel-staged-inst").addEventListener("change", (e) => {
+      item.instrument = e.target.value;
+    });
+    row.querySelector(".btn-remove-staged").addEventListener("click", () => {
+      removeStagedFile(item.id);
+    });
+
+    stagedTracksList.appendChild(row);
+  });
+}
+
+// 执行【确认上传并导入工程】
+async function executeUploadStagedFiles() {
+  if (stagedFiles.length === 0) {
+    showNotification("当前待上传列表为空，请先点击选取或拖拽自备音频文件！", "error");
+    return;
+  }
+
+  if (btnConfirmUploadTracks) btnConfirmUploadTracks.disabled = true;
+  if (uploadStatusIndicator) uploadStatusIndicator.classList.remove("hidden");
+  if (uploadStatusText) uploadStatusText.textContent = `正在上传并解析 ${stagedFiles.length} 轨自备音频...`;
+  if (uploadStatusBar) uploadStatusBar.style.width = "20%";
+  if (uploadStatusPercent) uploadStatusPercent.textContent = "20%";
+  triggerGlobalProgress(800);
+
+  const total = stagedFiles.length;
+  let backendSuccess = false;
+
+  // 1. 优先尝试服务端在线上传
   try {
+    const formData = new FormData();
+    stagedFiles.forEach(item => formData.append("files", item.file));
+    if (uploadStatusBar) uploadStatusBar.style.width = "45%";
+    if (uploadStatusPercent) uploadStatusPercent.textContent = "45%";
+
     const res = await fetch("/api/tracks/upload", { method: "POST", body: formData });
     if (res.ok) {
       const data = await res.json();
-      project = data.project;
-      listenMode = "raw";
-      renderAll();
-      switchStep(2);
-      return;
+      if (data.project) {
+        project = data.project;
+      } else if (data.tracks) {
+        project.tracks = data.tracks;
+      }
+      // 将前端手动挑选的乐器声部对应赋予
+      stagedFiles.forEach(item => {
+        const found = project.tracks.find(t => t.file_name === item.file.name || t.name === item.file.name.replace(/\.[^/.]+$/, ""));
+        if (found && item.instrument) {
+          found.instrument = item.instrument;
+        }
+      });
+      backendSuccess = true;
     }
-  } catch(err) {}
+  } catch (err) {
+    console.log("以本地客户端/GitHub Pages静态模式挂载自备音频:", err);
+  }
 
-  // 离线环境本地 Object URL
-  files.forEach(file => {
-    const tid = `trk_${Date.now()}_${Math.floor(Math.random()*1000)}`;
-    const url = URL.createObjectURL(file);
-    project.tracks.push({
-      id: tid,
-      name: file.name.replace(/\.[^/.]+$/, ""),
-      file_name: file.name,
-      url: url,
-      volume: 1.0,
-      pan: 0.0,
-      instrument: "other"
+  // 2. 离线/静态模式回退 (Blob Object URL)
+  if (!backendSuccess) {
+    stagedFiles.forEach((item, idx) => {
+      const tid = `trk_${Date.now()}_${idx}_${Math.floor(Math.random()*1000)}`;
+      const url = URL.createObjectURL(item.file);
+      project.tracks.push({
+        id: tid,
+        name: item.file.name.replace(/\.[^/.]+$/, ""),
+        file_name: item.file.name,
+        url: url,
+        volume: 1.0,
+        pan: 0.0,
+        instrument: item.instrument || guessInstrumentFromFilename(item.file.name)
+      });
     });
-  });
+  }
+
+  if (uploadStatusBar) uploadStatusBar.style.width = "100%";
+  if (uploadStatusPercent) uploadStatusPercent.textContent = "100%";
+
+  setTimeout(() => {
+    if (uploadStatusIndicator) uploadStatusIndicator.classList.add("hidden");
+    if (btnConfirmUploadTracks) btnConfirmUploadTracks.disabled = false;
+  }, 400);
+
+  stagedFiles = [];
+  if (inputTracks) inputTracks.value = "";
+  renderStagedFiles();
+
   listenMode = "raw";
   renderAll();
-  switchStep(2);
+
+  showNotification(`✅ 成功导入 ${total} 轨自备音频分轨！可在下方控制台或步骤 1 预览试听。`, "success");
+
+  if (step1ImportedManifest) {
+    step1ImportedManifest.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+}
+
+// 渲染步骤 1 已导入分轨清单 (Imported Stems Manifest)
+function renderStep1Manifest() {
+  if (!step1ImportedManifest) return;
+  const tracks = project.tracks || [];
+  if (tracks.length === 0) {
+    step1ImportedManifest.classList.add("hidden");
+    return;
+  }
+  step1ImportedManifest.classList.remove("hidden");
+  if (step1ManifestCount) step1ManifestCount.textContent = `${tracks.length} 轨已就绪`;
+
+  if (!step1ManifestTracksGrid) return;
+  step1ManifestTracksGrid.innerHTML = "";
+
+  tracks.forEach((track, index) => {
+    const meta = instrumentMeta[track.instrument] || instrumentMeta["other"];
+    const chIndex = String(index + 1).padStart(2, "0");
+    const isPlayingThis = (activeSoloTrackId === track.id);
+
+    const card = document.createElement("div");
+    card.className = "flex items-center justify-between p-2 rounded-lg bg-[#080b12] border border-[#1a2337] text-xs hover:border-[#2b3752] transition";
+    card.innerHTML = `
+      <div class="flex items-center space-x-2 min-w-0 flex-1">
+        <span class="text-[9px] font-mono text-zinc-500 font-bold">CH${chIndex}</span>
+        <span class="w-1.5 h-4 rounded-full" style="background-color: ${meta.hex};"></span>
+        <div class="min-w-0 flex-1">
+          <div class="text-zinc-200 font-semibold truncate text-xs" title="${track.name}">${track.name}</div>
+          <div class="text-[9px] ${meta.color.split(" ")[0]} flex items-center space-x-1">
+            <i class="fa-solid ${meta.icon} text-[8px]"></i>
+            <span>${meta.name}</span>
+          </div>
+        </div>
+      </div>
+      <button class="btn-step1-track-audition w-6 h-6 rounded bg-[#131926] hover:bg-emerald-600 text-zinc-300 hover:text-white border border-[#222d42] flex items-center justify-center transition flex-shrink-0" data-tid="${track.id}" title="试听该轨">
+        <i class="fa-solid ${isPlayingThis ? "fa-pause" : "fa-play"} text-[9px]"></i>
+      </button>
+    `;
+
+    card.querySelector(".btn-step1-track-audition").addEventListener("click", () => {
+      togglePlaySingleTrack(track.id);
+      renderStep1Manifest();
+    });
+
+    step1ManifestTracksGrid.appendChild(card);
+  });
+}
+
+// 现代化浮动通知提示 (Floating Toast)
+function showNotification(msg, type = "info") {
+  let toast = document.getElementById("daw-floating-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "daw-floating-toast";
+    toast.className = "fixed bottom-5 right-5 z-50 max-w-md px-4 py-3 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-10 opacity-0 flex items-center space-x-2.5 text-xs font-medium border pointer-events-none";
+    document.body.appendChild(toast);
+  }
+  if (type === "success") {
+    toast.className = "fixed bottom-5 right-5 z-50 max-w-md px-4 py-3 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-0 opacity-100 flex items-center space-x-2.5 text-xs font-medium border bg-[#0b1b13] border-emerald-500/70 text-emerald-200 shadow-emerald-500/20";
+    toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-sm flex-shrink-0"></i><span>${msg}</span>`;
+  } else if (type === "error") {
+    toast.className = "fixed bottom-5 right-5 z-50 max-w-md px-4 py-3 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-0 opacity-100 flex items-center space-x-2.5 text-xs font-medium border bg-[#1c0d0d] border-red-500/70 text-red-200 shadow-red-500/20";
+    toast.innerHTML = `<i class="fa-solid fa-circle-exclamation text-red-400 text-sm flex-shrink-0"></i><span>${msg}</span>`;
+  } else {
+    toast.className = "fixed bottom-5 right-5 z-50 max-w-md px-4 py-3 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-0 opacity-100 flex items-center space-x-2.5 text-xs font-medium border bg-[#101422] border-indigo-500/70 text-zinc-200 shadow-indigo-500/20";
+    toast.innerHTML = `<i class="fa-solid fa-circle-info text-indigo-400 text-sm flex-shrink-0"></i><span>${msg}</span>`;
+  }
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => {
+    toast.className = "fixed bottom-5 right-5 z-50 max-w-md px-4 py-3 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-10 opacity-0 flex items-center space-x-2.5 text-xs font-medium border pointer-events-none";
+  }, 4000);
 }
 
 async function uploadReferenceFile(file) {
@@ -1998,9 +2391,14 @@ async function uploadReferenceFile(file) {
     const res = await fetch("/api/reference/upload", { method: "POST", body: formData });
     if (res.ok) {
       const data = await res.json();
-      project = data.project;
+      if (data.project) {
+        project = data.project;
+      } else if (data.reference) {
+        project.reference = data.reference;
+      }
       renderAll();
-      switchStep(3);
+      showNotification(`✅ 成功导入参考母带《${file.name}》！`, "success");
+      switchStep(2);
       return;
     }
   } catch (err) {}
@@ -2020,5 +2418,6 @@ async function uploadReferenceFile(file) {
     }
   };
   renderAll();
-  switchStep(3);
+  showNotification(`✅ 成功挂载本地参考音频《${file.name}》！`, "success");
+  switchStep(2);
 }

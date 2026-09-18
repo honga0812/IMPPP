@@ -111,8 +111,7 @@ async def upload_tracks(files: List[UploadFile] = File(...)):
             "instrument": copilot.identify_instrument(filename)
         }
         project_state["tracks"].append(track_info)
-        uploaded.append(track_info)
-    return {"tracks": project_state["tracks"], "added": uploaded}
+    return {"status": "ok", "tracks": project_state["tracks"], "added": uploaded, "project": project_state}
 
 @app.delete("/api/tracks/{track_id}")
 def delete_track(track_id: str):
@@ -236,7 +235,7 @@ async def upload_reference(file: UploadFile = File(...)):
         "analysis": analysis
     }
     project_state["reference"] = ref_info
-    return {"status": "ok", "reference": ref_info}
+    return {"status": "ok", "reference": ref_info, "project": project_state}
 
 @app.post("/api/mix/auto")
 def run_auto_mix(req: AutoMixRequest):

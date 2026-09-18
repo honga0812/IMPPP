@@ -199,7 +199,7 @@
         <!-- ==================================================================
              【步骤 1 面板】工程建立与音轨导入 (Step 1: Setup & Import)
              ================================================================== -->
-        <section id="step-panel-1" class="space-y-3">
+        <section id="step-panel-1" class="space-y-4">
           <div class="flex items-center justify-between">
             <h2 class="text-sm font-bold text-zinc-200 flex items-center space-x-2">
               <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
@@ -211,48 +211,144 @@
             </button>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <!-- 示范曲目工程选择器卡片 -->
-            <div class="rack-slot p-4 space-y-3">
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-zinc-300 flex items-center space-x-1.5">
-                  <i class="fa-solid fa-music text-indigo-400"></i>
-                  <span>载入官方实录示范曲目</span>
-                </span>
-                <span class="text-[11px] text-indigo-400 font-mono" id="current-demo-song-label">待选择</span>
+            <div class="rack-slot p-4 space-y-3 flex flex-col justify-between">
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-zinc-300 flex items-center space-x-1.5">
+                    <i class="fa-solid fa-music text-indigo-400"></i>
+                    <span>官方实录示范曲目 (Official Demo Songs)</span>
+                  </span>
+                  <span class="text-[11px] text-indigo-400 font-mono" id="current-demo-song-label">待选择</span>
+                </div>
+                <p class="text-xs text-zinc-400 leading-relaxed">
+                  选择同一完整乐段的专业录音棚分轨。每首曲目所有分轨调性、BPM 严密契合，和弦与配器完全协调。
+                </p>
+                <div class="pt-1">
+                  <label class="text-[11px] text-zinc-400 font-medium block mb-1">选择示范风格曲目：</label>
+                  <select id="select-demo-song" class="w-full bg-[#0c0f17] text-zinc-200 border border-indigo-700/60 rounded-lg px-2.5 py-2 text-xs font-medium focus:outline-none focus:border-indigo-400">
+                    <option value="song_01">🌾 曲目一：抒情乡村风《Country Ballad》 (6轨纯木吉他/实录乡村男声/小提琴/贝斯鼓组)</option>
+                    <option value="song_02">⚡ 曲目二：K-pop流行音乐风格《K-Pop Modern Pop》 (4轨强劲808/电音全鼓/女声主唱/电音Lead)</option>
+                  </select>
+                </div>
+
+                <!-- 示范曲分轨构成清单预览盒 -->
+                <div id="demo-stems-preview-box" class="bg-[#090c14] border border-[#1d2538] rounded-lg p-3 space-y-2">
+                  <div class="flex items-center justify-between text-[11px]">
+                    <span class="text-zinc-400 font-medium flex items-center space-x-1">
+                      <i class="fa-solid fa-layer-group text-indigo-400"></i>
+                      <span>该曲目包含以下完整实录分轨：</span>
+                    </span>
+                    <span class="text-indigo-400 font-mono text-[10px]" id="demo-stems-count-tag">6 轨 + 1 参考母带</span>
+                  </div>
+                  <div id="demo-stems-list" class="grid grid-cols-2 gap-1.5 text-[11px] text-zinc-300 font-mono">
+                    <!-- 动态注入当前示范曲的分轨徽章 -->
+                  </div>
+                </div>
               </div>
-              <p class="text-xs text-zinc-400 leading-relaxed">
-                内置 100% 同一完整演奏乐段的高保真实录分轨（纯指弹木吉他、真声人声、808 贝斯、原声小提琴等），和声协调，严密契合。
-              </p>
-              <div class="flex items-center space-x-2 pt-1">
-                <select id="select-demo-song" class="flex-1 bg-[#0c0f17] text-zinc-200 border border-indigo-700/60 rounded-lg px-2.5 py-2 text-xs font-medium focus:outline-none focus:border-indigo-400">
-                  <option value="song_01">🌾 曲目一：抒情乡村风《Country Ballad》 (6轨纯木吉他/实录乡村男声/小提琴/贝斯鼓组)</option>
-                  <option value="song_02">⚡ 曲目二：K-pop流行音乐风格《K-Pop Modern Pop》 (4轨强劲808/电音全鼓/女声主唱/电音Lead)</option>
-                </select>
-                <button id="btn-load-demo-suite" type="button" class="py-2 px-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/60 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-md shadow-indigo-600/30 flex-shrink-0">
-                  <i class="fa-solid fa-cloud-arrow-down text-xs"></i>
-                  <span>载入曲目</span>
+
+              <div class="space-y-2 pt-2">
+                <button id="btn-load-demo-suite" type="button" class="w-full py-2.5 px-4 rounded-lg bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 border border-indigo-400/60 text-white text-xs font-bold transition flex items-center justify-center space-x-2 shadow-lg shadow-indigo-600/30">
+                  <i class="fa-solid fa-cloud-arrow-down text-sm"></i>
+                  <span id="btn-load-demo-text">确认导入所选示范曲分轨</span>
                 </button>
+                <div id="demo-load-status" class="hidden text-[11px] text-emerald-400 bg-emerald-950/40 border border-emerald-600/40 rounded-lg px-2.5 py-1.5 flex items-center space-x-1.5">
+                  <i class="fa-solid fa-circle-check text-xs"></i>
+                  <span id="demo-load-status-text">已就绪</span>
+                </div>
               </div>
             </div>
 
             <!-- 自备分轨上传卡片 -->
             <div class="rack-slot p-4 space-y-3 flex flex-col justify-between">
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-zinc-300 flex items-center space-x-1.5">
-                  <i class="fa-solid fa-folder-open text-purple-400"></i>
-                  <span>或导入自备多轨音频 (Local Stems)</span>
-                </span>
-                <span class="text-[10px] text-zinc-500 font-mono">支持 WAV / MP3 / FLAC</span>
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-zinc-300 flex items-center space-x-1.5">
+                    <i class="fa-solid fa-folder-open text-purple-400"></i>
+                    <span>导入自备多轨音频 (Local Stems Upload)</span>
+                  </span>
+                  <span class="text-[10px] text-zinc-500 font-mono">WAV / MP3 / FLAC / AAC</span>
+                </div>
+
+                <!-- 拖拽/点击选择区域 -->
+                <label id="drop-area-tracks" class="cursor-pointer border-2 border-dashed border-zinc-700 hover:border-purple-500 rounded-lg p-3 text-center transition block bg-[#090b12] hover:bg-[#0e121e]">
+                  <i class="fa-solid fa-cloud-arrow-up text-purple-400 text-xl mb-1 block"></i>
+                  <span class="text-xs text-zinc-200 font-semibold block">点击选取或拖拽自备音频分轨至此处</span>
+                  <span class="text-[10px] text-zinc-400 mt-0.5 block">支持一次选取多条音频（如人声、木吉他、鼓组、贝斯等）</span>
+                  <input type="file" id="input-tracks" multiple accept="audio/*" class="hidden">
+                </label>
+
+                <!-- 待上传文件暂存队列 (Staging Queue) -->
+                <div id="staged-tracks-container" class="hidden space-y-2 bg-[#090c14] border border-[#212b40] rounded-lg p-3">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-zinc-300 flex items-center space-x-1.5">
+                      <i class="fa-solid fa-list-check text-purple-400"></i>
+                      <span>待确认上传分轨清单 (<span id="staged-count-num" class="text-purple-400 font-mono">0</span>)</span>
+                    </span>
+                    <button id="btn-clear-staged-tracks" type="button" class="text-[10px] text-zinc-400 hover:text-red-400 transition">
+                      清空全部
+                    </button>
+                  </div>
+
+                  <!-- 待上传文件逐项列表 -->
+                  <div id="staged-tracks-list" class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    <!-- 动态生成待上传分轨项 -->
+                  </div>
+
+                  <!-- 显式【确认上传】按键 -->
+                  <div class="pt-2 border-t border-[#1b2336] flex items-center space-x-2">
+                    <button id="btn-confirm-upload-tracks" type="button" class="flex-1 py-2.5 px-4 rounded-lg bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold transition flex items-center justify-center space-x-2 shadow-lg shadow-purple-600/30">
+                      <i class="fa-solid fa-upload text-sm"></i>
+                      <span id="btn-confirm-upload-text">确认上传并导入工程 (Confirm Upload)</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 上传处理进度条 -->
+                <div id="upload-status-indicator" class="hidden space-y-1 bg-[#0d121c] border border-purple-600/40 rounded-lg p-2.5">
+                  <div class="flex items-center justify-between text-[11px]">
+                    <span class="text-purple-300 font-medium flex items-center space-x-1.5">
+                      <i class="fa-solid fa-spinner fa-spin text-purple-400"></i>
+                      <span id="upload-status-text">正在解析并导入音频分轨...</span>
+                    </span>
+                    <span id="upload-status-percent" class="text-purple-400 font-mono text-[10px]">0%</span>
+                  </div>
+                  <div class="w-full h-1.5 bg-[#141a27] rounded-full overflow-hidden">
+                    <div id="upload-status-bar" class="h-full bg-gradient-to-r from-purple-500 to-pink-500 w-0 transition-all duration-200"></div>
+                  </div>
+                </div>
               </div>
-              <label class="cursor-pointer border border-dashed border-zinc-700 hover:border-purple-500 rounded-lg p-4 text-center transition block bg-[#090b12] hover:bg-[#0e121e]">
-                <i class="fa-solid fa-cloud-arrow-up text-zinc-400 text-lg mb-1 block"></i>
-                <span class="text-xs text-zinc-300 font-medium">点击或批量拖拽音频分轨至此处</span>
-                <input type="file" id="input-tracks" multiple accept="audio/*" class="hidden">
-              </label>
-              <div class="text-[11px] text-zinc-500 text-right">
-                导入后下方通道条将立即实时渲染真实音频波形
+
+              <div class="text-[11px] text-zinc-500 text-right pt-2 border-t border-[#182030]/60">
+                支持浏览器原生无损解码与多轨时间轴自动对齐
               </div>
+            </div>
+          </div>
+
+          <!-- 当前工程已导入分轨清单总览卡片 (Imported Stems Manifest) -->
+          <div id="step1-imported-manifest" class="hidden rack-slot p-4 space-y-3 bg-[#0d121c] border border-emerald-600/40">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div class="flex items-center space-x-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="text-xs font-bold text-emerald-300">当前工程已就绪分轨清单 (Imported Stems Manifest)</span>
+                <span id="step1-manifest-count" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-600/60 text-emerald-300">0 轨</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <button id="btn-step1-preview-all" type="button" class="px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500/50 text-emerald-300 text-xs font-medium flex items-center space-x-1.5 transition">
+                  <i class="fa-solid fa-play text-[10px]"></i>
+                  <span>试听全轨</span>
+                </button>
+                <button class="btn-step-next px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold flex items-center space-x-1.5 shadow-md shadow-indigo-600/30 transition" data-target="2">
+                  <span>下一步：商业风格参考画像</span>
+                  <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- 已导入分轨微型列表 -->
+            <div id="step1-manifest-tracks-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+              <!-- 动态注入已导入分轨卡片 -->
             </div>
           </div>
         </section>
@@ -675,6 +771,9 @@
       </div>
     </div>
   </div>
+
+  <!-- 浮动通知提示 -->
+  <div id="daw-floating-toast" class="fixed bottom-5 right-5 z-50 max-w-md px-4 py-3 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-10 opacity-0 flex items-center space-x-2.5 text-xs font-medium border pointer-events-none"></div>
 
   <script src="./app.js"></script>
 </body>

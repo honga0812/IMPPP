@@ -339,6 +339,11 @@ let inputStemSepYoutube, btnStartStemSepYoutube, btnSampleYtSep1, btnSampleYtSep
 let btnStartTabRecord, btnStopTabRecord, recDotIcon, btnTabRecordText, tabRecordStatus, tabRecordStatusText, tabRecordTimer;
 let tabRecordStream = null, tabMediaRecorder = null, tabRecordedChunks = [], tabRecordTimerInterval = null, tabRecordSeconds = 0;
 
+// AI 深度学习分离服务状态与离线弹窗变量
+let aiEngineStatusBadge, aiEngineStatusText, aiEngineBanner, aiBannerStatusBadge, aiBannerDesc, linkOpenLocalStation;
+let modalAiOffline, btnCloseAiOfflineModal, btnOpenLocalStationModal, btnFallbackBiquadSep;
+let pendingFallbackFile = null;
+
 // 步骤 3 混音定制与进阶声学特效组件变量
 let chkFxVocalPolish, chkFxVocalDoubler, chkFxShimmerReverb, chkFxSubBass, chkFxTapeWarmth, chkFxSidechain;
 let step3CustomVersionName, btnStep3RenderCustomMix;
@@ -367,6 +372,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initDomReferences();
   initEventListeners();
   initStepNavigation();
+  checkBackendAiEngineHealth();
   renderDemoSongPreview("song_01");
   await refreshProject();
 });
@@ -560,6 +566,18 @@ function initDomReferences() {
   mobileBtnAutoMix = document.getElementById("mobile-btn-auto-mix");
   btnMobileDockCopilot = document.getElementById("btn-mobile-dock-copilot");
   mobileBtnQuickExport = document.getElementById("mobile-btn-quick-export");
+
+  // AI 引擎状态与离线提示组件 DOM 绑定
+  aiEngineStatusBadge = document.getElementById("ai-engine-status-badge");
+  aiEngineStatusText = document.getElementById("ai-engine-status-text");
+  aiEngineBanner = document.getElementById("ai-engine-banner");
+  aiBannerStatusBadge = document.getElementById("ai-banner-status-badge");
+  aiBannerDesc = document.getElementById("ai-banner-desc");
+  linkOpenLocalStation = document.getElementById("link-open-local-station");
+  modalAiOffline = document.getElementById("modal-ai-offline");
+  btnCloseAiOfflineModal = document.getElementById("btn-close-ai-offline-modal");
+  btnOpenLocalStationModal = document.getElementById("btn-open-local-station-modal");
+  btnFallbackBiquadSep = document.getElementById("btn-fallback-biquad-sep");
 }
 
 // 步骤导航控制器 (5-Step Guided Navigation)
@@ -905,6 +923,21 @@ function initEventListeners() {
 
   // 移动端响应式交互组件事件初始化
   initMobileResponsiveControls();
+
+  // AI 离线工作站弹窗与降级试听控制
+  if (btnCloseAiOfflineModal) {
+    btnCloseAiOfflineModal.addEventListener("click", () => {
+      if (modalAiOffline) modalAiOffline.classList.add("hidden");
+    });
+  }
+  if (btnFallbackBiquadSep) {
+    btnFallbackBiquadSep.addEventListener("click", () => {
+      if (modalAiOffline) modalAiOffline.classList.add("hidden");
+      if (pendingFallbackFile) {
+        runFallbackBiquadSeparation(pendingFallbackFile);
+      }
+    });
+  }
 }
 
 function openMobileCopilot() {
@@ -1547,6 +1580,73 @@ function handleStemSepFileSelected(file) {
   showNotification(`🎵 已选取歌曲《${file.name}》，点击【一键分离】即可拆分为 4 轨！`, "info");
 }
 
+// 检查本地 Demucs v4 AI 深度学习分离引擎连接状态
+async function checkBackendAiEngineHealth() {
+  const isHttps = window.location.protocol === "https:";
+  const isLocalHost = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost";
+
+  if (isHttps && !isLocalHost) {
+    updateAiEngineStatusUI(false, "静态演示 (点击开启本地 AI)");
+    return false;
+  }
+
+  const pingUrl = isLocalHost ? "/api/diagnose" : "http://127.0.0.1:8000/api/diagnose";
+  let isOnline = false;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+    const res = await fetch(pingUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (res.ok) {
+      isOnline = true;
+    }
+  } catch (e) {
+    isOnline = false;
+  }
+
+  updateAiEngineStatusUI(isOnline);
+  return isOnline;
+}
+
+function updateAiEngineStatusUI(isOnline, customTag) {
+  if (aiEngineStatusBadge) {
+    if (isOnline) {
+      aiEngineStatusBadge.className = "text-[9px] sm:text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 flex items-center space-x-1 transition hover:border-emerald-400 cursor-pointer";
+      if (aiEngineStatusText) aiEngineStatusText.textContent = customTag || "Demucs v4 就绪";
+    } else {
+      aiEngineStatusBadge.className = "text-[9px] sm:text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/50 text-amber-300 flex items-center space-x-1 transition hover:border-amber-400 cursor-pointer";
+      if (aiEngineStatusText) aiEngineStatusText.textContent = customTag || "本地 AI 未连接 (点击开启)";
+    }
+  }
+
+  if (aiBannerStatusBadge) {
+    if (isOnline) {
+      aiBannerStatusBadge.className = "px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-900/60 border border-emerald-500/40 text-emerald-300";
+      aiBannerStatusBadge.textContent = "已连接 (MPS GPU)";
+    } else {
+      aiBannerStatusBadge.className = "px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-amber-900/60 border border-amber-500/40 text-amber-300";
+      aiBannerStatusBadge.textContent = "静态网页模式";
+    }
+  }
+
+  if (aiBannerDesc) {
+    if (isOnline) {
+      aiBannerDesc.textContent = "已连接本地 Demucs v4 (Hybrid Transformer) 神经网络，具备 Apple Silicon MPS GPU 加速，支持纯净人声、鼓组、贝斯与伴奏四轨分离。";
+    } else {
+      aiBannerDesc.textContent = "当前处于静态演示站点，无法直接运行百兆级深度学习模型。本地 AI 引擎已就绪，请点击下方链接直达本地工作站享受极速分离。";
+    }
+  }
+
+  if (linkOpenLocalStation) {
+    if (isOnline) {
+      linkOpenLocalStation.classList.add("hidden");
+    } else {
+      linkOpenLocalStation.classList.remove("hidden");
+    }
+  }
+}
+
 async function separateStemsInBrowser(file) {
   if (!file) return;
 
@@ -1632,11 +1732,35 @@ async function separateStemsInBrowser(file) {
       return;
     }
   } catch (apiErr) {
-    console.warn("Backend Demucs API not reachable, falling back to browser offline processing:", apiErr);
+    console.warn("Backend Demucs API not reachable:", apiErr);
   }
 
-  // 2. 纯静态前端/离线演示降级处理 (Offline Browser Acoustic Fallback)
-  setProgress(25, "未连接本地后端 Demucs 服务，正在通过 Web Audio 引擎执行离线声学演示分离...");
+  // 若后端 API 无法连接，不再静默执行假滤波欺骗用户，而是弹出工作站直达窗口
+  if (stemSepScanEffect) stemSepScanEffect.classList.add("hidden");
+  setProgress(0, "⚠️ 需连接本地 Demucs v4 AI 分离服务 (http://127.0.0.1:8000)");
+
+  pendingFallbackFile = file;
+  if (modalAiOffline) {
+    modalAiOffline.classList.remove("hidden");
+  } else {
+    alert("请在浏览器打开本地 AI 工作站：http://127.0.0.1:8000 即可使用 Meta AI Demucs v4 进行纯净人声与乐器隔离！");
+  }
+}
+
+// 降级演示：在纯静态前端无本地 Python 后端时，用户明确确认后运行的 Web Audio 频段滤波
+async function runFallbackBiquadSeparation(file) {
+  if (!file) return;
+  if (stemSepStatusBox) stemSepStatusBox.classList.remove("hidden");
+  if (stemSepScanEffect) stemSepScanEffect.classList.remove("hidden");
+
+  function setProgress(pct, msg) {
+    if (stemSepStatusText) stemSepStatusText.textContent = msg;
+    if (stemSepStatusPercent) stemSepStatusPercent.textContent = `${pct}%`;
+    if (stemSepStatusBar) stemSepStatusBar.style.width = `${pct}%`;
+  }
+
+  const baseName = file.name.replace(/\.[^/.]+$/, "");
+  setProgress(25, "正在通过 Web Audio 引擎执行离线声学简易演示滤波...");
 
   try {
     const arrayBuffer = await file.arrayBuffer();
@@ -1671,7 +1795,7 @@ async function separateStemsInBrowser(file) {
     const drumKickBp = createBiquadFilterCoeffs("bandpass", 75, sr, 1.2);
     const drumSnareBp = createBiquadFilterCoeffs("bandpass", 4500, sr, 1.2);
 
-    setProgress(70, "正在生成人声、鼓组、贝斯与伴奏 4 轨信号...");
+    setProgress(70, "正在生成人声、鼓组、贝斯与伴奏 4 轨滤波演示信号...");
 
     let b_x1 = 0, b_x2 = 0, b_y1 = 0, b_y2 = 0;
     let v_hp_x1 = 0, v_hp_x2 = 0, v_hp_y1 = 0, v_hp_y2 = 0;
@@ -1740,7 +1864,7 @@ async function separateStemsInBrowser(file) {
     project.tracks = [
       {
         id: "trk_sep_vocal",
-        name: `${baseName} - 人声主轨 (Vocals)`,
+        name: `${baseName} - 人声频段 (滤波演示)`,
         instrument: "vocal_lead",
         url: URL.createObjectURL(vocalBlob),
         volume: 1.0,
@@ -1755,7 +1879,7 @@ async function separateStemsInBrowser(file) {
       },
       {
         id: "trk_sep_drum",
-        name: `${baseName} - 节奏鼓组 (Drums)`,
+        name: `${baseName} - 鼓组频段 (滤波演示)`,
         instrument: "drums",
         url: URL.createObjectURL(drumBlob),
         volume: 0.95,
@@ -1770,7 +1894,7 @@ async function separateStemsInBrowser(file) {
       },
       {
         id: "trk_sep_bass",
-        name: `${baseName} - 低音贝斯 (Bass)`,
+        name: `${baseName} - 贝斯低频 (滤波演示)`,
         instrument: "bass",
         url: URL.createObjectURL(bassBlob),
         volume: 1.0,
@@ -1785,7 +1909,7 @@ async function separateStemsInBrowser(file) {
       },
       {
         id: "trk_sep_other",
-        name: `${baseName} - 伴奏乐器 (Other)`,
+        name: `${baseName} - 伴奏乐器 (滤波演示)`,
         instrument: "guitar_arpeggio",
         url: URL.createObjectURL(otherBlob),
         volume: 0.9,
@@ -1817,13 +1941,13 @@ async function separateStemsInBrowser(file) {
     renderStep1Manifest();
     updateAllWaveforms();
 
-    setProgress(100, "✅ 离线声学演示分离完成！若需纯净人声请确保运行本地后端");
+    setProgress(100, "✅ 简易频段滤波完成 (请至 http://127.0.0.1:8000 获取真正 AI 分离)！");
     if (stemSepScanEffect) stemSepScanEffect.classList.add("hidden");
 
-    showNotification(`ℹ️ 歌曲已导入！当前使用离线声学演示模式；启动后端 Python 服务可享 Meta Demucs 深度神经网络分离。`, "info");
+    showNotification("⚠️ 注意：当前分轨为纯前端频段滤波演示，人声残留伴奏属于正常现象。真正 100% 纯净分离请访问本地 AI 工作站 (http://127.0.0.1:8000)！", "warning", 9000);
     setTimeout(() => {
       switchStep(2);
-    }, 900);
+    }, 1200);
   } catch (err) {
     console.error("Stem separation error:", err);
     setProgress(0, "分离失败: " + err.message);
@@ -1858,7 +1982,7 @@ async function startYoutubeStemSeparation() {
   setYtSepProgress(15, "正在连接 YouTube 并提取音频流...");
 
   try {
-    // 1. 尝试 Python 后端高精度 yt-dlp + DSP 4 轨分离
+    // 1. 尝试 Python 后端高精度 yt-dlp + Demucs v4 4 轨分离
     const res = await fetch("/api/separate/youtube", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1866,7 +1990,8 @@ async function startYoutubeStemSeparation() {
     });
 
     if (res.ok) {
-      setYtSepProgress(75, "后端 4-Stem 神经网络与相频滤波处理中...");
+      const data = await res.json();
+      setYtSepProgress(75, "Demucs v4 深度神经网络分离完成，正在载入分轨...");
       if (data.project) {
         project = data.project;
       } else if (data.tracks) {
@@ -1895,17 +2020,16 @@ async function startYoutubeStemSeparation() {
       return;
     }
   } catch (err) {
-    console.warn("Backend YouTube stem separation API offline or failed, falling back to simulated separation:", err);
+    console.warn("Backend YouTube stem separation API offline or failed:", err);
   } finally {
     if (btnStartStemSepYoutube) btnStartStemSepYoutube.disabled = false;
     if (stemSepScanEffect) stemSepScanEffect.classList.add("hidden");
   }
 
   // 2. 纯前端模式 (GitHub Pages / 离线环境 fallback)
-  setYtSepProgress(60, "未连接本地 Python 后端或 YouTube 抓取受限，载入演示音频...");
-  await new Promise(r => setTimeout(r, 500));
-
-  showNotification("💡 提示：YouTube 官方具有反爬虫与跨域限制。最稳定方式：先将歌曲保存为 MP3/WAV，直接拖入下方【方式 2】即可 100% 享受 Demucs v4 深度学习分离！", "warning", 8000);
+  setYtSepProgress(0, "⚠️ YouTube 神经网络分离需连接本地工作站 (http://127.0.0.1:8000)");
+  if (modalAiOffline) modalAiOffline.classList.remove("hidden");
+  showNotification("💡 提示：YouTube 抓取与深度学习分离需在本地运行。请点击工作站弹窗访问 http://127.0.0.1:8000，或使用【方式 3 实时内录】/下载为本地 MP3！", "warning", 8000);
 
   const demoSong = DEMO_SONG_PROJECTS["song_01"];
   const baseTracks = demoSong ? demoSong.tracks : [];

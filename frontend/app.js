@@ -1437,16 +1437,93 @@ async function separateStemsInBrowser(file) {
     if (stemSepStatusBar) stemSepStatusBar.style.width = `${pct}%`;
   }
 
-  setProgress(10, "正在读取立体声音频文件流...");
+  const baseName = file.name.replace(/\.[^/.]+$/, "");
+
+  // 1. 优先调用后端 Demucs v4 (Hybrid Transformer) 工业级深度学习分离服务
+  setProgress(15, "正在上传歌曲至 Demucs v4 神经网络分离引擎...");
+
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setProgress(35, "正在通过 Demucs v4 深度神经网络提取纯净人声、鼓组、贝斯与伴奏...");
+
+    const res = await fetch("/api/separate", {
+      method: "POST",
+      body: formData
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setProgress(85, "Demucs 深度学习分离完成，正在装载广播级分轨并生成包络波形...");
+
+      const tracks = data.tracks || [];
+      project.tracks = tracks.map((t, idx) => {
+        const trkId = t.id || `trk_sep_${idx + 1}`;
+        let instr = t.instrument;
+        if (trkId.includes("vocal") || (t.name && t.name.includes("人声"))) instr = "vocal_lead";
+        else if (trkId.includes("drum") || (t.name && t.name.includes("鼓"))) instr = "drums";
+        else if (trkId.includes("bass") || (t.name && t.name.includes("贝斯"))) instr = "bass";
+        else instr = "guitar_arpeggio";
+
+        return {
+          id: trkId,
+          name: t.name || `${baseName} - 分轨 ${idx + 1}`,
+          instrument: instr,
+          url: t.url,
+          volume: t.volume || 1.0,
+          pan: t.pan || 0.0,
+          hpf: instr === "vocal_lead" ? "90 Hz (切除低频喷麦)" : (instr === "drums" ? "35 Hz (次低切)" : (instr === "bass" ? "25 Hz (次低频)" : "100 Hz (避让贝斯频段)")),
+          eq: instr === "vocal_lead" ? "+2.5dB@3.4kHz (提升清晰度), +2.0dB@11kHz (空气感)" : "+2.0dB 中高频通透",
+          comp: "3.5:1, 阈值 -18dB (平稳压限)",
+          sidechain: instr === "vocal_lead" ? "触发伴奏乐器避让" : (instr === "drums" ? "触发贝斯与伴奏动态避让" : "底鼓踩下时避让 -3.5dB"),
+          reverb: instr === "vocal_lead" ? "板式空间混响 1.5s" : (instr === "drums" ? "紧凑房间混响 0.6s" : (instr === "bass" ? "直出干声 (Dry)" : "大厅立体声混响 1.8s")),
+          automation: "无",
+          pan_desc: "Center 0%"
+        };
+      });
+
+      project.current_mix = null;
+      project.current_strategy = null;
+      project.mix_versions = [];
+      project.active_version_id = null;
+
+      stopAudio();
+      audioElements = {};
+      project.tracks.forEach(t => {
+        const a = new Audio(t.url);
+        a.preload = "auto";
+        audioElements[t.id] = a;
+      });
+
+      renderAll();
+      renderStep1Manifest();
+      updateAllWaveforms();
+
+      setProgress(100, `✅ 深度学习音源分离完成 (${data.engine || "Demucs v4"})！4 轨分轨已装载就绪`);
+      if (stemSepScanEffect) stemSepScanEffect.classList.add("hidden");
+
+      showNotification(`🎉 歌曲《${baseName}》已通过 Demucs v4 深度学习分离为 4 轨并装载入工程！`, "success");
+      setTimeout(() => {
+        switchStep(2);
+      }, 900);
+      return;
+    }
+  } catch (apiErr) {
+    console.warn("Backend Demucs API not reachable, falling back to browser offline processing:", apiErr);
+  }
+
+  // 2. 纯静态前端/离线演示降级处理 (Offline Browser Acoustic Fallback)
+  setProgress(25, "未连接本地后端 Demucs 服务，正在通过 Web Audio 引擎执行离线声学演示分离...");
 
   try {
     const arrayBuffer = await file.arrayBuffer();
-    setProgress(25, "正在 Web Audio 引擎中无损解码 PCM 数据...");
+    setProgress(40, "正在 Web Audio 引擎中无损解码 PCM 数据...");
 
     const ctx = getAudioContext() || new (window.AudioContext || window.webkitAudioContext)();
     const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
 
-    setProgress(45, "正在执行中置相位抵消与多频带滤波提取...");
+    setProgress(55, "正在执行中置相位抵消与多频带滤波提取...");
 
     const sr = audioBuffer.sampleRate;
     const len = audioBuffer.length;
@@ -1465,14 +1542,14 @@ async function separateStemsInBrowser(file) {
     const otherL = new Float32Array(len);
     const otherR = new Float32Array(len);
 
-    // 经典声学分频系数 (Butterworth 2-pole)
+    // 声学分频滤波系数
     const bassLp = createBiquadFilterCoeffs("lowpass", 160, sr, 0.707);
     const vocalHp = createBiquadFilterCoeffs("highpass", 220, sr, 0.707);
     const vocalLp = createBiquadFilterCoeffs("lowpass", 4200, sr, 0.707);
     const drumKickBp = createBiquadFilterCoeffs("bandpass", 75, sr, 1.2);
     const drumSnareBp = createBiquadFilterCoeffs("bandpass", 4500, sr, 1.2);
 
-    setProgress(60, "正在生成人声、鼓组、贝斯与伴奏 4 轨信号...");
+    setProgress(70, "正在生成人声、鼓组、贝斯与伴奏 4 轨信号...");
 
     let b_x1 = 0, b_x2 = 0, b_y1 = 0, b_y2 = 0;
     let v_hp_x1 = 0, v_hp_x2 = 0, v_hp_y1 = 0, v_hp_y2 = 0;
@@ -1495,7 +1572,7 @@ async function separateStemsInBrowser(file) {
       bassR[i] = bassVal;
       if (Math.abs(bassVal) > maxBass) maxBass = Math.abs(bassVal);
 
-      // 2. 人声主轨 (中置带通滤波 220Hz - 4200Hz)
+      // 2. 人声主轨 (中置中频 220Hz - 4200Hz)
       const vHpVal = applyBiquadSample(vocalHp, mid, v_hp_x1, v_hp_x2, v_hp_y1, v_hp_y2);
       v_hp_x2 = v_hp_x1; v_hp_x1 = mid; v_hp_y2 = v_hp_y1; v_hp_y1 = vHpVal;
 
@@ -1505,7 +1582,7 @@ async function separateStemsInBrowser(file) {
       vocalR[i] = vVal * 1.1;
       if (Math.abs(vVal) > maxVocal) maxVocal = Math.abs(vVal);
 
-      // 3. 鼓组瞬态 (低频冲击 75Hz + 军鼓敲击 4500Hz)
+      // 3. 鼓组瞬态
       const dkVal = applyBiquadSample(drumKickBp, mid, dk_x1, dk_x2, dk_y1, dk_y2);
       dk_x2 = dk_x1; dk_x1 = mid; dk_y2 = dk_y1; dk_y1 = dkVal;
       const dsVal = applyBiquadSample(drumSnareBp, mid, ds_x1, ds_x2, ds_y1, ds_y2);
@@ -1515,7 +1592,7 @@ async function separateStemsInBrowser(file) {
       drumR[i] = drumVal;
       if (Math.abs(drumVal) > maxDrum) maxDrum = Math.abs(drumVal);
 
-      // 4. 伴奏/其他 (两侧声相 Sides + 泛音残差)
+      // 4. 伴奏/其他
       const otL = side + 0.3 * l - 0.2 * vVal;
       const otR = -side + 0.3 * r - 0.2 * vVal;
       otherL[i] = otL;
@@ -1524,15 +1601,13 @@ async function separateStemsInBrowser(file) {
       if (Math.abs(otR) > maxOther) maxOther = Math.abs(otR);
     }
 
-    // 归一化增益
     normalizeChannel(bassL, bassR, maxBass, 0.85);
     normalizeChannel(vocalL, vocalR, maxVocal, 0.88);
     normalizeChannel(drumL, drumR, maxDrum, 0.86);
     normalizeChannel(otherL, otherR, maxOther, 0.82);
 
-    setProgress(80, "正在封装为 16-bit 广播级 WAV 格式...");
+    setProgress(85, "正在封装为 16-bit 广播级 WAV 格式...");
 
-    const baseName = file.name.replace(/\.[^/.]+$/, "");
     const vocalBlob = audioBuffersToWavBlob(vocalL, vocalR, sr);
     const drumBlob = audioBuffersToWavBlob(drumL, drumR, sr);
     const bassBlob = audioBuffersToWavBlob(bassL, bassR, sr);
@@ -1620,10 +1695,10 @@ async function separateStemsInBrowser(file) {
     renderStep1Manifest();
     updateAllWaveforms();
 
-    setProgress(100, "✅ 音源分离圆满成功！4 轨分轨已装载就绪");
+    setProgress(100, "✅ 离线声学演示分离完成！若需纯净人声请确保运行本地后端");
     if (stemSepScanEffect) stemSepScanEffect.classList.add("hidden");
 
-    showNotification(`🎉 歌曲《${baseName}》已成功分离为 4 轨分轨并导入工程！`, "success");
+    showNotification(`ℹ️ 歌曲已导入！当前使用离线声学演示模式；启动后端 Python 服务可享 Meta Demucs 深度神经网络分离。`, "info");
     setTimeout(() => {
       switchStep(2);
     }, 900);
@@ -1670,18 +1745,30 @@ async function startYoutubeStemSeparation() {
 
     if (res.ok) {
       setYtSepProgress(75, "后端 4-Stem 神经网络与相频滤波处理中...");
-      const data = await res.json();
       if (data.project) {
         project = data.project;
       } else if (data.tracks) {
         project.tracks = data.tracks;
       }
 
-      setYtSepProgress(100, "✅ YouTube 4 轨分离已完成并载入工程！");
+      project.current_mix = null;
+      project.current_strategy = null;
+      project.mix_versions = [];
+      project.active_version_id = null;
+
+      stopAudio();
+      audioElements = {};
+      (project.tracks || []).forEach(t => {
+        const a = new Audio(t.url);
+        a.preload = "auto";
+        audioElements[t.id] = a;
+      });
+
+      setYtSepProgress(100, `✅ YouTube 4 轨分离已完成 (${data.engine || "Demucs v4"}) 并载入工程！`);
       renderAll();
       renderStep1Manifest();
       updateAllWaveforms();
-      showNotification(`🎉 成功将 YouTube 音乐分离为 4 轨（人声/鼓组/贝斯/伴奏）并装载入工程！`, "success");
+      showNotification(`🎉 成功将 YouTube 音乐通过 Demucs 深度学习分离为 4 轨（人声/鼓组/贝斯/伴奏）！`, "success");
       setTimeout(() => switchStep(2), 800);
       return;
     }

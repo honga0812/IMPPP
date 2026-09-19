@@ -602,11 +602,125 @@ def select_version(req: VersionSelectRequest):
     project_state["current_mix"] = target
     return {"status": "ok", "active_version": target, "project": project_state}
 
+_demucs_model = None
+
+def get_demucs_model():
+    """
+    懒加载 Meta AI 官方 Demucs v4 (Hybrid Transformer htdemucs) 深度学习分离模型
+    支持 Apple Silicon (MPS) 及 CUDA 硬件加速
+    """
+    global _demucs_model
+    if _demucs_model is None:
+        import demucs.pretrained
+        import torch
+        _demucs_model = demucs.pretrained.get_model('htdemucs')
+        _demucs_model.eval()
+        device = 'mps' if torch.backends.mps.is_available() else ('cuda' if torch.cuda.is_available() else 'cpu')
+        _demucs_model.to(device)
+    return _demucs_model
+
+def run_ai_stem_separation(audio_path: str):
+    """
+    使用 Demucs v4 神经网络将立体声歌曲高精度分离为 4 轨：
+    vocals (人声), drums (鼓组), bass (贝斯), other (伴奏)
+    若遇极端环境异常，优雅降级至多频带中置抵消算法
+    """
+    data, sr = sf.read(audio_path)
+    if len(data.shape) == 1:
+        data = np.stack([data, data], axis=-1)
+    elif data.shape[1] > 2:
+        data = data[:, :2]
+
+    try:
+        import torch
+        from demucs.apply import apply_model
+        import julius
+
+        model = get_demucs_model()
+        device = next(model.parameters()).device
+        target_sr = model.samplerate
+
+        audio_tensor = torch.from_numpy(data.T).float()
+        if sr != target_sr:
+            audio_tensor = julius.resample_frac(audio_tensor, sr, target_sr)
+
+        audio_tensor = audio_tensor.unsqueeze(0).to(device)
+
+        with torch.no_grad():
+            # model.sources 顺序为 ['drums', 'bass', 'other', 'vocals']
+            sources = apply_model(model, audio_tensor, device=device, shifts=0, split=True, overlap=0.25)
+
+        sources = sources.squeeze(0).cpu()
+
+        if sr != target_sr:
+            sources_resampled = []
+            for i in range(4):
+                sources_resampled.append(julius.resample_frac(sources[i], target_sr, sr))
+            sources = torch.stack(sources_resampled, dim=0)
+
+        stem_dict = {}
+        for idx, name in enumerate(model.sources):
+            stem_arr = sources[idx].numpy().T.astype(np.float32)
+            peak = float(np.max(np.abs(stem_arr)))
+            if peak > 0.95:
+                stem_arr = stem_arr * (0.92 / peak)
+            stem_dict[name] = stem_arr
+
+        return {
+            "vocals": stem_dict["vocals"],
+            "drums": stem_dict["drums"],
+            "bass": stem_dict["bass"],
+            "other": stem_dict["other"],
+            "sr": sr,
+            "engine": "Demucs v4 Hybrid Transformer (HTDemucs)"
+        }
+    except Exception as e:
+        print(f"Demucs v4 execution failed, fallback to acoustic filter: {e}")
+        left = data[:, 0].astype(np.float32)
+        right = data[:, 1].astype(np.float32)
+        mid = 0.5 * (left + right)
+        side = 0.5 * (left - right)
+
+        sos_bass = scipy.signal.butter(4, 160.0, 'lowpass', fs=sr, output='sos')
+        bass = scipy.signal.sosfilt(sos_bass, mid)
+        bass_stereo = np.stack([bass, bass], axis=-1)
+
+        sos_vocal = scipy.signal.butter(4, [220.0, 4200.0], 'bandpass', fs=sr, output='sos')
+        vocal = scipy.signal.sosfilt(sos_vocal, mid)
+        vocal_stereo = np.stack([vocal * 0.95, vocal * 0.95], axis=-1)
+
+        sos_kick = scipy.signal.butter(4, [55.0, 140.0], 'bandpass', fs=sr, output='sos')
+        kick = scipy.signal.sosfilt(sos_kick, mid)
+        sos_snare = scipy.signal.butter(4, [2800.0, 8500.0], 'bandpass', fs=sr, output='sos')
+        snare = scipy.signal.sosfilt(sos_snare, mid)
+        drum_m = kick * 0.85 + snare * 0.75
+        drum_stereo = np.stack([drum_m, drum_m], axis=-1)
+
+        other_left = side + 0.3 * left
+        other_right = -side + 0.3 * right
+        other_stereo = np.stack([other_left, other_right], axis=-1)
+
+        def norm(arr):
+            peak = float(np.max(np.abs(arr)))
+            if peak > 0.95:
+                return arr * (0.92 / peak)
+            return arr
+
+        return {
+            "vocals": norm(vocal_stereo),
+            "drums": norm(drum_stereo),
+            "bass": norm(bass_stereo),
+            "other": norm(other_stereo),
+            "sr": sr,
+            "engine": "Acoustic DSP Fallback"
+        }
+
 @app.post("/api/separate")
 async def separate_stems(file: UploadFile = File(...)):
     """
     客户端/服务端立体声整曲 AI 音源分离接口 (4-Stem Separation)
-    将任意上传的立体声歌曲分离为: 人声 (Vocals), 鼓组 (Drums), 贝斯 (Bass), 伴奏 (Other)
+    使用 Meta AI Demucs v4 (Hybrid Transformer) 神经网络深度分离为:
+    人声 (Vocals), 鼓组 (Drums), 贝斯 (Bass), 伴奏 (Other)
     """
     os.makedirs(STEMS_DIR, exist_ok=True)
     temp_input = os.path.join(PROJECT_DIR, f"temp_sep_{uuid.uuid4().hex[:8]}.wav")
@@ -614,56 +728,14 @@ async def separate_stems(file: UploadFile = File(...)):
         with open(temp_input, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
-        data, sr = sf.read(temp_input)
-        if len(data.shape) == 1:
-            data = np.stack([data, data], axis=-1)
-        elif data.shape[1] > 2:
-            data = data[:, :2]
-        
-        left = data[:, 0].astype(np.float32)
-        right = data[:, 1].astype(np.float32)
-        mid = 0.5 * (left + right)
-        side = 0.5 * (left - right)
-        
-        # 1. 贝斯提取 (低通滤波 < 160Hz)
-        sos_bass = scipy.signal.butter(4, 160.0, 'lowpass', fs=sr, output='sos')
-        bass = scipy.signal.sosfilt(sos_bass, mid)
-        bass_stereo = np.stack([bass, bass], axis=-1)
-        
-        # 2. 人声提取 (带通滤波 220Hz - 4200Hz 中置)
-        sos_vocal = scipy.signal.butter(4, [220.0, 4200.0], 'bandpass', fs=sr, output='sos')
-        vocal = scipy.signal.sosfilt(sos_vocal, mid)
-        vocal_stereo = np.stack([vocal * 0.95, vocal * 0.95], axis=-1)
-        
-        # 3. 鼓组瞬态提取 (低频冲击 55-140Hz + 高频打击 2800-8500Hz)
-        sos_kick = scipy.signal.butter(4, [55.0, 140.0], 'bandpass', fs=sr, output='sos')
-        kick = scipy.signal.sosfilt(sos_kick, mid)
-        sos_snare = scipy.signal.butter(4, [2800.0, 8500.0], 'bandpass', fs=sr, output='sos')
-        snare = scipy.signal.sosfilt(sos_snare, mid)
-        drum_m = kick * 0.85 + snare * 0.75
-        drum_stereo = np.stack([drum_m, drum_m], axis=-1)
-        
-        # 4. 伴奏/其他 (立体声 Sides + 泛音残差)
-        other_left = side + 0.3 * left
-        other_right = -side + 0.3 * right
-        other_stereo = np.stack([other_left, other_right], axis=-1)
-        
-        def normalize_audio(arr):
-            peak = float(np.max(np.abs(arr)))
-            if peak > 0.95:
-                return arr * (0.92 / peak)
-            return arr
-            
-        bass_stereo = normalize_audio(bass_stereo)
-        vocal_stereo = normalize_audio(vocal_stereo)
-        drum_stereo = normalize_audio(drum_stereo)
-        other_stereo = normalize_audio(other_stereo)
+        sep_res = run_ai_stem_separation(temp_input)
+        sr = sep_res["sr"]
         
         stem_specs = [
-            ("track_sep_1", "人声主轨 (Vocals)", "vocal", vocal_stereo, 1.0, 0.0),
-            ("track_sep_2", "节奏鼓组 (Drums)", "drum", drum_stereo, 0.95, 0.0),
-            ("track_sep_3", "低音贝斯 (Bass)", "bass", bass_stereo, 1.0, 0.0),
-            ("track_sep_4", "伴奏乐器 (Other)", "guitar", other_stereo, 0.9, 0.0),
+            ("track_sep_1", "人声主轨 (Vocals)", "vocal", sep_res["vocals"], 1.0, 0.0),
+            ("track_sep_2", "节奏鼓组 (Drums)", "drum", sep_res["drums"], 0.95, 0.0),
+            ("track_sep_3", "低音贝斯 (Bass)", "bass", sep_res["bass"], 1.0, 0.0),
+            ("track_sep_4", "伴奏乐器 (Other)", "guitar", sep_res["other"], 0.9, 0.0),
         ]
         
         # 清空原分轨并写入新分轨
@@ -696,7 +768,8 @@ async def separate_stems(file: UploadFile = File(...)):
         
         return {
             "status": "ok",
-            "message": "音源分离完成，已成功装载 4 轨分轨至工程！",
+            "message": f"AI 音源分离完成 ({sep_res.get('engine', 'Demucs v4')})，已成功装载 4 轨高保真分轨！",
+            "engine": sep_res.get("engine", "Demucs v4"),
             "tracks": new_tracks
         }
     finally:
@@ -767,56 +840,14 @@ async def separate_stems_from_youtube(req: YouTubeSeparateRequest):
         raise HTTPException(status_code=500, detail="YouTube 音频下载失败，请检查网络或稍后重试")
 
     try:
-        data, sr = sf.read(temp_wav)
-        if len(data.shape) == 1:
-            data = np.stack([data, data], axis=-1)
-        elif data.shape[1] > 2:
-            data = data[:, :2]
-
-        left = data[:, 0].astype(np.float32)
-        right = data[:, 1].astype(np.float32)
-        mid = 0.5 * (left + right)
-        side = 0.5 * (left - right)
-
-        # 1. 贝斯提取 (低通滤波 < 160Hz)
-        sos_bass = scipy.signal.butter(4, 160.0, 'lowpass', fs=sr, output='sos')
-        bass = scipy.signal.sosfilt(sos_bass, mid)
-        bass_stereo = np.stack([bass, bass], axis=-1)
-
-        # 2. 人声提取 (带通滤波 220Hz - 4200Hz 中置)
-        sos_vocal = scipy.signal.butter(4, [220.0, 4200.0], 'bandpass', fs=sr, output='sos')
-        vocal = scipy.signal.sosfilt(sos_vocal, mid)
-        vocal_stereo = np.stack([vocal * 0.95, vocal * 0.95], axis=-1)
-
-        # 3. 鼓组瞬态提取 (低频冲击 55-140Hz + 高频打击 2800-8500Hz)
-        sos_kick = scipy.signal.butter(4, [55.0, 140.0], 'bandpass', fs=sr, output='sos')
-        kick = scipy.signal.sosfilt(sos_kick, mid)
-        sos_snare = scipy.signal.butter(4, [2800.0, 8500.0], 'bandpass', fs=sr, output='sos')
-        snare = scipy.signal.sosfilt(sos_snare, mid)
-        drum_m = kick * 0.85 + snare * 0.75
-        drum_stereo = np.stack([drum_m, drum_m], axis=-1)
-
-        # 4. 伴奏/其他 (立体声 Sides + 泛音残差)
-        other_left = side + 0.3 * left
-        other_right = -side + 0.3 * right
-        other_stereo = np.stack([other_left, other_right], axis=-1)
-
-        def normalize_audio(arr):
-            peak = float(np.max(np.abs(arr)))
-            if peak > 0.95:
-                return arr * (0.92 / peak)
-            return arr
-
-        bass_stereo = normalize_audio(bass_stereo)
-        vocal_stereo = normalize_audio(vocal_stereo)
-        drum_stereo = normalize_audio(drum_stereo)
-        other_stereo = normalize_audio(other_stereo)
+        sep_res = run_ai_stem_separation(temp_wav)
+        sr = sep_res["sr"]
 
         stem_specs = [
-            ("track_sep_1", "人声主轨 (Vocals)", "vocal", vocal_stereo, 1.0, 0.0),
-            ("track_sep_2", "节奏鼓组 (Drums)", "drum", drum_stereo, 0.95, 0.0),
-            ("track_sep_3", "低音贝斯 (Bass)", "bass", bass_stereo, 1.0, 0.0),
-            ("track_sep_4", "伴奏乐器 (Other)", "guitar", other_stereo, 0.9, 0.0),
+            ("track_sep_1", "人声主轨 (Vocals)", "vocal", sep_res["vocals"], 1.0, 0.0),
+            ("track_sep_2", "节奏鼓组 (Drums)", "drum", sep_res["drums"], 0.95, 0.0),
+            ("track_sep_3", "低音贝斯 (Bass)", "bass", sep_res["bass"], 1.0, 0.0),
+            ("track_sep_4", "伴奏乐器 (Other)", "guitar", sep_res["other"], 0.9, 0.0),
         ]
 
         # 清空原分轨并写入新分轨
@@ -849,7 +880,8 @@ async def separate_stems_from_youtube(req: YouTubeSeparateRequest):
 
         return {
             "status": "ok",
-            "message": f"成功从 YouTube 链接提取并分离为 4 轨分轨！",
+            "message": f"成功从 YouTube 链接提取并执行 Demucs AI 分离 ({sep_res.get('engine', 'Demucs v4')})！",
+            "engine": sep_res.get("engine", "Demucs v4"),
             "tracks": new_tracks
         }
     finally:

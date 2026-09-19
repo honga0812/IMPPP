@@ -425,6 +425,37 @@
                   </label>
                 </div>
 
+                <!-- 模式 C：实时内录 YouTube / 浏览器播放音频 (Loopback Audio Capture) -->
+                <div class="bg-[#090e18] p-2.5 rounded-lg border border-indigo-700/50 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold text-indigo-200 flex items-center space-x-1">
+                      <i class="fa-solid fa-microphone-lines text-indigo-400 text-xs"></i>
+                      <span>方式 3：实时内录播放音频 (免下载/零反爬/纯净数字音讯)</span>
+                    </span>
+                    <span class="text-[9px] bg-indigo-950 text-indigo-300 border border-indigo-700/50 px-1.5 py-0.5 rounded font-mono">数字环回内录</span>
+                  </div>
+                  <p class="text-[10px] text-zinc-400 leading-relaxed">
+                    在另一分页播放 YouTube，点击下方按钮并在浏览器弹窗中勾选<b>【分享音频】</b>，录制一段后点击停止，即刻自动送入 Demucs AI 分离为 4 轨！
+                  </p>
+                  <div class="flex items-center space-x-2">
+                    <button id="btn-start-tab-record" type="button" class="flex-1 py-2 px-3 rounded-lg bg-[#141b2d] hover:bg-indigo-900/60 border border-indigo-500/50 hover:border-indigo-400 text-indigo-200 text-xs font-bold transition flex items-center justify-center space-x-1.5 shadow">
+                      <i class="fa-solid fa-circle-dot text-rose-500 text-[11px]" id="rec-dot-icon"></i>
+                      <span id="btn-tab-record-text">开始内录 YouTube 分页声音</span>
+                    </button>
+                    <button id="btn-stop-tab-record" type="button" class="hidden px-3 py-2 rounded-lg bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-xs font-bold transition flex items-center space-x-1 shadow-md shadow-red-600/30 flex-shrink-0">
+                      <i class="fa-solid fa-stop text-[10px]"></i>
+                      <span>停止并开始 AI 分离</span>
+                    </button>
+                  </div>
+                  <div id="tab-record-status" class="hidden text-[10px] font-mono text-cyan-300 flex items-center justify-between bg-[#070b13] px-2.5 py-1.5 rounded border border-cyan-800/40">
+                    <span class="flex items-center space-x-1.5">
+                      <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                      <span id="tab-record-status-text">正在内录 YouTube 数字音频流...</span>
+                    </span>
+                    <span id="tab-record-timer" class="text-rose-400 font-bold font-mono">00:00</span>
+                  </div>
+                </div>
+
                 <!-- 分离进度与状态 -->
                 <div id="stem-sep-status-box" class="hidden space-y-1.5 bg-[#0a101d] border border-cyan-600/40 rounded-lg p-2.5">
                   <div class="flex items-center justify-between text-[11px]">

@@ -335,6 +335,10 @@ let ytVideoCard, ytThumbnail, ytVideoTitle, ytVideoChannel;
 // YouTube 4-Stem 音源分离组件变量
 let inputStemSepYoutube, btnStartStemSepYoutube, btnSampleYtSep1, btnSampleYtSep2;
 
+// 模式 C：实时内录 YouTube / 浏览器播放音频组件变量
+let btnStartTabRecord, btnStopTabRecord, recDotIcon, btnTabRecordText, tabRecordStatus, tabRecordStatusText, tabRecordTimer;
+let tabRecordStream = null, tabMediaRecorder = null, tabRecordedChunks = [], tabRecordTimerInterval = null, tabRecordSeconds = 0;
+
 // 步骤 3 混音定制与进阶声学特效组件变量
 let chkFxVocalPolish, chkFxVocalDoubler, chkFxShimmerReverb, chkFxSubBass, chkFxTapeWarmth, chkFxSidechain;
 let step3CustomVersionName, btnStep3RenderCustomMix;
@@ -514,6 +518,15 @@ function initDomReferences() {
   btnStartStemSepYoutube = document.getElementById("btn-start-stem-sep-youtube");
   btnSampleYtSep1 = document.getElementById("btn-sample-yt-sep-1");
   btnSampleYtSep2 = document.getElementById("btn-sample-yt-sep-2");
+
+  // 模式 C：实时内录 YouTube 组件 DOM 绑定
+  btnStartTabRecord = document.getElementById("btn-start-tab-record");
+  btnStopTabRecord = document.getElementById("btn-stop-tab-record");
+  recDotIcon = document.getElementById("rec-dot-icon");
+  btnTabRecordText = document.getElementById("btn-tab-record-text");
+  tabRecordStatus = document.getElementById("tab-record-status");
+  tabRecordStatusText = document.getElementById("tab-record-status-text");
+  tabRecordTimer = document.getElementById("tab-record-timer");
 
   // 步骤 3 混音定制与进阶声学特效组件 DOM 绑定
   chkFxVocalPolish = document.getElementById("chk-fx-vocal-polish");
@@ -1413,6 +1426,115 @@ function initStemSeparation() {
       }
       separateStemsInBrowser(stagedStemSepFile);
     });
+  }
+
+  // 模式 C：实时内录播放音频事件监听
+  if (btnStartTabRecord) {
+    btnStartTabRecord.addEventListener("click", startTabAudioRecording);
+  }
+  if (btnStopTabRecord) {
+    btnStopTabRecord.addEventListener("click", stopTabAudioRecording);
+  }
+}
+
+async function startTabAudioRecording() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+    showNotification("您的浏览器暂不支持系统/分页音频内录，请使用 Chrome、Edge 或最新版 Safari！", "error");
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getDisplayMedia({
+      video: true,
+      audio: {
+        channelCount: 2,
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false
+      }
+    });
+
+    const audioTracks = stream.getAudioTracks();
+    if (!audioTracks || audioTracks.length === 0) {
+      stream.getTracks().forEach(t => t.stop());
+      showNotification("⚠️ 未检测到勾选『分享音频』！请重新点击，并在弹出的浏览器窗口中勾选【分享标签页/系统音频】！", "warning", 7000);
+      return;
+    }
+
+    tabRecordStream = stream;
+    tabRecordedChunks = [];
+    tabRecordSeconds = 0;
+
+    const audioOnlyStream = new MediaStream([audioTracks[0]]);
+    tabMediaRecorder = new MediaRecorder(audioOnlyStream);
+
+    tabMediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) {
+        tabRecordedChunks.push(e.data);
+      }
+    };
+
+    tabMediaRecorder.onstop = async () => {
+      if (tabRecordTimerInterval) {
+        clearInterval(tabRecordTimerInterval);
+        tabRecordTimerInterval = null;
+      }
+      if (tabRecordStream) {
+        tabRecordStream.getTracks().forEach(t => t.stop());
+        tabRecordStream = null;
+      }
+
+      if (btnStartTabRecord) btnStartTabRecord.classList.remove("hidden");
+      if (btnStopTabRecord) btnStopTabRecord.classList.add("hidden");
+      if (tabRecordStatus) tabRecordStatus.classList.add("hidden");
+
+      if (tabRecordedChunks.length === 0) {
+        showNotification("未捕获到音频数据，请确认播放并重试！", "warning");
+        return;
+      }
+
+      const mimeType = tabMediaRecorder.mimeType || "audio/webm";
+      const blob = new Blob(tabRecordedChunks, { type: mimeType });
+      const nowStr = new Date().toISOString().slice(11, 19).replace(/:/g, "-");
+      const recFile = new File([blob], `YouTube_Direct_Recording_${nowStr}.webm`, { type: mimeType });
+
+      handleStemSepFileSelected(recFile);
+      showNotification("🎙️ YouTube 纯净数字音频内录完成！正在调用 Demucs AI 深度学习分离为 4 轨...", "success", 4000);
+      separateStemsInBrowser(recFile);
+    };
+
+    audioTracks[0].onended = () => {
+      if (tabMediaRecorder && tabMediaRecorder.state !== "inactive") {
+        tabMediaRecorder.stop();
+      }
+    };
+
+    tabMediaRecorder.start(100);
+
+    if (btnStartTabRecord) btnStartTabRecord.classList.add("hidden");
+    if (btnStopTabRecord) btnStopTabRecord.classList.remove("hidden");
+    if (tabRecordStatus) tabRecordStatus.classList.remove("hidden");
+    if (tabRecordTimer) tabRecordTimer.textContent = "00:00";
+
+    tabRecordTimerInterval = setInterval(() => {
+      tabRecordSeconds++;
+      const m = String(Math.floor(tabRecordSeconds / 60)).padStart(2, "0");
+      const s = String(tabRecordSeconds % 60).padStart(2, "0");
+      if (tabRecordTimer) tabRecordTimer.textContent = `${m}:${s}`;
+    }, 1000);
+
+    showNotification("🔴 已开启数字环回内录！请在 YouTube 正常播放歌曲，录制一段后点击【停止并开始 AI 分离】即可！", "info", 6000);
+  } catch (err) {
+    console.error("Tab audio recording failed:", err);
+    if (err.name !== "NotAllowedError") {
+      showNotification("内录启动失败：" + err.message, "error");
+    }
+  }
+}
+
+function stopTabAudioRecording() {
+  if (tabMediaRecorder && tabMediaRecorder.state !== "inactive") {
+    tabMediaRecorder.stop();
   }
 }
 

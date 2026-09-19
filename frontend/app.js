@@ -1780,8 +1780,10 @@ async function startYoutubeStemSeparation() {
   }
 
   // 2. 纯前端模式 (GitHub Pages / 离线环境 fallback)
-  setYtSepProgress(60, "正在浏览器中生成 4 轨高保真声学分轨...");
-  await new Promise(r => setTimeout(r, 600));
+  setYtSepProgress(60, "未连接本地 Python 后端或 YouTube 抓取受限，载入演示音频...");
+  await new Promise(r => setTimeout(r, 500));
+
+  showNotification("💡 提示：YouTube 官方具有反爬虫与跨域限制。最稳定方式：先将歌曲保存为 MP3/WAV，直接拖入下方【方式 2】即可 100% 享受 Demucs v4 深度学习分离！", "warning", 8000);
 
   const demoSong = DEMO_SONG_PROJECTS["song_01"];
   const baseTracks = demoSong ? demoSong.tracks : [];

@@ -287,6 +287,7 @@ async def analyze_youtube_reference(req: YouTubeReferenceRequest):
     try:
         import yt_dlp
         ffmpeg_bin = "/opt/homebrew/bin/ffmpeg" if os.path.exists("/opt/homebrew/bin/ffmpeg") else shutil.which("ffmpeg")
+        node_bin = "/opt/homebrew/bin/node" if os.path.exists("/opt/homebrew/bin/node") else shutil.which("node")
         ydl_opts = {
             'format': 'bestaudio/best',
             # 抓取高潮乐段 (25s - 75s) 快速提取声学指纹，保证 2-3 秒极速响应
@@ -301,6 +302,8 @@ async def analyze_youtube_reference(req: YouTubeReferenceRequest):
         }
         if ffmpeg_bin:
             ydl_opts['ffmpeg_location'] = ffmpeg_bin
+        if node_bin:
+            ydl_opts['js_runtimes'] = {'node': {'path': node_bin}}
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=True)
@@ -812,6 +815,7 @@ async def separate_stems_from_youtube(req: YouTubeSeparateRequest):
     try:
         import yt_dlp
         ffmpeg_bin = "/opt/homebrew/bin/ffmpeg" if os.path.exists("/opt/homebrew/bin/ffmpeg") else shutil.which("ffmpeg")
+        node_bin = "/opt/homebrew/bin/node" if os.path.exists("/opt/homebrew/bin/node") else shutil.which("node")
         ydl_opts = {
             'format': 'bestaudio/best',
             # 抓取前 15s ~ 45s (30秒) 快速执行 4 轨分离
@@ -826,6 +830,8 @@ async def separate_stems_from_youtube(req: YouTubeSeparateRequest):
         }
         if ffmpeg_bin:
             ydl_opts['ffmpeg_location'] = ffmpeg_bin
+        if node_bin:
+            ydl_opts['js_runtimes'] = {'node': {'path': node_bin}}
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=True)

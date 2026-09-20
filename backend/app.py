@@ -7,6 +7,7 @@ from typing import List, Optional, Dict, Any
 import numpy as np
 import soundfile as sf
 import scipy.signal
+import subprocess
 
 # Ensure backend directory is in sys.path for direct sibling imports
 _BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -290,6 +291,7 @@ async def analyze_youtube_reference(req: YouTubeReferenceRequest):
         node_bin = "/opt/homebrew/bin/node" if os.path.exists("/opt/homebrew/bin/node") else shutil.which("node")
         ydl_opts = {
             'format': 'bestaudio/best',
+            'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'web']}},
             # 抓取高潮乐段 (25s - 75s) 快速提取声学指纹，保证 2-3 秒极速响应
             'download_ranges': yt_dlp.utils.download_range_func(None, [(25, 75)]),
             'postprocessors': [{
@@ -622,17 +624,47 @@ def get_demucs_model():
         _demucs_model.to(device)
     return _demucs_model
 
+def safe_load_audio_file(audio_path: str):
+    """
+    鲁棒加载音频文件：优先使用 soundfile 读取，若格式不识别 (WebM/MP4/AAC/M4A/OGG 等)
+    则自动调用系统 FFmpeg 无损转码为 44.1kHz 16-bit WAV 后加载，杜绝任何格式读取崩溃。
+    """
+    try:
+        data, sr = sf.read(audio_path)
+        if len(data.shape) == 1:
+            data = np.stack([data, data], axis=-1)
+        elif data.shape[1] > 2:
+            data = data[:, :2]
+        return data, sr
+    except Exception as e:
+        ffmpeg_bin = "/opt/homebrew/bin/ffmpeg" if os.path.exists("/opt/homebrew/bin/ffmpeg") else shutil.which("ffmpeg")
+        if ffmpeg_bin:
+            tmp_conv = f"{audio_path}_ffmpeg_conv_{uuid.uuid4().hex[:6]}.wav"
+            cmd = [ffmpeg_bin, "-y", "-i", audio_path, "-vn", "-ar", "44100", "-ac", "2", tmp_conv]
+            res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if res.returncode == 0 and os.path.exists(tmp_conv):
+                try:
+                    data, sr = sf.read(tmp_conv)
+                    if len(data.shape) == 1:
+                        data = np.stack([data, data], axis=-1)
+                    elif data.shape[1] > 2:
+                        data = data[:, :2]
+                    return data, sr
+                finally:
+                    if os.path.exists(tmp_conv):
+                        try:
+                            os.remove(tmp_conv)
+                        except:
+                            pass
+        raise e
+
 def run_ai_stem_separation(audio_path: str):
     """
     使用 Demucs v4 神经网络将立体声歌曲高精度分离为 4 轨：
     vocals (人声), drums (鼓组), bass (贝斯), other (伴奏)
     若遇极端环境异常，优雅降级至多频带中置抵消算法
     """
-    data, sr = sf.read(audio_path)
-    if len(data.shape) == 1:
-        data = np.stack([data, data], axis=-1)
-    elif data.shape[1] > 2:
-        data = data[:, :2]
+    data, sr = safe_load_audio_file(audio_path)
 
     try:
         import torch
@@ -726,7 +758,8 @@ async def separate_stems(file: UploadFile = File(...)):
     人声 (Vocals), 鼓组 (Drums), 贝斯 (Bass), 伴奏 (Other)
     """
     os.makedirs(STEMS_DIR, exist_ok=True)
-    temp_input = os.path.join(PROJECT_DIR, f"temp_sep_{uuid.uuid4().hex[:8]}.wav")
+    orig_ext = os.path.splitext(file.filename or "")[1] or ".wav"
+    temp_input = os.path.join(PROJECT_DIR, f"temp_sep_{uuid.uuid4().hex[:8]}{orig_ext}")
     try:
         with open(temp_input, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
@@ -818,6 +851,7 @@ async def separate_stems_from_youtube(req: YouTubeSeparateRequest):
         node_bin = "/opt/homebrew/bin/node" if os.path.exists("/opt/homebrew/bin/node") else shutil.which("node")
         ydl_opts = {
             'format': 'bestaudio/best',
+            'extractor_args': {'youtube': {'player_client': ['android', 'ios', 'web']}},
             # 抓取前 15s ~ 45s (30秒) 快速执行 4 轨分离
             'download_ranges': yt_dlp.utils.download_range_func(None, [(15, 45)]),
             'postprocessors': [{

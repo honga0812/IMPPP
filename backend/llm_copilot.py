@@ -394,8 +394,76 @@ class MixingCopilot:
         msg = user_message.lower()
         explanation_lines = []
 
-        # 意图 1：人声贴耳 / 穿透力 / 空气感 / 太暗
-        if any(w in msg for w in ["贴耳", "穿透", "人声突出", "靠前", "空气感", "太暗", "提亮"]):
+        # 意图 1：老式收音机 / AM 广播电台风格 (Vintage AM Radio Filter)
+        if any(w in msg for w in ["收音机", "收音機", "老电台", "广播", "电台", "am电台", "radio", "收音"]):
+            bm = updated_strategy.setdefault("bus_master", {})
+            bm["high_pass_hz"] = 250
+            bm["low_pass_hz"] = 4500
+            bm["bus_eq"] = [{"freq": 1200, "gain_db": 5.5, "q": 1.2}]
+            bm["distortion_db"] = 6.0
+            bm["mono"] = True
+            bm["target_lufs"] = -16.0
+            explanation_lines.append("已重构为经典老式收音机 (AM Radio) 广播风格：应用 250Hz~4.5kHz 窄频滤波、1.2kHz 喇叭箱体共振与模拟晶体管饱和，声场收束为经典单声道！")
+
+        # 意图 2：电话听筒 / 手机通话中听到音乐风格 (Telephone Lo-Fi Codec)
+        elif any(w in msg for w in ["电话", "電話", "听筒", "手机通话", "手機通話", "通话", "telephone", "phone", "电话音", "手机里"]):
+            bm = updated_strategy.setdefault("bus_master", {})
+            bm["high_pass_hz"] = 380
+            bm["low_pass_hz"] = 3200
+            bm["bus_eq"] = [{"freq": 1800, "gain_db": 6.5, "q": 1.6}]
+            bm["distortion_db"] = 8.0
+            bm["gsm_codec"] = True
+            bm["mono"] = True
+            bm["target_lufs"] = -16.5
+            explanation_lines.append("已重构为电话听筒 (Telephone Lo-Fi) 风格：严格限制在 380Hz~3.2kHz 电话语音通信频宽、叠加 1.8kHz 鼻音共鸣峰值、GSM 数字蜂窝网络编码与听筒微失真，呈现纯正电话听筒质感！")
+
+        # 意图 3：扩音大喇叭 / 对讲机风格 (Megaphone / Walkie-Talkie)
+        elif any(w in msg for w in ["对讲机", "對講機", "喇叭", "大喇叭", "扩音", "喊话", "megaphone", "walkie"]):
+            bm = updated_strategy.setdefault("bus_master", {})
+            bm["high_pass_hz"] = 600
+            bm["low_pass_hz"] = 2800
+            bm["bus_eq"] = [{"freq": 2000, "gain_db": 8.0, "q": 2.0}]
+            bm["distortion_db"] = 16.0
+            bm["mono"] = True
+            explanation_lines.append("已重构为扩音大喇叭/对讲机风格：高切低切极度紧缩、注入高强度喇叭过载失真，极具穿透力与警示感！")
+
+        # 意图 4：水下 / 隔壁房间 / 门外闷响风格 (Underwater / Muffled)
+        elif any(w in msg for w in ["水下", "隔壁", "门外", "闷响", "underwater", "muffled"]):
+            bm = updated_strategy.setdefault("bus_master", {})
+            bm["high_pass_hz"] = 20
+            bm["low_pass_hz"] = 450
+            bm["bus_eq"] = [{"freq": 80, "gain_db": 6.0, "q": 1.0}, {"freq": 300, "gain_db": -6.0, "q": 1.0}]
+            bm["target_lufs"] = -15.0
+            explanation_lines.append("已重构为水下/隔壁房间沉闷效果：大幅切除 450Hz 以上所有高中频与空气感，仅保留轰鸣低频穿透！")
+
+        # 意图 5：8-Bit 像素红白机复古风格 (8-Bit Arcade Chiptune)
+        elif any(w in msg for w in ["8bit", "8-bit", "红白机", "紅白機", "像素", "游戏机", "chiptune", "bitcrush"]):
+            bm = updated_strategy.setdefault("bus_master", {})
+            bm["bitcrush_depth"] = 6.0
+            bm["distortion_db"] = 3.0
+            bm["high_pass_hz"] = 80
+            bm["low_pass_hz"] = 6500
+            explanation_lines.append("已重构为 8-Bit 红白机像素风格：应用 6-bit 降阶量化与比特阶梯失真，瞬间变身经典复古街机电音！")
+
+        # 意图 6：黑胶唱片 / 留声机复古质感 (Vinyl / Gramophone)
+        elif any(w in msg for w in ["黑胶", "黑膠", "唱片", "留声机", "留聲機", "vinyl", "gramophone"]):
+            bm = updated_strategy.setdefault("bus_master", {})
+            bm["high_pass_hz"] = 180
+            bm["low_pass_hz"] = 7000
+            bm["bus_eq"] = [{"freq": 1000, "gain_db": 2.5, "q": 1.0}]
+            bm["distortion_db"] = 4.0
+            explanation_lines.append("已重构为黑胶唱片/留声机复古质感：削弱超高频与低端低频，注入温暖唱头模拟谐波与中频暖度！")
+
+        # 意图 7：夜店 / 俱乐部重低音风格 (Club / Mega Bass)
+        elif any(w in msg for w in ["夜店", "俱乐部", "club", "低音炮", "低音轰炸", "808重炮"]):
+            bm = updated_strategy.setdefault("bus_master", {})
+            bm["high_pass_hz"] = 28
+            bm["bus_eq"] = [{"freq": 60, "gain_db": 7.0, "q": 1.0}, {"freq": 12000, "gain_db": 3.5, "q": 0.8}]
+            bm["target_lufs"] = -11.0
+            explanation_lines.append("已重构为夜店俱乐部重低音风格：底鼓 60Hz 强力轰炸增益 +7dB、超高频空气闪烁，极具舞池冲击感！")
+
+        # 意图 8：人声贴耳 / 穿透力 / 空气感 / 太暗
+        elif any(w in msg for w in ["贴耳", "穿透", "人声突出", "靠前", "空气感", "太暗", "提亮"]):
             for act in updated_strategy.get("track_actions", []):
                 trk_name = next((t.get("name", "") for t in tracks_data if t["id"] == act["track_id"]), "")
                 if self.identify_instrument(trk_name) == "vocal":
@@ -405,29 +473,29 @@ class MixingCopilot:
                         act["compressor"]["threshold_db"] -= 2.0
                     explanation_lines.append("增强了人声 3.5kHz 穿透力与 10.5kHz 空气感高频，并加强了动态平整度。")
 
-        # 意图 2：低音太重 / 轰头 / 浑浊 / 去除低频
+        # 意图 9：低音太重 / 轰头 / 浑浊 / 去除低频
         if any(w in msg for w in ["轰头", "浑浊", "低音太重", "低频太多", "发闷", "太闷"]):
             for act in updated_strategy.get("track_actions", []):
                 act["high_pass_hz"] = max(act.get("high_pass_hz", 0), 90)
                 act.setdefault("eq_adjustments", []).append({"freq": 250, "gain_db": -2.5, "q": 1.2})
             explanation_lines.append("提升了各轨道的高通截止频点，并衰减了 250Hz 的浑浊频段，使声音更加通透清爽。")
 
-        # 意图 3：增加温暖度 / 厚度
-        if any(w in msg for w in ["温暖", "厚重", "饱满", "复古"]):
+        # 意图 10：增加温暖度 / 厚度
+        if any(w in msg for w in ["温暖", "厚重", "饱满", "复古"]) and not any(w in msg for w in ["收音机", "收音機", "电话", "電話"]):
             for act in updated_strategy.get("track_actions", []):
                 trk_name = next((t.get("name", "") for t in tracks_data if t["id"] == act["track_id"]), "")
                 if self.identify_instrument(trk_name) in ["vocal", "guitar", "piano"]:
                     act.setdefault("eq_adjustments", []).append({"freq": 450, "gain_db": 1.5, "q": 1.0})
             explanation_lines.append("在 450Hz 附近增益了温和的基频能量，赋予乐器和人声更多温暖与厚度。")
 
-        # 意图 4：声场拉开 / 立体声拓宽
-        if any(w in msg for w in ["声场", "立体声", "宽广", "两边", "推开"]):
+        # 意图 11：声场拉开 / 立体声拓宽
+        if any(w in msg for w in ["声场", "立体声", "宽广", "两边", "推开"]) and not any(w in msg for w in ["收音机", "收音機", "电话", "電話"]):
             for act in updated_strategy.get("track_actions", []):
                 if abs(act.get("pan", 0.0)) > 0.05:
                     act["pan"] = float(np.clip(act["pan"] * 1.5, -0.9, 0.9))
             explanation_lines.append("拓宽了伴奏乐器的左右立体声分布，为人声留出了正中央舞台。")
 
-        # 意图 5：更响 / 更具冲击力
+        # 意图 12：更响 / 更具冲击力
         if any(w in msg for w in ["大声", "响度", "冲击力", "炸"]):
             updated_strategy.setdefault("bus_master", {})["target_lufs"] = min(
                 updated_strategy.get("bus_master", {}).get("target_lufs", -14.0) + 2.0, -9.0

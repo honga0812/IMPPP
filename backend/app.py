@@ -406,6 +406,49 @@ def apply_advanced_fx_to_strategy(strategy: Dict[str, Any], fx: Optional[Dict[st
         glue["ratio"] = 2.5
         glue["threshold_db"] = -15.0
 
+    # 7. 复古老式收音机 / AM 广播风格 (Vintage Radio / AM Broadcast)
+    if fx.get("radio_fx"):
+        bus = strategy.setdefault("bus_master", {})
+        bus["high_pass_hz"] = 250.0
+        bus["low_pass_hz"] = 4500.0
+        bus["distortion_db"] = 6.0
+        bus["mono"] = True
+        bus.setdefault("bus_eq", []).extend([
+            {"freq": 1200, "gain_db": 5.5, "q": 1.0},
+            {"freq": 120, "gain_db": -10.0, "q": 0.7}
+        ])
+
+    # 8. 窄带电话听筒 / 通话质感风格 (Telephone / GSM Codec)
+    if fx.get("telephone_fx"):
+        bus = strategy.setdefault("bus_master", {})
+        bus["high_pass_hz"] = 380.0
+        bus["low_pass_hz"] = 3200.0
+        bus["distortion_db"] = 8.0
+        bus["gsm_codec"] = True
+        bus["mono"] = True
+        bus.setdefault("bus_eq", []).extend([
+            {"freq": 1800, "gain_db": 6.5, "q": 1.2},
+            {"freq": 200, "gain_db": -12.0, "q": 0.7}
+        ])
+
+    # 9. 水下 / 隔壁房间低通闷响风格 (Underwater / Muffled Next Door)
+    if fx.get("underwater_fx"):
+        bus = strategy.setdefault("bus_master", {})
+        bus["high_pass_hz"] = 20.0
+        bus["low_pass_hz"] = 450.0
+        bus.setdefault("bus_eq", []).extend([
+            {"freq": 80, "gain_db": 6.0, "q": 1.0},
+            {"freq": 2500, "gain_db": -18.0, "q": 0.7}
+        ])
+
+    # 10. 8-Bit 像素红白机复古游戏风格 (8-Bit Chiptune / Bitcrush)
+    if fx.get("bitcrush_fx"):
+        bus = strategy.setdefault("bus_master", {})
+        bus["bitcrush_depth"] = 6.0
+        bus["distortion_db"] = 3.0
+        bus["high_pass_hz"] = 80.0
+        bus["low_pass_hz"] = 8000.0
+
 @app.post("/api/mix/auto")
 def run_auto_mix(req: AutoMixRequest):
     if not project_state["tracks"]:
@@ -434,12 +477,16 @@ def run_auto_mix(req: AutoMixRequest):
     elif req.advanced_fx and any(req.advanced_fx.values()):
         ver_id = f"v{len(existing_versions) + 1}"
         fx_tags = []
+        if req.advanced_fx.get("radio_fx"): fx_tags.append("老式收音机")
+        if req.advanced_fx.get("telephone_fx"): fx_tags.append("电话听筒")
+        if req.advanced_fx.get("underwater_fx"): fx_tags.append("水下闷响")
+        if req.advanced_fx.get("bitcrush_fx"): fx_tags.append("8-Bit像素")
         if req.advanced_fx.get("vocal_polish"): fx_tags.append("人声质感")
         if req.advanced_fx.get("vocal_doubler"): fx_tags.append("虚拟和声")
         if req.advanced_fx.get("shimmer_reverb"): fx_tags.append("闪烁空间")
-        if req.advanced_fx.get("sub_bass_enhancer"): fx_tags.append("低频冲击")
+        if req.advanced_fx.get("sub_bass_enhancer") or req.advanced_fx.get("sub_bass"): fx_tags.append("低频冲击")
         if req.advanced_fx.get("tape_warmth"): fx_tags.append("磁带暖化")
-        if req.advanced_fx.get("sidechain_pumping"): fx_tags.append("侧链抽吸")
+        if req.advanced_fx.get("sidechain_pumping") or req.advanced_fx.get("sidechain"): fx_tags.append("侧链抽吸")
         ver_name = f"{ver_id}: 进阶特效版 ({'/'.join(fx_tags[:3])})"
     elif not existing_versions:
         ver_id = "v1"
@@ -540,7 +587,21 @@ def chat_adjust(req: ChatRequest):
     # 识别版本标签与版本号
     next_idx = len(project_state.get("mix_versions", [])) + 1
     msg_lower = user_msg.lower()
-    if any(w in msg_lower for w in ["贴耳", "空气", "人声", "明亮", "太暗", "透亮"]):
+    if any(w in msg_lower for w in ["收音机", "收音", "广播", "am广播", "fm", "radio"]):
+        short_tag = "复古老式收音机/AM广播版"
+    elif any(w in msg_lower for w in ["电话", "听筒", "话筒", "telephone", "phone", "通话"]):
+        short_tag = "窄带电话听筒质感版"
+    elif any(w in msg_lower for w in ["对讲机", "大喇叭", "扩音", "喇叭", "megaphone", "walkie"]):
+        short_tag = "街头大喇叭对讲机失真版"
+    elif any(w in msg_lower for w in ["水下", "隔壁", "闷响", "muffled", "underwater", "水底"]):
+        short_tag = "水下隔壁房间低通闷响版"
+    elif any(w in msg_lower for w in ["8bit", "8-bit", "红白机", "像素", "chiptune", "复古游戏"]):
+        short_tag = "8-Bit红白机像素电玩版"
+    elif any(w in msg_lower for w in ["黑胶", "黑胶唱片", "vinyl", "唱机", "留声机"]):
+        short_tag = "黑胶唱片暖调微失真版"
+    elif any(w in msg_lower for w in ["夜店", "俱乐部", "重低音", "club", "sub-bass", "低音炮"]):
+        short_tag = "俱乐部震撼超重低音版"
+    elif any(w in msg_lower for w in ["贴耳", "空气", "人声", "明亮", "太暗", "透亮"]):
         short_tag = "人声贴耳空气感微调版"
     elif any(w in msg_lower for w in ["低频", "浑浊", "低音", "808", "下潜", "轰头", "结实"]):
         short_tag = "温暖低频与808下潜增强版"

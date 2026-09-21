@@ -346,6 +346,7 @@ let pendingFallbackFile = null;
 
 // 步骤 3 混音定制与进阶声学特效组件变量
 let chkFxVocalPolish, chkFxVocalDoubler, chkFxShimmerReverb, chkFxSubBass, chkFxTapeWarmth, chkFxSidechain;
+let chkFxRadio, chkFxTelephone, chkFxUnderwater, chkFxBitcrush;
 let step3CustomVersionName, btnStep3RenderCustomMix;
 
 // 步骤 5 处理后分轨导出与 ComfyUI 编曲提示词组件变量
@@ -542,6 +543,10 @@ function initDomReferences() {
   chkFxSubBass = document.getElementById("chk-fx-sub-bass");
   chkFxTapeWarmth = document.getElementById("chk-fx-tape-warmth");
   chkFxSidechain = document.getElementById("chk-fx-sidechain");
+  chkFxRadio = document.getElementById("chk-fx-radio");
+  chkFxTelephone = document.getElementById("chk-fx-telephone");
+  chkFxUnderwater = document.getElementById("chk-fx-underwater");
+  chkFxBitcrush = document.getElementById("chk-fx-bitcrush");
   step3CustomVersionName = document.getElementById("step3-custom-version-name");
   btnStep3RenderCustomMix = document.getElementById("btn-step3-render-custom-mix");
 
@@ -1143,6 +1148,19 @@ function updateDynamicGrMeters(isActive) {
 
 let masterAudioPipeline = null;
 
+function makeDistortionCurve(amount) {
+  const k = typeof amount === "number" ? amount : 0;
+  if (k <= 0) return null;
+  const n_samples = 44100;
+  const curve = new Float32Array(n_samples);
+  const deg = Math.PI / 180;
+  for (let i = 0; i < n_samples; ++i) {
+    const x = (i * 2) / n_samples - 1;
+    curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+  }
+  return curve;
+}
+
 function getMasterAudioPipeline() {
   const ctx = getAudioContext();
   if (!ctx) return null;
@@ -1164,6 +1182,11 @@ function getMasterAudioPipeline() {
     hpf.type = "highpass";
     hpf.frequency.value = 32;
 
+    // 1b. 低通高切滤波器 (LPF - 支撑收音机/电话/水下等断崖式高切)
+    const lpf = ctx.createBiquadFilter();
+    lpf.type = "lowpass";
+    lpf.frequency.value = 20000;
+
     // 2. 低架低频均衡 (Low Shelf 85Hz)
     const lowShelf = ctx.createBiquadFilter();
     lowShelf.type = "lowshelf";
@@ -1183,6 +1206,11 @@ function getMasterAudioPipeline() {
     highShelf.frequency.value = 11000;
     highShelf.gain.value = 0;
 
+    // 4b. 模拟失真/饱和度节点 (WaveShaper - 支撑AM晶体管/电话GSM失真)
+    const distNode = ctx.createWaveShaper();
+    distNode.oversample = "4x";
+    distNode.curve = null;
+
     // 5. 总线动态压限器 (Bus Dynamics Compressor)
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -16;
@@ -1197,10 +1225,12 @@ function getMasterAudioPipeline() {
 
     if (srcNode) {
       srcNode.connect(hpf);
-      hpf.connect(lowShelf);
+      hpf.connect(lpf);
+      lpf.connect(lowShelf);
       lowShelf.connect(midPeak);
       midPeak.connect(highShelf);
-      highShelf.connect(comp);
+      highShelf.connect(distNode);
+      distNode.connect(comp);
       comp.connect(gain);
       gain.connect(ctx.destination);
     }
@@ -1209,9 +1239,11 @@ function getMasterAudioPipeline() {
       audio,
       srcNode,
       hpf,
+      lpf,
       lowShelf,
       midPeak,
       highShelf,
+      distNode,
       comp,
       gain
     };
@@ -1223,57 +1255,197 @@ function getMasterAudioPipeline() {
 function getDspProfileSettings(versionId, name = "", prompt = "") {
   const vStr = (versionId + " " + name + " " + prompt).toLowerCase();
 
-  if (vStr.includes("人声") || vStr.includes("贴耳") || vStr.includes("空气") || vStr.includes("明亮") || versionId === "v2") {
+  // 1. 窄带电话听筒风格 (Telephone / GSM Codec: 380Hz-3.2kHz, 1.8kHz鼻音共振, 显著电话失真)
+  if (vStr.includes("电话") || vStr.includes("听筒") || vStr.includes("话筒") || vStr.includes("telephone") || vStr.includes("phone") || vStr.includes("通话")) {
+    return {
+      hpfFreq: 380,
+      lpfFreq: 3200,
+      lowGain: -16.0,
+      midFreq: 1800,
+      midGain: 7.5,
+      highFreq: 4000,
+      highGain: -18.0,
+      distAmount: 45,
+      compThresh: -26,
+      compRatio: 8.0,
+      masterGainVal: 1.3,
+      featureDesc: "☎️ 电话听筒窄带 (380-3200Hz + GSM失真)",
+      dynDesc: "8:1 / 极端电话频带压缩"
+    };
+  }
+  // 2. 老式收音机 / AM 广播风格 (Vintage Radio: 250Hz-4.5kHz, 1.2kHz喇叭共鸣, 晶体管暖破音)
+  else if (vStr.includes("收音机") || vStr.includes("收音") || vStr.includes("广播") || vStr.includes("am广播") || vStr.includes("radio")) {
+    return {
+      hpfFreq: 250,
+      lpfFreq: 4500,
+      lowGain: -12.0,
+      midFreq: 1200,
+      midGain: 6.0,
+      highFreq: 6000,
+      highGain: -15.0,
+      distAmount: 35,
+      compThresh: -24,
+      compRatio: 6.0,
+      masterGainVal: 1.25,
+      featureDesc: "📻 老式收音机/AM广播 (250-4500Hz + 晶体管饱和)",
+      dynDesc: "6:1 / 广播级强动态压限"
+    };
+  }
+  // 3. 街头大喇叭 / 对讲机失真风格 (Megaphone / Walkie Talkie)
+  else if (vStr.includes("对讲机") || vStr.includes("大喇叭") || vStr.includes("扩音") || vStr.includes("喇叭") || vStr.includes("megaphone") || vStr.includes("walkie")) {
+    return {
+      hpfFreq: 600,
+      lpfFreq: 2800,
+      lowGain: -22.0,
+      midFreq: 1500,
+      midGain: 9.5,
+      highFreq: 3500,
+      highGain: -22.0,
+      distAmount: 75,
+      compThresh: -28,
+      compRatio: 10.0,
+      masterGainVal: 1.35,
+      featureDesc: "📢 街头扩音大喇叭 (600-2800Hz + 极限啸叫失真)",
+      dynDesc: "10:1 / 极限扩音压限"
+    };
+  }
+  // 4. 水下 / 隔壁房间低通闷响风格 (Underwater / Muffled Next Door)
+  else if (vStr.includes("水下") || vStr.includes("隔壁") || vStr.includes("闷响") || vStr.includes("muffled") || vStr.includes("underwater") || vStr.includes("水底")) {
+    return {
+      hpfFreq: 20,
+      lpfFreq: 450,
+      lowGain: 7.0,
+      midFreq: 300,
+      midGain: -10.0,
+      highFreq: 2500,
+      highGain: -24.0,
+      distAmount: 0,
+      compThresh: -14,
+      compRatio: 2.5,
+      masterGainVal: 1.2,
+      featureDesc: "🌊 水下/隔壁闷响 (450Hz低通高切 + 80Hz深沉震颤)",
+      dynDesc: "2.5:1 / 低通温润包围"
+    };
+  }
+  // 5. 8-Bit 像素红白机复古游戏风格 (8-Bit Chiptune / Bitcrush)
+  else if (vStr.includes("8bit") || vStr.includes("8-bit") || vStr.includes("红白机") || vStr.includes("像素") || vStr.includes("chiptune") || vStr.includes("复古游戏")) {
+    return {
+      hpfFreq: 80,
+      lpfFreq: 7500,
+      lowGain: -3.0,
+      midFreq: 2000,
+      midGain: 4.0,
+      highFreq: 6500,
+      highGain: -8.0,
+      distAmount: 30,
+      compThresh: -18,
+      compRatio: 5.0,
+      masterGainVal: 1.15,
+      featureDesc: "👾 8-Bit 像素红白机 (粉碎降采样 + 街机质感)",
+      dynDesc: "5:1 / 阶梯波街机动态"
+    };
+  }
+  // 6. 黑胶唱片暖调微失真风格 (Vinyl Warmth)
+  else if (vStr.includes("黑胶") || vStr.includes("唱片") || vStr.includes("vinyl") || vStr.includes("留声机")) {
+    return {
+      hpfFreq: 120,
+      lpfFreq: 7500,
+      lowGain: 3.0,
+      midFreq: 800,
+      midGain: 1.5,
+      highFreq: 6000,
+      highGain: -4.5,
+      distAmount: 14,
+      compThresh: -15,
+      compRatio: 2.5,
+      masterGainVal: 1.08,
+      featureDesc: "💿 复古黑胶唱片质感 (黑胶温暖滚降 + 微谐波)",
+      dynDesc: "2.5:1 / 模拟黑胶弹性"
+    };
+  }
+  // 7. 俱乐部震撼超重低音风格 (Club Sub-Bass)
+  else if (vStr.includes("夜店") || vStr.includes("俱乐部") || vStr.includes("重低音") || vStr.includes("club") || vStr.includes("sub-bass") || vStr.includes("低音炮")) {
+    return {
+      hpfFreq: 25,
+      lpfFreq: 18000,
+      lowGain: 8.0,
+      midFreq: 400,
+      midGain: -2.0,
+      highFreq: 11000,
+      highGain: 2.5,
+      distAmount: 10,
+      compThresh: -12,
+      compRatio: 3.5,
+      masterGainVal: 1.12,
+      featureDesc: "🔊 顶级俱乐部超重低音 (+8dB Sub-Bass 与侧链抽吸)",
+      dynDesc: "3.5:1 / 轰炸级低频动态"
+    };
+  }
+  // 8. 人声贴耳与空气感
+  else if (vStr.includes("人声") || vStr.includes("贴耳") || vStr.includes("空气") || vStr.includes("明亮") || versionId === "v2") {
     return {
       hpfFreq: 50,
+      lpfFreq: 20000,
       lowGain: -1.5,
       midFreq: 3400,
       midGain: 4.8, // +4.8dB 人声清晰临场
       highFreq: 11500,
       highGain: 5.2, // +5.2dB 空气高光
+      distAmount: 0,
       compThresh: -20,
       compRatio: 4.0,
       masterGainVal: 1.15,
       featureDesc: "+4.8dB 人声透亮与空气高频",
       dynDesc: "4:1 / 115% 贴耳人声凸显"
     };
-  } else if (vStr.includes("低频") || vStr.includes("808") || vStr.includes("低音") || vStr.includes("温暖") || versionId === "v3") {
+  }
+  // 9. 温暖低频与 808 下潜
+  else if (vStr.includes("低频") || vStr.includes("808") || vStr.includes("低音") || vStr.includes("温暖") || versionId === "v3") {
     return {
       hpfFreq: 24,
+      lpfFreq: 20000,
       lowGain: 5.5, // +5.5dB @ 85Hz 温暖次低频与底鼓
       midFreq: 450,
       midGain: 1.8,
       highFreq: 9000,
       highGain: -1.5,
+      distAmount: 0,
       compThresh: -13,
       compRatio: 2.5,
       masterGainVal: 1.1,
       featureDesc: "+5.5dB 温暖低频与808下潜",
       dynDesc: "2.5:1 / 95% 紧致低频与侧链避让"
     };
-  } else if (vStr.includes("立体声") || vStr.includes("声场") || vStr.includes("宽广") || vStr.includes("空间") || versionId === "v4") {
+  }
+  // 10. 宽广立体声与声场展开
+  else if (vStr.includes("立体声") || vStr.includes("声场") || vStr.includes("宽广") || vStr.includes("空间") || versionId === "v4") {
     return {
       hpfFreq: 35,
+      lpfFreq: 20000,
       lowGain: 1.0,
       midFreq: 2200,
       midGain: -1.2,
       highFreq: 12000,
       highGain: 4.2,
+      distAmount: 0,
       compThresh: -15,
       compRatio: 2.8,
       masterGainVal: 1.05,
       featureDesc: "展开 35% 宽广立体声与通透声场",
       dynDesc: "2.8:1 / 135% 宽阔空间沉浸"
     };
-  } else {
-    // 基准平衡母带
+  }
+  // 默认基准平衡母带
+  else {
     return {
       hpfFreq: 32,
+      lpfFreq: 20000,
       lowGain: 0.5,
       midFreq: 2800,
       midGain: 0.5,
       highFreq: 10000,
       highGain: 0.8,
+      distAmount: 0,
       compThresh: -16,
       compRatio: 3.0,
       masterGainVal: 1.0,
@@ -1295,15 +1467,21 @@ function applyMasterDspProfile(versionId) {
   const now = ctx ? ctx.currentTime : 0;
 
   try {
-    pipeline.hpf.frequency.setTargetAtTime(dsp.hpfFreq, now, 0.04);
-    pipeline.lowShelf.gain.setTargetAtTime(dsp.lowGain, now, 0.04);
-    pipeline.midPeak.frequency.setTargetAtTime(dsp.midFreq, now, 0.04);
-    pipeline.midPeak.gain.setTargetAtTime(dsp.midGain, now, 0.04);
-    pipeline.highShelf.frequency.setTargetAtTime(dsp.highFreq, now, 0.04);
-    pipeline.highShelf.gain.setTargetAtTime(dsp.highGain, now, 0.04);
-    pipeline.comp.threshold.setTargetAtTime(dsp.compThresh, now, 0.04);
-    pipeline.comp.ratio.setTargetAtTime(dsp.compRatio, now, 0.04);
-    pipeline.gain.gain.setTargetAtTime(dsp.masterGainVal, now, 0.04);
+    pipeline.hpf.frequency.setTargetAtTime(dsp.hpfFreq || 32, now, 0.04);
+    if (pipeline.lpf) {
+      pipeline.lpf.frequency.setTargetAtTime(dsp.lpfFreq || 20000, now, 0.04);
+    }
+    pipeline.lowShelf.gain.setTargetAtTime(dsp.lowGain || 0, now, 0.04);
+    pipeline.midPeak.frequency.setTargetAtTime(dsp.midFreq || 3000, now, 0.04);
+    pipeline.midPeak.gain.setTargetAtTime(dsp.midGain || 0, now, 0.04);
+    pipeline.highShelf.frequency.setTargetAtTime(dsp.highFreq || 10000, now, 0.04);
+    pipeline.highShelf.gain.setTargetAtTime(dsp.highGain || 0, now, 0.04);
+    if (pipeline.distNode) {
+      pipeline.distNode.curve = makeDistortionCurve(dsp.distAmount || 0);
+    }
+    pipeline.comp.threshold.setTargetAtTime(dsp.compThresh || -16, now, 0.04);
+    pipeline.comp.ratio.setTargetAtTime(dsp.compRatio || 3.0, now, 0.04);
+    pipeline.gain.gain.setTargetAtTime(dsp.masterGainVal || 1.0, now, 0.04);
   } catch (e) {
     console.warn("applyMasterDspProfile error:", e);
   }
@@ -3508,7 +3686,11 @@ function triggerCustomAutoMix() {
     shimmer_reverb: chkFxShimmerReverb ? chkFxShimmerReverb.checked : false,
     sub_bass: chkFxSubBass ? chkFxSubBass.checked : false,
     tape_warmth: chkFxTapeWarmth ? chkFxTapeWarmth.checked : false,
-    sidechain: chkFxSidechain ? chkFxSidechain.checked : true
+    sidechain: chkFxSidechain ? chkFxSidechain.checked : true,
+    radio_fx: chkFxRadio ? chkFxRadio.checked : false,
+    telephone_fx: chkFxTelephone ? chkFxTelephone.checked : false,
+    underwater_fx: chkFxUnderwater ? chkFxUnderwater.checked : false,
+    bitcrush_fx: chkFxBitcrush ? chkFxBitcrush.checked : false
   };
   const customName = step3CustomVersionName ? step3CustomVersionName.value.trim() : "";
   triggerAutoMix({
@@ -3535,6 +3717,10 @@ function applyOfflineMix(options = {}) {
       promptDesc = `定制混音: ${options.custom_version_name}`;
     } else {
       const fxTags = [];
+      if (options.advanced_fx?.radio_fx) fxTags.push("老式收音机");
+      if (options.advanced_fx?.telephone_fx) fxTags.push("电话听筒");
+      if (options.advanced_fx?.underwater_fx) fxTags.push("水下闷响");
+      if (options.advanced_fx?.bitcrush_fx) fxTags.push("8-Bit像素");
       if (options.advanced_fx?.vocal_polish) fxTags.push("人声深度质感");
       if (options.advanced_fx?.vocal_doubler) fxTags.push("虚拟和声");
       if (options.advanced_fx?.shimmer_reverb) fxTags.push("空间混响");
@@ -3617,7 +3803,37 @@ async function sendChatMessage(promptText) {
       let lufsMod = 0.0;
       let peakMod = 0.0;
 
-      if (msg.includes("人声") || msg.includes("贴耳") || msg.includes("空气") || msg.includes("明亮") || msg.includes("暗") || msg.includes("透亮")) {
+      if (msg.includes("收音机") || msg.includes("收音") || msg.includes("广播") || msg.includes("am广播") || msg.includes("radio")) {
+        shortTag = "复古老式收音机/AM广播版";
+        detailDesc = "施加了 250Hz-4.5kHz 陡峭带通滤波，注入了模拟晶体管饱和破音与单声道中频聚集，呈现纯正 AM 收音机播音质感。";
+        lufsMod = -1.5;
+        peakMod = -0.1;
+      } else if (msg.includes("电话") || msg.includes("听筒") || msg.includes("话筒") || msg.includes("telephone") || msg.includes("phone") || msg.includes("通话")) {
+        shortTag = "窄带电话听筒质感版";
+        detailDesc = "施加了 380Hz-3.2kHz 极端窄带电话滤波，模拟 GSM 数字语音失真并突出 1.8kHz 听筒鼻音共振。";
+        lufsMod = -2.0;
+        peakMod = -0.2;
+      } else if (msg.includes("对讲机") || msg.includes("大喇叭") || msg.includes("扩音") || msg.includes("喇叭") || msg.includes("megaphone") || msg.includes("walkie")) {
+        shortTag = "街头大喇叭对讲机失真版";
+        detailDesc = "施加了 600Hz-2.8kHz 中频共振与强硬失真，重现街头大喇叭与警用对讲机的高穿透啸叫质感。";
+        lufsMod = 0.5;
+      } else if (msg.includes("水下") || msg.includes("隔壁") || msg.includes("闷响") || msg.includes("muffled") || msg.includes("underwater") || msg.includes("水底")) {
+        shortTag = "水下隔壁房间低通闷响版";
+        detailDesc = "施加了 450Hz 极端陡峭低通高切，重度衰减中高频，保留 80Hz 隔墙低频震颤，带来深邃闷响包围感。";
+        lufsMod = -3.0;
+      } else if (msg.includes("8bit") || msg.includes("8-bit") || msg.includes("红白机") || msg.includes("像素") || msg.includes("chiptune") || msg.includes("复古游戏")) {
+        shortTag = "8-Bit红白机像素电玩版";
+        detailDesc = "施加了 6-bit 深度量化粉碎降采样与阶梯波失真，再现 80 年代红白机与街机复古音效质感。";
+        lufsMod = 0.0;
+      } else if (msg.includes("黑胶") || msg.includes("黑胶唱片") || msg.includes("vinyl") || msg.includes("唱机") || msg.includes("留声机")) {
+        shortTag = "黑胶唱片暖调微失真版";
+        detailDesc = "施加了高低频平滑滚降、温暖中低频微谐波与模拟胶水压缩，重现黑胶留声机韵味。";
+        lufsMod = -0.5;
+      } else if (msg.includes("夜店") || msg.includes("俱乐部") || msg.includes("重低音") || msg.includes("club") || msg.includes("sub-bass") || msg.includes("低音炮")) {
+        shortTag = "俱乐部震撼超重低音版";
+        detailDesc = "大幅推升 30-70Hz 次低频能量，加深侧链重力抽吸，带来夜店主扩低音炮震撼胸腔的冲击力。";
+        lufsMod = 1.0;
+      } else if (msg.includes("人声") || msg.includes("贴耳") || msg.includes("空气") || msg.includes("明亮") || msg.includes("暗") || msg.includes("透亮")) {
         shortTag = "人声贴耳空气感微调版";
         detailDesc = "提升了 3.5kHz 穿透力与 10.5kHz 空气感高频，强化了 Opto 压缩平稳度，人声更加靠前贴耳。";
         lufsMod = 0.4;

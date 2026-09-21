@@ -8,7 +8,10 @@ _BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 if _BACKEND_DIR not in sys.path:
     sys.path.insert(0, _BACKEND_DIR)
 
-from pedalboard import Pedalboard, HighpassFilter, PeakFilter, LowShelfFilter, HighShelfFilter, Compressor, Limiter, Gain
+from pedalboard import (
+    Pedalboard, HighpassFilter, LowpassFilter, PeakFilter, LowShelfFilter, HighShelfFilter,
+    Compressor, Limiter, Gain, Distortion, GSMFullRateCompressor, Bitcrush
+)
 import pyloudnorm as pyln
 from acoustic_analyzer import load_audio_normalized, calculate_lufs
 
@@ -42,7 +45,12 @@ class MixingEngine:
         if hp_freq and hp_freq > 20:
             board.append(HighpassFilter(cutoff_frequency_hz=float(hp_freq)))
 
-        # 2. 参量 EQ 调整
+        # 2. 低通滤波 (Low-pass Filter 削弱高频/电话收音机窄频处理)
+        lp_freq = action.get("low_pass_hz", 0)
+        if lp_freq and 100 < lp_freq < 20000:
+            board.append(LowpassFilter(cutoff_frequency_hz=float(lp_freq)))
+
+        # 3. 参量 EQ 调整
         eq_list = action.get("eq_adjustments", [])
         for eq in eq_list:
             freq = float(eq.get("freq", 1000))
@@ -51,7 +59,21 @@ class MixingEngine:
             if abs(gain_db) > 0.1:
                 board.append(PeakFilter(cutoff_frequency_hz=freq, gain_db=gain_db, q=q))
 
-        # 3. 动态压缩 (Compressor)
+        # 4. 模拟失真 / 饱和度 (Distortion / Drive)
+        drive_db = action.get("distortion_db", 0.0)
+        if drive_db and float(drive_db) > 0.1:
+            board.append(Distortion(drive_db=float(drive_db)))
+
+        # 5. GSM 蜂窝数字电话编码器 (Telephone Codec)
+        if action.get("gsm_codec"):
+            board.append(GSMFullRateCompressor())
+
+        # 6. 8-Bit 降阶量化咬比特 (Bitcrush)
+        bitcrush = action.get("bitcrush_depth")
+        if bitcrush and float(bitcrush) < 16.0:
+            board.append(Bitcrush(bit_depth=float(bitcrush)))
+
+        # 7. 动态压缩 (Compressor)
         comp = action.get("compressor")
         if comp and isinstance(comp, dict):
             thresh = float(comp.get("threshold_db", 0.0))
@@ -66,7 +88,7 @@ class MixingEngine:
                     release_ms=release
                 ))
 
-        # 4. 增益修整 (Gain Trim)
+        # 8. 增益修整 (Gain Trim)
         gain_trim = float(action.get("gain_trim_db", 0.0))
         if abs(gain_trim) > 0.05:
             board.append(Gain(gain_db=gain_trim))
@@ -80,6 +102,11 @@ class MixingEngine:
         # 效果器处理
         dsp_board = self.build_track_dsp_board(action)
         processed = dsp_board(audio, self.sample_rate)
+
+        # 单声道收束处理 (Mono Collapse for Radio / Telephone)
+        if action.get("mono"):
+            mid = 0.5 * (processed[0] + processed[1])
+            processed = np.stack([mid, mid], axis=0)
         
         # 声相调节
         pan = float(action.get("pan", 0.0))
@@ -155,7 +182,17 @@ class MixingEngine:
         bus_cfg = strategy.get("bus_master", {})
         master_board = Pedalboard()
 
-        # 1. 胶水压缩 (Glue Compressor)
+        # 1. 总线高通滤波 (Master High-pass Filter)
+        bus_hp = bus_cfg.get("high_pass_hz", 0)
+        if bus_hp and float(bus_hp) > 20:
+            master_board.append(HighpassFilter(cutoff_frequency_hz=float(bus_hp)))
+
+        # 2. 总线低通滤波 (Master Low-pass Filter 削弱高频/收音机与电话窄频带)
+        bus_lp = bus_cfg.get("low_pass_hz", 0)
+        if bus_lp and 100 < float(bus_lp) < 20000:
+            master_board.append(LowpassFilter(cutoff_frequency_hz=float(bus_lp)))
+
+        # 3. 胶水压缩 (Glue Compressor)
         glue = bus_cfg.get("glue_compressor", {})
         if glue and isinstance(glue, dict):
             thresh = float(glue.get("threshold_db", -14.0))
@@ -169,7 +206,7 @@ class MixingEngine:
                 release_ms=release
             ))
 
-        # 2. 总线频响修饰
+        # 4. 总线频响修饰
         bus_eq = bus_cfg.get("bus_eq", [])
         for eq in bus_eq:
             freq = float(eq.get("freq", 1000))
@@ -178,10 +215,29 @@ class MixingEngine:
             if abs(gain_db) > 0.1:
                 master_board.append(PeakFilter(cutoff_frequency_hz=freq, gain_db=gain_db, q=q))
 
+        # 5. 总线模拟失真 / 饱和度 (Distortion / Broadcast Saturation)
+        bus_dist = bus_cfg.get("distortion_db", 0.0)
+        if bus_dist and float(bus_dist) > 0.1:
+            master_board.append(Distortion(drive_db=float(bus_dist)))
+
+        # 6. 总线 GSM 蜂窝电话数字编码器 (Authentic Telephone Codec)
+        if bus_cfg.get("gsm_codec"):
+            master_board.append(GSMFullRateCompressor())
+
+        # 7. 总线 8-Bit 降阶量化 (Bitcrush Arcade)
+        bus_bitcrush = bus_cfg.get("bitcrush_depth")
+        if bus_bitcrush and float(bus_bitcrush) < 16.0:
+            master_board.append(Bitcrush(bit_depth=float(bus_bitcrush)))
+
         # 执行总线效果
         master_audio = master_board(master_sum, self.sample_rate)
 
-        # 3. 响度匹配与 True-Peak 限幅
+        # 单声道总线收束 (Mono Summing for Radio / Telephone)
+        if bus_cfg.get("mono"):
+            mid = 0.5 * (master_audio[0] + master_audio[1])
+            master_audio = np.stack([mid, mid], axis=0)
+
+        # 8. 响度匹配与 True-Peak 限幅
         target_lufs = float(bus_cfg.get("target_lufs", -14.0))
         current_lufs = calculate_lufs(master_audio, self.sample_rate)
         
@@ -192,10 +248,15 @@ class MixingEngine:
             gain_lin = 10.0 ** (gain_needed_db / 20.0)
             master_audio = master_audio * gain_lin
 
-        # 4. 终极砖墙限幅器 (Limiter)，确保母带真峰值不超过 -0.5 dBTP
+        # 9. 终极砖墙限幅器 (Limiter)，确保母带真峰值不超过 -0.5 dBTP
         ceiling_db = float(bus_cfg.get("ceiling_dbtp", -0.5))
         limiter = Pedalboard([Limiter(threshold_db=ceiling_db, release_ms=100.0)])
         master_audio = limiter(master_audio, self.sample_rate)
+
+        # 再次确保单声道属性（如果被限幅器微扰）
+        if bus_cfg.get("mono"):
+            mid = 0.5 * (master_audio[0] + master_audio[1])
+            master_audio = np.stack([mid, mid], axis=0)
 
         # 写入最终输出母带
         os.makedirs(os.path.dirname(output_master_path), exist_ok=True)

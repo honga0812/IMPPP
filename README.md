@@ -123,9 +123,10 @@ uvicorn backend.app:app --host 0.0.0.0 --port 8000
 ```
 启动后在浏览器打开：👉 **http://127.0.0.1:8000**
 
-### 方式三：GitHub Pages 在线试用
-无需安装任何环境，直接访问：
-👉 **https://honga0812.github.io/IMPPP/**
+### 方式三：GitHub Pages 在线交互体验 (纯前端免安装)
+无需安装任何环境，直接在浏览器中打开：
+- 👉 **https://honga0812.github.io/IMPPP/** （自动重定向进入）
+- 👉 **https://honga0812.github.io/IMPPP/frontend/** （直达工作台主页面）
 
 ---
 

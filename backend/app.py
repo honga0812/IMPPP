@@ -97,6 +97,21 @@ class YouTubeSeparateRequest(BaseModel):
 def get_project():
     return project_state
 
+@app.get("/api/diagnose")
+@app.get("/api/health")
+def health_check():
+    import torch
+    has_mps = torch.backends.mps.is_available() if hasattr(torch.backends, "mps") else False
+    has_cuda = torch.cuda.is_available()
+    device_name = "mps" if has_mps else ("cuda" if has_cuda else "cpu")
+    return {
+        "status": "ok",
+        "engine": "Demucs v4 (Hybrid Transformer)",
+        "device": device_name,
+        "gpu_accelerated": has_mps or has_cuda,
+        "tracks_count": len(project_state.get("tracks", []))
+    }
+
 @app.post("/api/llm/config")
 def set_llm_config(req: LLMConfigRequest):
     copilot.set_config(api_key=req.api_key, api_base=req.api_base, model=req.model)
